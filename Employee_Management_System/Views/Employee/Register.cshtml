@@ -1,0 +1,859 @@
+﻿@model Employee_Management_System.Models.Employee
+
+@{
+    ViewData["Title"] = "Employee Registration";
+    Layout = "~/Views/Shared/_Layout.cshtml";   // Remove this line if you are not using Layout
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Employee Registration</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+
+    <style>
+        .card-header {
+            background: #0d6efd;
+            color: white;
+        }
+
+        .nav-tabs .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .input-group .btn {
+            width: 45px;
+        }
+
+        .form-label {
+            font-weight: bold;
+        }
+
+        .btn {
+            min-width: 100px;
+        }
+    </style>
+
+</head>
+<body>
+
+    <div class="container mt-4">
+
+        <div class="card shadow">
+
+            <div class="card-header">
+
+                <h3 class="text-center">
+                    Employee Registration
+                </h3>
+
+            </div>
+
+            <div class="card-body">
+
+                <form asp-action="Register" method="post">
+
+                    <!-- Employee Information -->
+
+                    <div class="row">
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Employee Code</label>
+                            <input asp-for="EmployeeCode" class="form-control" />
+                        </div>
+
+                        <div class="col-md-5 mb-3">
+                            <label class="form-label">Employee Name</label>
+                            <input asp-for="EmployeeName" class="form-control" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Employee Type</label>
+                            <select asp-for="EmployeeType" class="form-select">
+                                <option value="">Select Type</option>
+                                <option>Permanent</option>
+                                <option>Temporary</option>
+                                <option>Contract</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <!-- Tabs -->
+
+                    <ul class="nav nav-tabs">
+
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#general">
+                                General Information
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#other">
+                                Other Information
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#address">
+                                Address Information
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#personal">
+                                Personal Information
+                            </a>
+                        </li>
+
+                    </ul>
+
+                    <div class="tab-content border border-top-0 p-4">
+
+                        <!-- General Information -->
+
+                        <div class="tab-pane fade show active" id="general">
+
+                            <div class="row">
+
+                                <!-- Grade -->
+
+                                <div class="col-md-4 mb-3">
+
+                                    <label class="form-label">Grade Code</label>
+
+                                    <div class="input-group">
+
+                                        <select asp-for="GradeId"
+                                                asp-items="ViewBag.GradeId"
+                                                class="form-select">
+
+                                            <option value="">Select Grade</option>
+
+                                        </select>
+
+                                        <button class="btn btn-primary"
+                                                type="button">
+
+                                            <i class="bi bi-search"></i>
+
+                                        </button>
+
+                                    </div>
+
+                                </div>
+
+                                <!-- Section -->
+
+                                <div class="col-md-4 mb-3">
+
+                                    <label class="form-label">Section Code</label>
+
+                                    <div class="input-group">
+
+                                        <select asp-for="SectionId"
+                                                asp-items="ViewBag.SectionId"
+                                                class="form-select">
+
+                                            <option value="">Select Section</option>
+
+                                        </select>
+
+                                        <button class="btn btn-primary"
+                                                type="button">
+
+                                            <i class="bi bi-search"></i>
+
+                                        </button>
+
+                                    </div>
+
+                                </div>
+
+                                <!-- Branch -->
+
+                                <div class="col-md-4 mb-3">
+
+                                    <label class="form-label">Branch Code</label>
+
+                                    <div class="input-group">
+
+                                        <select asp-for="BranchId"
+                                                asp-items="ViewBag.BranchId"
+                                                class="form-select">
+
+                                            <option value="">Select Branch</option>
+
+                                        </select>
+
+                                        <button class="btn btn-primary"
+                                                type="button">
+
+                                            <i class="bi bi-search"></i>
+
+                                        </button>
+
+                                    </div>
+
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Joining Date</label>
+                                    <input asp-for="JoiningDate" type="date" class="form-control" />
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Permanent Date</label>
+                                    <input asp-for="PermanentDate" type="date" class="form-control" />
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Last Salary Date</label>
+                                    <input asp-for="LastSalaryDate" type="date" class="form-control" />
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Basic Salary</label>
+                                    <input asp-for="BasicSalary" class="form-control" />
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Last Salary Increment Date</label>
+                                    <input asp-for="LastSalaryIncrementDate" type="date" class="form-control" />
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Retirement Date</label>
+                                    <input asp-for="RetirementDate" type="date" class="form-control" />
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <!-- ======================= Other Information ======================= -->
+                        <div class="tab-pane fade" id="other">
+
+                            <div class="row mt-3">
+
+                                <!-- Left Side -->
+                                <div class="col-md-6">
+
+                                    <div class="mb-3 row">
+                                        <label class="col-md-6 col-form-label fw-bold">Pension Fund Open. Bal.</label>
+                                        <div class="col-md-6">
+                                            <input asp-for="PensionFundOpeningBalance" class="form-control" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-md-6 col-form-label fw-bold">P.F. No.</label>
+                                        <div class="col-md-6">
+                                            <input asp-for="PFNumber" class="form-control" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-md-6 col-form-label fw-bold">P.F. Opening Bal.</label>
+                                        <div class="col-md-6">
+                                            <input asp-for="PFOpeningBalance" class="form-control" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-md-6 col-form-label fw-bold">PAN No.</label>
+                                        <div class="col-md-6">
+                                            <input asp-for="PANNumber" class="form-control" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-md-6 col-form-label fw-bold">S/B.G.L. Code</label>
+                                        <div class="col-md-6">
+                                            <div class="input-group">
+                                                <input asp-for="SavingGLCode" class="form-control" />
+                                                <button type="button"
+                                                        class="btn btn-outline-primary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#SavingGLModal">
+                                                    <i class="bi bi-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-md-6 col-form-label fw-bold">S/B.Br. Code</label>
+                                        <div class="col-md-6">
+                                            <div class="input-group">
+                                                <input asp-for="SavingBranchCode" class="form-control" />
+                                                <button type="button"
+                                                        class="btn btn-outline-primary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#SavingBranchModal">
+                                                    <i class="bi bi-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-md-6 col-form-label fw-bold">S/B.Ac. Code</label>
+                                        <div class="col-md-6">
+                                            <div class="input-group">
+                                                <input asp-for="SavingAccountCode" class="form-control" />
+                                                <button type="button"
+                                                        class="btn btn-outline-primary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#SavingAccountModal">
+                                                    <i class="bi bi-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <!-- Right Side -->
+                                <div class="col-md-6">
+
+                                    <div class="mb-3 row">
+                                        <label class="col-md-5 col-form-label fw-bold">IT Sr. No.</label>
+                                        <div class="col-md-7">
+                                            <input asp-for="ITSerialNumber" class="form-control" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-md-5 col-form-label fw-bold">P.F. Sr. No.</label>
+                                        <div class="col-md-7">
+                                            <input asp-for="PFSerialNumber" class="form-control" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-md-5 col-form-label fw-bold">P.F. Balance</label>
+                                        <div class="col-md-7">
+                                            <input asp-for="PFBalance" class="form-control" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-md-5 col-form-label fw-bold">Aadhaar No.</label>
+                                        <div class="col-md-7">
+                                            <input asp-for="AadhaarNumber" class="form-control" maxlength="12" />
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div class="text-end mt-4">
+
+                                <button type="button" class="btn btn-secondary">
+                                    Previous
+                                </button>
+
+                                <button type="button" class="btn btn-primary">
+                                    Next
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                        <!-- ======================= Search Modals ======================= -->
+
+                        <div class="modal fade" id="SavingGLModal" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title">Saving G/L Code</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Display Saving G/L Code list here.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal fade" id="SavingBranchModal" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title">Saving Branch Code</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Display Saving Branch list here.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal fade" id="SavingAccountModal" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title">Saving Account Code</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Display Saving Account list here.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ================= Address Information ================= -->
+
+                        <div class="tab-pane fade" id="address">
+
+                            <div class="container mt-3">
+
+                                <div class="row">
+
+                                    <div class="col-md-8 offset-md-1">
+
+                                        <!-- Correspondence Address -->
+
+                                        <div class="row mb-3">
+
+                                            <label class="col-md-4 col-form-label fw-bold">
+                                                Correspondence Address
+                                            </label>
+
+                                            <div class="col-md-8">
+
+                                                <input asp-for="CorrespondenceAddress1"
+                                                       class="form-control mb-2" />
+
+                                                <input asp-for="CorrespondenceAddress2"
+                                                       class="form-control" />
+
+                                            </div>
+
+                                        </div>
+
+                                        <!-- Permanent Address -->
+
+                                        <div class="row mb-3">
+
+                                            <label class="col-md-4 col-form-label fw-bold">
+                                                Permanent Address
+                                            </label>
+
+                                            <div class="col-md-8">
+
+                                                <input asp-for="PermanentAddress1"
+                                                       class="form-control mb-2" />
+
+                                                <input asp-for="PermanentAddress2"
+                                                       class="form-control" />
+
+                                            </div>
+
+                                        </div>
+
+                                        <!-- Father's Name -->
+
+                                        <div class="row mb-3">
+
+                                            <label class="col-md-4 col-form-label fw-bold">
+                                                Father's Name
+                                            </label>
+
+                                            <div class="col-md-8">
+
+                                                <input asp-for="FatherName"
+                                                       class="form-control" />
+
+                                            </div>
+
+                                        </div>
+
+                                        <!-- Address -->
+
+                                        <div class="row mb-3">
+
+                                            <label class="col-md-4 col-form-label fw-bold">
+                                                Address
+                                            </label>
+
+                                            <div class="col-md-8">
+
+                                                <input asp-for="Address1"
+                                                       class="form-control mb-2" />
+
+                                                <input asp-for="Address2"
+                                                       class="form-control" />
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                <!-- Navigation Buttons -->
+
+                                <div class="text-end mt-4">
+
+                                    <button type="button"
+                                            class="btn btn-secondary">
+
+                                        Previous
+
+                                    </button>
+
+                                    <button type="button"
+                                            class="btn btn-primary">
+
+                                        Next
+
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <!-- ================= Personal Information ================= -->
+
+                        <div class="tab-pane fade" id="personal">
+
+                            <div class="container mt-3">
+
+                                <div class="row">
+
+                                    <!-- Left Side -->
+
+                                    <div class="col-md-6">
+
+                                        <!-- Religion -->
+
+                                        <div class="mb-3 row">
+
+                                            <label class="col-md-5 col-form-label fw-bold">
+                                                Religion
+                                            </label>
+
+                                            <div class="col-md-7">
+
+                                                <div class="input-group">
+
+                                                    <input asp-for="Religion" class="form-control" />
+
+                                                    <button type="button"
+                                                            class="btn btn-outline-primary">
+
+                                                        <i class="bi bi-search"></i>
+
+                                                    </button>
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                        <!-- Caste -->
+
+                                        <div class="mb-3 row">
+
+                                            <label class="col-md-5 col-form-label fw-bold">
+                                                Caste
+                                            </label>
+
+                                            <div class="col-md-7">
+
+                                                <div class="input-group">
+
+                                                    <input asp-for="Caste" class="form-control" />
+
+                                                    <button type="button"
+                                                            class="btn btn-outline-primary">
+
+                                                        <i class="bi bi-search"></i>
+
+                                                    </button>
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                        <!-- Gender -->
+
+                                        <div class="mb-3 row">
+
+                                            <label class="col-md-5 col-form-label fw-bold">
+                                                Gender
+                                            </label>
+
+                                            <div class="col-md-7">
+
+                                                <div class="form-check form-check-inline">
+
+                                                    <input asp-for="Gender"
+                                                           class="form-check-input"
+                                                           type="radio"
+                                                           value="Male">
+
+                                                    <label class="form-check-label">
+                                                        Male
+                                                    </label>
+
+                                                </div>
+
+                                                <div class="form-check form-check-inline">
+
+                                                    <input asp-for="Gender"
+                                                           class="form-check-input"
+                                                           type="radio"
+                                                           value="Female">
+
+                                                    <label class="form-check-label">
+                                                        Female
+                                                    </label>
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                        <!-- Birth Date -->
+
+                                        <div class="mb-3 row">
+
+                                            <label class="col-md-5 col-form-label fw-bold">
+                                                Birth Date
+                                            </label>
+
+                                            <div class="col-md-7">
+
+                                                <input asp-for="BirthDate"
+                                                       type="date"
+                                                       class="form-control" />
+
+                                            </div>
+
+                                        </div>
+
+                                        <!-- Identification Mark -->
+
+                                        <div class="mb-3 row">
+
+                                            <label class="col-md-5 col-form-label fw-bold">
+                                                Identification Mark
+                                            </label>
+
+                                            <div class="col-md-7">
+
+                                                <input asp-for="IdentificationMark"
+                                                       class="form-control" />
+
+                                            </div>
+
+                                        </div>
+
+                                        <!-- Known Language -->
+
+                                        <div class="mb-3 row">
+
+                                            <label class="col-md-5 col-form-label fw-bold">
+                                                Known Language
+                                            </label>
+
+                                            <div class="col-md-7">
+
+                                                <input asp-for="KnownLanguage"
+                                                       class="form-control" />
+
+                                            </div>
+
+                                        </div>
+
+                                        <!-- Education -->
+
+                                        <div class="mb-3 row">
+
+                                            <label class="col-md-5 col-form-label fw-bold">
+                                                Education
+                                            </label>
+
+                                            <div class="col-md-7">
+
+                                                <input asp-for="Education"
+                                                       class="form-control" />
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <!-- Right Side -->
+
+                                    <div class="col-md-6">
+
+                                        <div class="mb-3 row">
+
+                                            <label class="col-md-5 col-form-label fw-bold">
+                                                Blood Group
+                                            </label>
+
+                                            <div class="col-md-7">
+
+                                                <select asp-for="BloodGroup"
+                                                        class="form-select">
+
+                                                    <option value="">Select</option>
+                                                    <option>A+</option>
+                                                    <option>A-</option>
+                                                    <option>B+</option>
+                                                    <option>B-</option>
+                                                    <option>AB+</option>
+                                                    <option>AB-</option>
+                                                    <option>O+</option>
+                                                    <option>O-</option>
+
+                                                </select>
+
+                                            </div>
+
+                                        </div>
+
+                                        <div class="mb-3 row">
+
+                                            <label class="col-md-5 col-form-label fw-bold">
+                                                Height
+                                            </label>
+
+                                            <div class="col-md-7">
+
+                                                <input asp-for="Height"
+                                                       class="form-control" />
+
+                                            </div>
+
+                                        </div>
+
+                                        <div class="mb-3 row">
+
+                                            <label class="col-md-5 col-form-label fw-bold">
+                                                Mother Tongue
+                                            </label>
+
+                                            <div class="col-md-7">
+
+                                                <input asp-for="MotherTongue"
+                                                       class="form-control" />
+
+                                            </div>
+
+                                        </div>
+
+                                        <div class="mb-3 row">
+
+                                            <label class="col-md-5 col-form-label fw-bold">
+                                                Mode of Sign
+                                            </label>
+
+                                            <div class="col-md-7">
+
+                                                <input asp-for="ModeOfSign"
+                                                       class="form-control" />
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                <div class="text-end mt-4">
+
+                                    <button type="button"
+                                            class="btn btn-secondary">
+                                        Previous
+                                    </button>
+
+                                    <button type="submit"
+                                            class="btn btn-success">
+                                        Save Employee
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="text-center mt-4">
+
+                        <button type="reset" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> New
+                        </button>
+
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-save"></i> Save
+                        </button>
+
+                        <button type="button" class="btn btn-warning">
+                            <i class="bi bi-pencil-square"></i> Update
+                        </button>
+
+                        <button type="button" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+
+                        <button type="button" class="btn btn-info text-white">
+                            <i class="bi bi-eye"></i> View
+                        </button>
+
+                        <a asp-controller="Home"
+                           asp-action="Index"
+                           class="btn btn-secondary">
+                            <i class="bi bi-box-arrow-right"></i> Exit
+                        </a>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
