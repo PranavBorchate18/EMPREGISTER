@@ -7,17 +7,19 @@ namespace Employee_Management_System.Models
 {
     public class Employee
     {
+        [Key]
         public int Id { get; set; }
 
-        [Required]
-        public string EmployeeCode { get; set; }
-
-        [Required]
-        public string EmployeeName { get; set; }
-
-        public string EmployeeType { get; set; }
-
+        //=====================================================
         // General Information
+        //=====================================================
+
+        public string? EmployeeCode { get; set; }
+
+        [Required]
+        public string? EmployeeName { get; set; }
+
+        public string? EmployeeType { get; set; }
 
         public int? GradeId { get; set; }
 
@@ -32,23 +34,15 @@ namespace Employee_Management_System.Models
         public DateTime? LastSalaryDate { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
-        public decimal BasicSalary { get; set; }
+        public decimal? BasicSalary { get; set; }
 
         public DateTime? LastSalaryIncrementDate { get; set; }
 
         public DateTime? RetirementDate { get; set; }
 
-        // Navigation Properties
-
-        public GradeFoot Grade { get; set; }
-
-        public Section Section { get; set; }
-
-        public Branch Branch { get; set; }
-
-        // ===============================
+        //=====================================================
         // Other Information
-        // ===============================
+        //=====================================================
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal? PensionFundOpeningBalance { get; set; }
@@ -75,9 +69,10 @@ namespace Employee_Management_System.Models
 
         public string? AadhaarNumber { get; set; }
 
-        //================ Address Information =================
+        //=====================================================
+        // Address Information
+        //=====================================================
 
-        [Display(Name = "Correspondence Address")]
         public string? CorrespondenceAddress1 { get; set; }
 
         public string? CorrespondenceAddress2 { get; set; }
@@ -92,7 +87,13 @@ namespace Employee_Management_System.Models
 
         public string? Address2 { get; set; }
 
-        //====================== Personal Information ======================
+        //=====================================================
+        // Personal Information
+        //=====================================================
+
+        public string? Religion { get; set; }
+
+        public string? Caste { get; set; }
 
         public string? Gender { get; set; }
 
@@ -102,6 +103,7 @@ namespace Employee_Management_System.Models
 
         public string? IdentificationMark { get; set; }
 
+        [Column(TypeName = "decimal(5,2)")]
         public decimal? Height { get; set; }
 
         public string? KnownLanguage { get; set; }
@@ -112,8 +114,17 @@ namespace Employee_Management_System.Models
 
         public string? ModeOfSign { get; set; }
 
-        public string? Religion { get; set; }
+        //=====================================================
+        // Navigation Properties
+        //=====================================================
 
-        public string? Caste { get; set; }
+        [ForeignKey("GradeId")]
+        public virtual GradeFoot? Grade { get; set; }
+
+        [ForeignKey("SectionId")]
+        public virtual Section? Section { get; set; }
+
+        [ForeignKey("BranchId")]
+        public virtual Branch? Branch { get; set; }
     }
 }

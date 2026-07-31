@@ -14,16 +14,20 @@ namespace Employee_Management_System.Controllers
             _context = context;
         }
 
+        //======================== REGISTER (GET) ========================
 
+        [HttpGet]
         public IActionResult Register()
         {
-            ViewBag.Grades = _context.Grades.ToList();
-            ViewBag.Sections = _context.Sections.ToList();
-            ViewBag.Branches = _context.Branches.ToList();
+            LoadMasterData();
 
             return View(new Employee());
         }
+
+        //======================== REGISTER (POST) ========================
+
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult Register(Employee employee)
         {
             if (ModelState.IsValid)
@@ -31,14 +35,34 @@ namespace Employee_Management_System.Controllers
                 _context.Employees.Add(employee);
                 _context.SaveChanges();
 
+                TempData["Success"] = "Employee Registered Successfully.";
+
                 return RedirectToAction(nameof(Register));
             }
 
-            ViewBag.Grades = _context.Grades.ToList();
-            ViewBag.Sections = _context.Sections.ToList();
-            ViewBag.Branches = _context.Branches.ToList();
+            LoadMasterData();
 
             return View(employee);
+        }
+
+        //======================== LOAD MASTER DATA ========================
+
+        private void LoadMasterData()
+        {
+            ViewBag.Grades = new SelectList(
+                _context.Grades.ToList(),
+                "Id",
+                "GradeName");
+
+            ViewBag.Sections = new SelectList(
+                _context.Sections.ToList(),
+                "Id",
+                "SectionName");
+
+            ViewBag.Branches = new SelectList(
+                _context.Branches.ToList(),
+                "Id",
+                "BranchName");
         }
     }
 }
