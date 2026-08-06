@@ -1,10 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Diagnostics;
-using static System.Collections.Specialized.BitVector32;
 
 namespace Employee_Management_System.Models
 {
+    [Table("Employee")]
     public class Employee
     {
         [Key]
@@ -16,7 +15,7 @@ namespace Employee_Management_System.Models
 
         public string? EmployeeCode { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Employee Name is required")]
         public string? EmployeeName { get; set; }
 
         public string? EmployeeType { get; set; }
@@ -25,7 +24,7 @@ namespace Employee_Management_System.Models
 
         public int? SectionId { get; set; }
 
-        public int? BranchId { get; set; }
+        public short? BranchId { get; set; }
 
         public DateTime? JoiningDate { get; set; }
 
@@ -91,6 +90,7 @@ namespace Employee_Management_System.Models
         // Personal Information
         //=====================================================
 
+        // Database columns are nvarchar
         public string? Religion { get; set; }
 
         public string? Caste { get; set; }
@@ -118,13 +118,13 @@ namespace Employee_Management_System.Models
         // Navigation Properties
         //=====================================================
 
-        [ForeignKey("GradeId")]
-        public virtual GradeFoot? Grade { get; set; }
+        [ForeignKey(nameof(GradeId))]
+        public virtual GradeMaster? Grade { get; set; }
 
-        [ForeignKey("SectionId")]
+        [ForeignKey(nameof(SectionId))]
         public virtual Section? Section { get; set; }
 
-        [ForeignKey("BranchId")]
+        [ForeignKey(nameof(BranchId))]
         public virtual Branch? Branch { get; set; }
     }
 }

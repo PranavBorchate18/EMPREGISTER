@@ -2,7 +2,6 @@
 
 @{
     ViewData["Title"] = "Employee Registration";
-    Layout = "~/Views/Shared/_Layout.cshtml";   // Remove this line if you are not using Layout
 }
 
 <!DOCTYPE html>
@@ -12,12 +11,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>Employee Registration</title>
-
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <style>
         .card-header {
@@ -62,28 +59,86 @@
 
                 <form asp-action="Register" method="post">
 
-                    <!-- Employee Information -->
+                    <!--==========================================
+                        Customer Search
+                    ===========================================-->
+
+                    <div class="row mb-3">
+
+                        <div class="col-md-2">
+                            <label>Employee Id</label>
+                        </div>
+
+                        <div class="col-md-3">
+                            <input id="EmployeeIdSearch"
+                                   class="form-control" />
+                        </div>
+
+                        <div class="col-md-2">
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    onclick="GetEmployee()">
+                                Search
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <hr />
+
+                    <!--==========================================
+                        Employee Information
+                    ===========================================-->
 
                     <div class="row">
 
+                        <!-- Employee Code -->
+
                         <div class="col-md-3 mb-3">
-                            <label class="form-label">Employee Code</label>
-                            <input asp-for="EmployeeCode" class="form-control" />
+
+                            <label asp-for="EmployeeCode" class="form-label">
+                                Employee Code
+                            </label>
+
+                            <input asp-for="EmployeeCode"
+                                   id="EmployeeCode"
+                                   class="form-control" />
+
                         </div>
+
+                        <!-- Employee Name -->
 
                         <div class="col-md-5 mb-3">
-                            <label class="form-label">Employee Name</label>
-                            <input asp-for="EmployeeName" class="form-control" />
+
+                            <label asp-for="EmployeeName" class="form-label">
+                                Employee Name
+                            </label>
+
+                            <input asp-for="EmployeeName"
+                                   id="EmployeeName"
+                                   class="form-control" />
+
                         </div>
 
+                        <!-- Employee Type -->
+
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Employee Type</label>
-                            <select asp-for="EmployeeType" class="form-select">
+
+                            <label asp-for="EmployeeType" class="form-label">
+                                Employee Type
+                            </label>
+
+                            <select asp-for="EmployeeType"
+                                    id="EmployeeType"
+                                    class="form-select">
+
                                 <option value="">Select Type</option>
-                                <option>Permanent</option>
-                                <option>Temporary</option>
-                                <option>Contract</option>
+                                <option value="Permanent">Permanent</option>
+                                <option value="Temporary">Temporary</option>
+                                <option value="Contract">Contract</option>
+
                             </select>
+
                         </div>
 
                     </div>
@@ -120,121 +175,98 @@
 
                     <div class="tab-content border border-top-0 p-4">
 
-                        <!-- General Information -->
+                        <!-- ================= General Information ================= -->
 
                         <div class="tab-pane fade show active" id="general">
 
-                            <div class="row">
+                            <div class="container mt-3">
 
-                                <!-- Grade -->
+                                <div class="row">
 
-                                <div class="col-md-4 mb-3">
+                                    <!-- Grade -->
 
-                                    <label class="form-label">Grade Code</label>
+                                    <div class="col-md-4">
+                                        <label asp-for="Grade" class="form-label fw-bold"></label>
 
-                                    <div class="input-group">
-
-                                        <select asp-for="GradeId"
-                                                asp-items="ViewBag.GradeId"
+                                        <select asp-for="Grade"
+                                                asp-items="ViewBag.Grades"
                                                 class="form-select">
-
-                                            <option value="">Select Grade</option>
-
+                                            <option value="">-- Select Grade --</option>
                                         </select>
 
-                                        <button class="btn btn-primary"
-                                                type="button">
-
-                                            <i class="bi bi-search"></i>
-
-                                        </button>
-
+                                        <span asp-validation-for="Grade" class="text-danger"></span>
                                     </div>
 
-                                </div>
+                                    <!-- Section -->
 
-                                <!-- Section -->
-
-                                <div class="col-md-4 mb-3">
-
-                                    <label class="form-label">Section Code</label>
-
-                                    <div class="input-group">
+                                    <div class="col-md-4">
+                                        <label asp-for="SectionId" class="form-label fw-bold">Section</label>
 
                                         <select asp-for="SectionId"
-                                                asp-items="ViewBag.SectionId"
+                                                asp-items="ViewBag.Sections"
                                                 class="form-select">
-
-                                            <option value="">Select Section</option>
-
+                                            <option value="">-- Select Section --</option>
                                         </select>
 
-                                        <button class="btn btn-primary"
-                                                type="button">
-
-                                            <i class="bi bi-search"></i>
-
-                                        </button>
-
+                                        <span asp-validation-for="SectionId" class="text-danger"></span>
                                     </div>
 
-                                </div>
+                                    <!-- Branch -->
 
-                                <!-- Branch -->
-
-                                <div class="col-md-4 mb-3">
-
-                                    <label class="form-label">Branch Code</label>
-
-                                    <div class="input-group">
+                                    <div class="col-md-4">
+                                        <label asp-for="BranchId" class="form-label fw-bold">Branch</label>
 
                                         <select asp-for="BranchId"
-                                                asp-items="ViewBag.BranchId"
+                                                asp-items="ViewBag.Branches"
                                                 class="form-select">
-
-                                            <option value="">Select Branch</option>
-
+                                            <option value="">-- Select Branch --</option>
                                         </select>
 
-                                        <button class="btn btn-primary"
-                                                type="button">
-
-                                            <i class="bi bi-search"></i>
-
-                                        </button>
-
+                                        <span asp-validation-for="BranchId" class="text-danger"></span>
                                     </div>
 
                                 </div>
 
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Joining Date</label>
-                                    <input asp-for="JoiningDate" type="date" class="form-control" />
+                                <div class="row mt-3">
+
+                                    <div class="col-md-4">
+                                        <label asp-for="JoiningDate" class="form-label fw-bold"></label>
+                                        <input asp-for="JoiningDate" type="date" class="form-control" />
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label asp-for="PermanentDate" class="form-label fw-bold"></label>
+                                        <input asp-for="PermanentDate" type="date" class="form-control" />
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label asp-for="LastSalaryDate" class="form-label fw-bold"></label>
+                                        <input asp-for="LastSalaryDate" type="date" class="form-control" />
+                                    </div>
+
                                 </div>
 
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Permanent Date</label>
-                                    <input asp-for="PermanentDate" type="date" class="form-control" />
-                                </div>
+                                <div class="row mt-3">
 
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Last Salary Date</label>
-                                    <input asp-for="LastSalaryDate" type="date" class="form-control" />
-                                </div>
+                                    @* <div class="col-md-4">
+                                        <label asp-for="Basic" class="form-label fw-bold"></label>
+                                        <input asp-for="Basic" class="form-control" />
+                                    </div> *@
 
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Basic Salary</label>
-                                    <input asp-for="BasicSalary" class="form-control" />
-                                </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="LastSalaryIncrementDate" class="form-label fw-bold"></label>
+                                        <input asp-for="LastSalaryIncrementDate"
+                                               type="date"
+                                               class="form-control" />
+                                    </div>
 
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Last Salary Increment Date</label>
-                                    <input asp-for="LastSalaryIncrementDate" type="date" class="form-control" />
-                                </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="RetirementDate" class="form-label fw-bold"></label>
+                                        <input asp-for="RetirementDate"
+                                               type="date"
+                                               class="form-control" />
+                                    </div>
 
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Retirement Date</label>
-                                    <input asp-for="RetirementDate" type="date" class="form-control" />
                                 </div>
 
                             </div>
@@ -544,60 +576,274 @@
 
                                     <div class="col-md-6">
 
-                                        <!-- Religion -->
+                                        <div class="col-md-4">
 
-                                        <div class="mb-3 row">
-
-                                            <label class="col-md-5 col-form-label fw-bold">
+                                            <label class="form-label">
                                                 Religion
                                             </label>
 
-                                            <div class="col-md-7">
 
-                                                <div class="input-group">
+                                            <div class="input-group">
 
-                                                    <input asp-for="Religion" class="form-control" />
+                                                <input type="text"
+                                                       id="ReligionSearch"
+                                                       class="form-control"
+                                                       placeholder="Search Religion"
+                                                       readonly />
 
-                                                    <button type="button"
-                                                            class="btn btn-outline-primary">
 
-                                                        <i class="bi bi-search"></i>
+                                                <button type="button"
+                                                        class="btn btn-primary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#ReligionModal">
 
-                                                    </button>
+                                                    🔍
+
+                                                </button>
+
+                                            </div>
+
+
+                                            <input type="hidden"
+                                                   asp-for="Religion"
+                                                   id="ReligionId" />
+
+                                        </div>
+                                        <div class="modal fade" id="ReligionModal">
+
+                                            <div class="modal-dialog modal-lg">
+
+                                                <div class="modal-content">
+
+
+                                                    <div class="modal-header">
+
+                                                        <h5>Select Religion</h5>
+
+                                                        <button class="btn-close"
+                                                                data-bs-dismiss="modal">
+                                                        </button>
+
+                                                    </div>
+
+
+                                                    <div class="modal-body">
+
+
+                                                        <input type="text"
+                                                               id="searchReligion"
+                                                               class="form-control mb-3"
+                                                               placeholder="Search Religion"
+                                                               onkeyup="searchReligion()" />
+
+
+                                                        <table class="table table-bordered">
+
+                                                            <thead>
+
+                                                                <tr>
+
+                                                                    <th>Code</th>
+
+                                                                    <th>Religion</th>
+
+                                                                    <th></th>
+
+                                                                </tr>
+
+                                                            </thead>
+
+
+                                                            <tbody id="religionTable">
+
+
+                                                                @foreach (var item in ViewBag.Religions)
+                                                                {
+
+                                                                    <tr>
+
+                                                                        <td>
+                                                                            @item.Code
+                                                                        </td>
+
+
+                                                                        <td>
+                                                                            @item.ReligionName
+                                                                        </td>
+
+
+                                                                        <td>
+
+                                                                            <button type="button"
+                                                                                    class="btn btn-success btn-sm"
+                                                                                    onclick="selectReligion('@item.Code','@item.ReligionName')">
+
+                                                                                Select
+
+                                                                            </button>
+
+                                                                        </td>
+
+                                                                    </tr>
+
+                                                                }
+
+
+                                                            </tbody>
+
+
+                                                        </table>
+
+
+                                                    </div>
 
                                                 </div>
 
                                             </div>
 
                                         </div>
+                                            <div class="col-md-4">
 
-                                        <!-- Caste -->
-
-                                        <div class="mb-3 row">
-
-                                            <label class="col-md-5 col-form-label fw-bold">
-                                                Caste
-                                            </label>
-
-                                            <div class="col-md-7">
+                                                <label class="form-label">
+                                                    Caste
+                                                </label>
 
                                                 <div class="input-group">
 
-                                                    <input asp-for="Caste" class="form-control" />
+                                                    <input type="text"
+                                                           id="CasteSearch"
+                                                           class="form-control"
+                                                           placeholder="Search Caste"
+                                                           readonly />
 
                                                     <button type="button"
-                                                            class="btn btn-outline-primary">
+                                                            class="btn btn-primary"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#CasteModal">
 
-                                                        <i class="bi bi-search"></i>
+                                                        🔍
 
                                                     </button>
 
                                                 </div>
 
+
+                                                <input type="hidden"
+                                                       asp-for="Caste"
+                                                       id="CasteId" />
+
+
                                             </div>
 
-                                        </div>
 
+                                            <!-- Caste Modal -->
+
+                                            <div class="modal fade" id="CasteModal">
+
+                                                <div class="modal-dialog modal-lg">
+
+                                                    <div class="modal-content">
+
+
+                                                        <div class="modal-header">
+
+                                                            <h5 class="modal-title">
+                                                                Select Caste
+                                                            </h5>
+
+                                                            <button type="button"
+                                                                    class="btn-close"
+                                                                    data-bs-dismiss="modal">
+                                                            </button>
+
+                                                        </div>
+
+
+                                                        <div class="modal-body">
+
+
+                                                            <input type="text"
+                                                                   id="searchCaste"
+                                                                   class="form-control mb-3"
+                                                                   placeholder="Search Caste"
+                                                                   onkeyup="searchCaste()" />
+
+
+
+                                                            <table class="table table-bordered table-hover">
+
+                                                                <thead>
+
+                                                                    <tr>
+
+                                                                        <th>
+                                                                            Code
+                                                                        </th>
+
+                                                                        <th>
+                                                                            Caste Name
+                                                                        </th>
+
+                                                                        <th>
+                                                                            Action
+                                                                        </th>
+
+                                                                    </tr>
+
+                                                                </thead>
+
+
+                                                                <tbody id="casteTable">
+
+
+                                                                    @foreach (var item in ViewBag.Castes)
+                                                                    {
+
+                                                                        <tr>
+
+                                                                            <td>
+                                                                                @item.Code
+                                                                            </td>
+
+
+                                                                            <td>
+                                                                                @item.CastName
+                                                                            </td>
+
+
+                                                                            <td>
+
+                                                                                <button type="button"
+                                                                                        class="btn btn-success btn-sm"
+                                                                                        onclick="selectCaste('@item.Code','@item.CastName')">
+
+                                                                                    Select
+
+                                                                                </button>
+
+                                                                            </td>
+
+
+                                                                        </tr>
+
+                                                                    }
+
+
+                                                                </tbody>
+
+
+                                                            </table>
+
+
+                                                        </div>
+
+
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+                                      
                                         <!-- Gender -->
 
                                         <div class="mb-3 row">
@@ -854,6 +1100,221 @@
 
     <!-- Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
 
+        //=====================================
+        // Helper Function
+        //=====================================
+
+        function formatDate(date) {
+
+            if (!date)
+                return "";
+
+            return date.substring(0, 10);
+        }
+
+        //=====================================
+        // Caste Search
+        //=====================================
+
+        $("#CasteSearch").keyup(function () {
+
+            var text = $(this).val();
+
+            if (text.length >= 1) {
+
+                $.ajax({
+
+                    url: '/Employee/SearchCaste',
+                    type: 'GET',
+                    data: { term: text },
+
+                    success: function (data) {
+
+                        $("#CasteList").html("");
+
+                        $.each(data, function (i, item) {
+
+                            $("#CasteList").append(
+
+                                `<button type="button"
+                                         class="list-group-item list-group-item-action"
+                                         onclick="selectCaste('${item.id}','${item.text}')">
+
+                                    ${item.text}
+
+                                </button>`
+
+                            );
+
+                        });
+
+                    }
+
+                });
+
+            }
+            else {
+
+                $("#CasteList").html("");
+
+            }
+
+        });
+
+        function selectCaste(id, name) {
+
+            $("#CasteId").val(id);
+            $("#CasteSearch").val(name);
+            $("#CasteList").html("");
+
+        }
+
+        //=====================================
+        // Religion Search
+        //=====================================
+
+        function searchReligion() {
+
+            var input = document.getElementById("searchReligion");
+            var filter = input.value.toLowerCase();
+
+            var rows = document
+                .getElementById("religionTable")
+                .getElementsByTagName("tr");
+
+            for (var i = 0; i < rows.length; i++) {
+
+                var name = rows[i].getElementsByTagName("td")[1];
+
+                if (name) {
+
+                    var text = name.textContent || name.innerText;
+
+                    rows[i].style.display =
+                        text.toLowerCase().includes(filter)
+                            ? ""
+                            : "none";
+                }
+            }
+        }
+
+        function selectReligion(id, name) {
+
+            $("#ReligionId").val(id);
+            $("#ReligionSearch").val(name);
+
+            var modal = bootstrap.Modal.getInstance(document.getElementById("ReligionModal"));
+
+            if (modal) {
+                modal.hide();
+            }
+
+        }
+
+        //=====================================
+        // Get Employee
+        //=====================================
+
+        function GetEmployee() {
+
+            var id = $("#EmployeeIdSearch").val();
+            debugger;
+            if (id == "") {
+
+                alert("Please enter Employee ID.");
+                return;
+
+            }
+
+            $.ajax({
+
+                url: "/Employee/GetEmployee",
+
+                type: "GET",
+
+                data: { id: id },
+
+                success: function (data) {
+
+                    if (data == null) {
+
+                        alert("Employee not found.");
+                        return;
+
+                    }
+
+                    // Employee
+
+                    $("#EmployeeCode").val(data.employeeCode);
+                    $("#EmployeeName").val(data.employeeName);
+                    $("#EmployeeType").val(data.employeeType);
+
+                    // General
+
+                    $("#GradeId").val(data.gradeId);
+                    $("#SectionId").val(data.sectionId);
+                    $("#BranchId").val(data.branchId);
+
+                    $("#JoiningDate").val(formatDate(data.joiningDate));
+                    $("#PermanentDate").val(formatDate(data.permanentDate));
+                    $("#LastSalaryDate").val(formatDate(data.lastSalaryDate));
+                    $("#BasicSalary").val(data.basicSalary);
+                    $("#LastSalaryIncrementDate").val(formatDate(data.lastSalaryIncrementDate));
+                    $("#RetirementDate").val(formatDate(data.retirementDate));
+
+                    // Other
+
+                    $("#PensionFundOpeningBalance").val(data.pensionFundOpeningBalance);
+                    $("#PFNumber").val(data.pfNumber);
+                    $("#PFOpeningBalance").val(data.pfOpeningBalance);
+                    $("#PANNumber").val(data.panNumber);
+                    $("#SavingGLCode").val(data.savingGLCode);
+                    $("#SavingBranchCode").val(data.savingBranchCode);
+                    $("#SavingAccountCode").val(data.savingAccountCode);
+                    $("#ITSerialNumber").val(data.itSerialNumber);
+                    $("#PFSerialNumber").val(data.pfSerialNumber);
+                    $("#PFBalance").val(data.pfBalance);
+                    $("#AadhaarNumber").val(data.aadhaarNumber);
+
+                    // Address
+
+                    $("#CorrespondenceAddress1").val(data.correspondenceAddress1);
+                    $("#CorrespondenceAddress2").val(data.correspondenceAddress2);
+                    $("#PermanentAddress1").val(data.permanentAddress1);
+                    $("#PermanentAddress2").val(data.permanentAddress2);
+                    $("#FatherName").val(data.fatherName);
+                    $("#Address1").val(data.address1);
+                    $("#Address2").val(data.address2);
+
+                    // Personal
+
+                    $("#ReligionSearch").val(data.religion);
+                    $("#CasteSearch").val(data.caste);
+
+                    $("#Gender").val(data.gender);
+                    $("#BirthDate").val(formatDate(data.birthDate));
+                    $("#BloodGroup").val(data.bloodGroup);
+                    $("#IdentificationMark").val(data.identificationMark);
+                    $("#Height").val(data.height);
+                    $("#KnownLanguage").val(data.knownLanguage);
+                    $("#MotherTongue").val(data.motherTongue);
+                    $("#Education").val(data.education);
+                    $("#ModeOfSign").val(data.modeOfSign);
+
+                },
+
+                error: function () {
+
+                    alert("Error retrieving employee information.");
+
+                }
+
+            });
+
+        }
+
+    </script>
 </body>
 </html>
