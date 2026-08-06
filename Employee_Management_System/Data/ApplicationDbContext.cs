@@ -18,6 +18,7 @@ namespace Employee_Management_System.Data
 
         public DbSet<GradeMaster> Grades { get; set; }
         public DbSet<ReligionMaster> Religions { get; set; }
+
         public DbSet<Branch> Branches { get; set; }
         public DbSet<CastMaster> Castes { get; set; }
         public DbSet<Section> Sections { get; set; }
