@@ -59,27 +59,46 @@
 
                 <form asp-action="Register" method="post">
 
-                    <!--==========================================
-                        Customer Search
-                    ===========================================-->
+                    <!-- ==========================================
+                         Customer Search
+                    ========================================== -->
 
                     <div class="row mb-3">
 
                         <div class="col-md-2">
-                            <label>Employee Id</label>
+                            <label class="form-label fw-bold">
+                                Customer ID
+                            </label>
                         </div>
 
                         <div class="col-md-3">
-                            <input id="EmployeeIdSearch"
-                                   class="form-control" />
+
+                            <input type="text"
+                                   id="EmployeeIdSearch"
+                                   class="form-control"
+                                   placeholder="Enter Customer ID"
+                                   autocomplete="off" />
+
                         </div>
 
                         <div class="col-md-2">
+
                             <button type="button"
-                                    class="btn btn-primary"
-                                    onclick="GetEmployee()">
+                                    id="btnSearchCustomer"
+                                    class="btn btn-primary">
+
                                 Search
+
                             </button>
+
+                        </div>
+
+                        <div class="col-md-5">
+
+                            <span id="CustomerSearchMessage"
+                                  class="fw-bold">
+                            </span>
+
                         </div>
 
                     </div>
@@ -1102,131 +1121,101 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
 
-        //=====================================
-        // Helper Function
-        //=====================================
+        // ============================================================
+        // DOCUMENT READY
+        // ============================================================
 
-        function formatDate(date) {
+        $(document).ready(function () {
 
-            if (!date)
-                return "";
+            console.log("Register page JavaScript loaded.");
 
-            return date.substring(0, 10);
-        }
 
-        //=====================================
-        // Caste Search
-        //=====================================
+            // ========================================================
+            // CUSTOMER SEARCH BUTTON
+            // ========================================================
 
-        $("#CasteSearch").keyup(function () {
+            $("#btnSearchCustomer").on("click", function () {
 
-            var text = $(this).val();
+                GetEmployee();
 
-            if (text.length >= 1) {
+            });
 
-                $.ajax({
 
-                    url: '/Employee/SearchCaste',
-                    type: 'GET',
-                    data: { term: text },
+            // ========================================================
+            // CUSTOMER ID - ENTER KEY
+            // ========================================================
 
-                    success: function (data) {
+            $("#EmployeeIdSearch").on("keydown", function (e) {
 
-                        $("#CasteList").html("");
+                if (e.key === "Enter") {
 
-                        $.each(data, function (i, item) {
+                    e.preventDefault();
 
-                            $("#CasteList").append(
+                    GetEmployee();
 
-                                `<button type="button"
-                                         class="list-group-item list-group-item-action"
-                                         onclick="selectCaste('${item.id}','${item.text}')">
+                }
 
-                                    ${item.text}
-
-                                </button>`
-
-                            );
-
-                        });
-
-                    }
-
-                });
-
-            }
-            else {
-
-                $("#CasteList").html("");
-
-            }
+            });
 
         });
 
-        function selectCaste(id, name) {
 
-            $("#CasteId").val(id);
-            $("#CasteSearch").val(name);
-            $("#CasteList").html("");
-
-        }
-
-        //=====================================
-        // Religion Search
-        //=====================================
-
-        function searchReligion() {
-
-            var input = document.getElementById("searchReligion");
-            var filter = input.value.toLowerCase();
-
-            var rows = document
-                .getElementById("religionTable")
-                .getElementsByTagName("tr");
-
-            for (var i = 0; i < rows.length; i++) {
-
-                var name = rows[i].getElementsByTagName("td")[1];
-
-                if (name) {
-
-                    var text = name.textContent || name.innerText;
-
-                    rows[i].style.display =
-                        text.toLowerCase().includes(filter)
-                            ? ""
-                            : "none";
-                }
-            }
-        }
-
-        function selectReligion(id, name) {
-
-            $("#ReligionId").val(id);
-            $("#ReligionSearch").val(name);
-
-            var modal = bootstrap.Modal.getInstance(document.getElementById("ReligionModal"));
-
-            if (modal) {
-                modal.hide();
-            }
-
-        }
-
-        //=====================================
-        // Get Employee
-        //=====================================
+        // ============================================================
+        // GET CUSTOMER / EMPLOYEE INFORMATION
+        // ============================================================
 
         function GetEmployee() {
 
-            var id = $("#EmployeeIdSearch").val();
-            debugger;
-            if (id == "") {
+            // --------------------------------------------------------
+            // Get Customer ID
+            // --------------------------------------------------------
 
-                alert("Please enter Employee ID.");
+            var custId =
+                $.trim($("#EmployeeIdSearch").val());
+
+
+            console.log(
+                "Customer ID entered:",
+                custId
+            );
+
+
+            // --------------------------------------------------------
+            // Validate Customer ID
+            // --------------------------------------------------------
+
+            if (custId === "") {
+
+                $("#CustomerSearchMessage")
+                    .removeClass("text-success")
+                    .addClass("text-danger")
+                    .text("Please enter Customer ID.");
+
                 return;
-
             }
+
+
+            // --------------------------------------------------------
+            // Disable Search Button
+            // --------------------------------------------------------
+
+            $("#btnSearchCustomer")
+                .prop("disabled", true)
+                .text("Searching...");
+
+
+            // --------------------------------------------------------
+            // Show Searching Message
+            // --------------------------------------------------------
+
+            $("#CustomerSearchMessage")
+                .removeClass("text-success text-danger")
+                .text("Searching customer...");
+
+
+            // ========================================================
+            // AJAX REQUEST
+            // ========================================================
 
             $.ajax({
 
@@ -1234,84 +1223,415 @@
 
                 type: "GET",
 
-                data: { id: id },
+                data: {
+                    custId: custId
+                },
 
-                success: function (data) {
+                dataType: "json",
 
-                    if (data == null) {
 
-                        alert("Employee not found.");
+                // ====================================================
+                // SUCCESS
+                // ====================================================
+
+                success: function (response) {
+
+                    console.log(
+                        "SERVER RESPONSE:",
+                        response
+                    );
+
+
+                    // ------------------------------------------------
+                    // Check Success
+                    // ------------------------------------------------
+
+                    if (!response.success) {
+
+                        $("#CustomerSearchMessage")
+                            .removeClass("text-success")
+                            .addClass("text-danger")
+                            .text(
+                                response.message ||
+                                "Customer not found."
+                            );
+
+                        clearCustomerFields();
+
                         return;
+                    }
+
+
+                    // ------------------------------------------------
+                    // Get Returned Data
+                    // ------------------------------------------------
+
+                    var data = response.data;
+
+
+                    console.log(
+                        "CUSTOMER DATA:",
+                        data
+                    );
+
+
+                    // =================================================
+                    // GENERAL INFORMATION
+                    // =================================================
+
+                    // Customer ID
+                    $("#EmployeeIdSearch")
+                        .val(data.customerId || custId);
+
+
+                    // Employee Code
+                    $("#EmployeeCode")
+                        .val(data.employeeCode || "");
+
+
+                    // Employee Name
+                    $("#EmployeeName")
+                        .val(data.employeeName || "");
+
+
+                    // Employee Type
+                    if (data.employeeType) {
+
+                        $("#EmployeeType")
+                            .val(data.employeeType);
 
                     }
 
-                    // Employee
 
-                    $("#EmployeeCode").val(data.employeeCode);
-                    $("#EmployeeName").val(data.employeeName);
-                    $("#EmployeeType").val(data.employeeType);
+                    // =================================================
+                    // ADDRESS INFORMATION
+                    // =================================================
 
-                    // General
+                    $("#Address1")
+                        .val(data.address1 || "");
 
-                    $("#GradeId").val(data.gradeId);
-                    $("#SectionId").val(data.sectionId);
-                    $("#BranchId").val(data.branchId);
 
-                    $("#JoiningDate").val(formatDate(data.joiningDate));
-                    $("#PermanentDate").val(formatDate(data.permanentDate));
-                    $("#LastSalaryDate").val(formatDate(data.lastSalaryDate));
-                    $("#BasicSalary").val(data.basicSalary);
-                    $("#LastSalaryIncrementDate").val(formatDate(data.lastSalaryIncrementDate));
-                    $("#RetirementDate").val(formatDate(data.retirementDate));
+                    $("#Address2")
+                        .val(data.address2 || "");
 
-                    // Other
 
-                    $("#PensionFundOpeningBalance").val(data.pensionFundOpeningBalance);
-                    $("#PFNumber").val(data.pfNumber);
-                    $("#PFOpeningBalance").val(data.pfOpeningBalance);
-                    $("#PANNumber").val(data.panNumber);
-                    $("#SavingGLCode").val(data.savingGLCode);
-                    $("#SavingBranchCode").val(data.savingBranchCode);
-                    $("#SavingAccountCode").val(data.savingAccountCode);
-                    $("#ITSerialNumber").val(data.itSerialNumber);
-                    $("#PFSerialNumber").val(data.pfSerialNumber);
-                    $("#PFBalance").val(data.pfBalance);
-                    $("#AadhaarNumber").val(data.aadhaarNumber);
+                    $("#Address3")
+                        .val(data.address3 || "");
 
-                    // Address
 
-                    $("#CorrespondenceAddress1").val(data.correspondenceAddress1);
-                    $("#CorrespondenceAddress2").val(data.correspondenceAddress2);
-                    $("#PermanentAddress1").val(data.permanentAddress1);
-                    $("#PermanentAddress2").val(data.permanentAddress2);
-                    $("#FatherName").val(data.fatherName);
-                    $("#Address1").val(data.address1);
-                    $("#Address2").val(data.address2);
+                    $("#Address4")
+                        .val(data.address4 || "");
 
-                    // Personal
 
-                    $("#ReligionSearch").val(data.religion);
-                    $("#CasteSearch").val(data.caste);
+                    $("#Address5")
+                        .val(data.address5 || "");
 
-                    $("#Gender").val(data.gender);
-                    $("#BirthDate").val(formatDate(data.birthDate));
-                    $("#BloodGroup").val(data.bloodGroup);
-                    $("#IdentificationMark").val(data.identificationMark);
-                    $("#Height").val(data.height);
-                    $("#KnownLanguage").val(data.knownLanguage);
-                    $("#MotherTongue").val(data.motherTongue);
-                    $("#Education").val(data.education);
-                    $("#ModeOfSign").val(data.modeOfSign);
+
+                    // City
+                    $("#City")
+                        .val(data.city || "");
+
+
+                    // State
+                    $("#State")
+                        .val(data.state || "");
+
+
+                    // District
+                    $("#District")
+                        .val(data.district || "");
+
+
+                    // Taluka
+                    $("#Taluka")
+                        .val(data.taluka || "");
+
+
+                    // =================================================
+                    // CONTACT INFORMATION
+                    // =================================================
+
+                    $("#Phone")
+                        .val(data.phone || "");
+
+
+                    $("#Phone1")
+                        .val(data.phone1 || "");
+
+
+                    $("#Mobile")
+                        .val(data.mobile || "");
+
+
+                    $("#Email")
+                        .val(data.email || "");
+
+
+                    // =================================================
+                    // PERSONAL INFORMATION
+                    // =================================================
+
+                    $("#FatherName")
+                        .val(data.fatherName || "");
+
+
+                    $("#Gender")
+                        .val(data.gender || "");
+
+
+                    // Birth Date
+                    $("#BirthDate")
+                        .val(
+                            formatDate(data.birthDate)
+                        );
+
+
+                    // =================================================
+                    // RELIGION
+                    // =================================================
+
+                    console.log(
+                        "Religion:",
+                        data.religion
+                    );
+
+
+                    console.log(
+                        "Religion Code:",
+                        data.religionCode
+                    );
+
+
+                    $("#ReligionSearch")
+                        .val(data.religion || "");
+
+
+                    // If your page has a hidden Religion field
+                    $("#Religion")
+                        .val(data.religion || "");
+
+
+                    // =================================================
+                    // CASTE
+                    // =================================================
+
+                    console.log(
+                        "Caste:",
+                        data.caste
+                    );
+
+
+                    console.log(
+                        "Caste Code:",
+                        data.casteCode
+                    );
+
+
+                    $("#CasteSearch")
+                        .val(data.caste || "");
+
+
+                    // If your page has a hidden Caste field
+                    $("#Caste")
+                        .val(data.caste || "");
+
+
+                    // =================================================
+                    // DOCUMENT INFORMATION
+                    // =================================================
+
+                    $("#PANNumber")
+                        .val(data.panNumber || "");
+
+
+                    $("#AadhaarNumber")
+                        .val(data.aadhaarNumber || "");
+
+
+                    // =================================================
+                    // OTHER INFORMATION
+                    // =================================================
+
+                    $("#Nationality")
+                        .val(data.nationality || "");
+
+
+                    // =================================================
+                    // SUCCESS MESSAGE
+                    // =================================================
+
+                    $("#CustomerSearchMessage")
+                        .removeClass("text-danger")
+                        .addClass("text-success")
+                        .text(
+                            "Customer information loaded successfully."
+                        );
 
                 },
 
-                error: function () {
 
-                    alert("Error retrieving employee information.");
+                // ====================================================
+                // AJAX ERROR
+                // ====================================================
+
+                error: function (xhr) {
+
+                    console.error(
+                        "AJAX ERROR:",
+                        xhr
+                    );
+
+
+                    console.error(
+                        "STATUS:",
+                        xhr.status
+                    );
+
+
+                    console.error(
+                        "SERVER RESPONSE:",
+                        xhr.responseText
+                    );
+
+
+                    var message =
+                        "Unable to retrieve customer information.";
+
+
+                    if (
+                        xhr.responseJSON &&
+                        xhr.responseJSON.message
+                    ) {
+
+                        message =
+                            xhr.responseJSON.message;
+
+                    }
+
+
+                    $("#CustomerSearchMessage")
+                        .removeClass("text-success")
+                        .addClass("text-danger")
+                        .text(message);
+
+
+                    clearCustomerFields();
+
+                },
+
+
+                // ====================================================
+                // COMPLETE
+                // ====================================================
+
+                complete: function () {
+
+                    $("#btnSearchCustomer")
+                        .prop("disabled", false)
+                        .text("Search");
 
                 }
 
             });
+
+        }
+
+
+        // ============================================================
+        // FORMAT DATE
+        // ============================================================
+
+        function formatDate(date) {
+
+            if (!date) {
+
+                return "";
+
+            }
+
+
+            // If already yyyy-MM-dd
+            if (
+                typeof date === "string" &&
+                /^\d{4}-\d{2}-\d{2}$/.test(date)
+            ) {
+
+                return date;
+
+            }
+
+
+            // Handle ISO date
+            if (
+                typeof date === "string" &&
+                date.length >= 10
+            ) {
+
+                return date.substring(0, 10);
+
+            }
+
+
+            return "";
+
+        }
+
+
+        // ============================================================
+        // CLEAR CUSTOMER FIELDS
+        // ============================================================
+
+        function clearCustomerFields() {
+
+            $("#EmployeeCode").val("");
+
+            $("#EmployeeName").val("");
+
+            $("#Address1").val("");
+
+            $("#Address2").val("");
+
+            $("#Address3").val("");
+
+            $("#Address4").val("");
+
+            $("#Address5").val("");
+
+            $("#City").val("");
+
+            $("#State").val("");
+
+            $("#District").val("");
+
+            $("#Taluka").val("");
+
+            $("#Phone").val("");
+
+            $("#Phone1").val("");
+
+            $("#Mobile").val("");
+
+            $("#Email").val("");
+
+            $("#FatherName").val("");
+
+            $("#Gender").val("");
+
+            $("#BirthDate").val("");
+
+            $("#ReligionSearch").val("");
+
+            $("#Religion").val("");
+
+            $("#CasteSearch").val("");
+
+            $("#Caste").val("");
+
+            $("#PANNumber").val("");
+
+            $("#AadhaarNumber").val("");
+
+            $("#Nationality").val("");
 
         }
 
