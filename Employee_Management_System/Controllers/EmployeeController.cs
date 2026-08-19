@@ -24,40 +24,447 @@ namespace Employee_Management_System.Controllers
             await LoadDropdown();
             return View(new Employee());
         }
+      // =========================================================
+// POST: Employee/Register
+// SAVE ONLY INTO PayMast
+// =========================================================
 
-        // POST: Employee/Register
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(Employee employee)
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Register(Employee employee)
+{
+    try
+    {
+        // ==============================================
+        // EMPLOYEE NAME VALIDATION
+        // ==============================================
+
+        if (string.IsNullOrWhiteSpace(employee.EmployeeName))
         {
-            if (!ModelState.IsValid)
+            ModelState.AddModelError(
+                "EmployeeName",
+                "Employee Name is required.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await LoadDropdown();
+            return View(employee);
+        }
+
+
+        // ==============================================
+        // READ FORM
+        // ==============================================
+
+        var form = await Request.ReadFormAsync();
+
+
+        // ==============================================
+        // CUSTOMER ID
+        // Customer ID → Party_code
+        // ==============================================
+
+        string customerIdText = GetFirstNonEmpty(
+            form,
+            "CustomerId",
+            "CustomerID",
+            "customerId",
+            "custId",
+            "HiddenCustomerId"
+        );
+
+        decimal? customerId = null;
+
+        if (decimal.TryParse(
+            customerIdText,
+            out decimal customerValue))
+        {
+            customerId = customerValue;
+        }
+
+        // Model fallback
+        if (!customerId.HasValue &&
+            !string.IsNullOrWhiteSpace(employee.CustomerId))
+        {
+            if (decimal.TryParse(
+                employee.CustomerId,
+                out decimal modelCustomerValue))
             {
-                await LoadDropdown();
-                return View(employee);
+                customerId = modelCustomerValue;
             }
-
-            _context.Employees.Add(employee);
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Employee saved successfully.";
-
-            return RedirectToAction(nameof(Register));
         }
 
-        [HttpGet]
-        public async Task<IActionResult> SearchCaste(string term)
+
+        // ==============================================
+        // EMPLOYEE TYPE
+        // EmployeeType → type
+        // ==============================================
+
+        string employeeTypeText = GetFirstNonEmpty(
+            form,
+            "EmployeeType",
+            "employeeType",
+            "Type",
+            "type",
+            "HiddenEmployeeType"
+        );
+
+        int? employeeType = null;
+
+        if (int.TryParse(
+            employeeTypeText,
+            out int typeValue))
         {
-            var result = await _context.Castes
-                .Where(x => x.CastName.Contains(term))
-                .Select(x => new
-                {
-                    id = x.Code,
-                    text = x.CastName
-                })
-                .ToListAsync();
-
-            return Json(result);
+            employeeType = typeValue;
         }
+
+        // Model fallback
+        if (!employeeType.HasValue &&
+            !string.IsNullOrWhiteSpace(employee.EmployeeType))
+        {
+            if (int.TryParse(
+                employee.EmployeeType,
+                out int modelTypeValue))
+            {
+                employeeType = modelTypeValue;
+            }
+        }
+
+
+        // ==============================================
+        // GRADE
+        // GradeId → grad_Code
+        // ==============================================
+
+        string gradeText = GetFirstNonEmpty(
+            form,
+            "GradeId",
+            "gradeId",
+            "Grade"
+        );
+
+        int? gradeCode = null;
+
+        if (int.TryParse(
+            gradeText,
+            out int gradeValue))
+        {
+            gradeCode = gradeValue;
+        }
+
+        if (!gradeCode.HasValue &&
+            employee.GradeId.HasValue)
+        {
+            gradeCode = employee.GradeId.Value;
+        }
+
+
+        // ==============================================
+        // BASIC SALARY
+        // BasicSalary → basic
+        // ==============================================
+
+        string basicText = GetFirstNonEmpty(
+            form,
+            "BasicSalary",
+            "basicSalary",
+            "Basic",
+            "basic",
+            "HiddenBasicSalary"
+        );
+
+        double? basicSalary = null;
+
+        if (double.TryParse(
+            basicText,
+            out double basicValue))
+        {
+            basicSalary = basicValue;
+        }
+
+        if (!basicSalary.HasValue &&
+            employee.BasicSalary.HasValue)
+        {
+            basicSalary =
+                Convert.ToDouble(employee.BasicSalary.Value);
+        }
+
+
+        // ==============================================
+        // RELIGION
+        // ==============================================
+
+        decimal? religionCode = null;
+
+        if (decimal.TryParse(
+            employee.Religion,
+            out decimal religionValue))
+        {
+            religionCode = religionValue;
+        }
+
+
+        // ==============================================
+        // CASTE
+        // ==============================================
+
+        int? casteCode = null;
+
+        if (int.TryParse(
+            employee.Caste,
+            out int casteValue))
+        {
+            casteCode = casteValue;
+        }
+
+
+        // ==============================================
+        // EMPLOYEE CODE
+        // Get next code from PayMast
+        // ==============================================
+
+        int lastEmployeeCode =
+            await _context.PayMasts
+                .Select(x => (int?)x.EmployeeCode)
+                .MaxAsync() ?? 0;
+
+        int newEmployeeCode =
+            lastEmployeeCode + 1;
+
+
+        // ==============================================
+        // BRANCH
+        // ==============================================
+
+        int? branchCode = null;
+
+        if (employee.BranchId.HasValue)
+        {
+            branchCode =
+                Convert.ToInt32(employee.BranchId.Value);
+        }
+
+
+        // ==============================================
+        // CREATE PAYMAST
+        // ==============================================
+
+        var payMast = new PayMast
+        {
+            // ------------------------------------------
+            // GENERAL
+            // ------------------------------------------
+
+            EmployeeCode = newEmployeeCode,
+
+            // Customer ID → Party_code
+            CustomerId = customerId,
+
+            // Employee Name → name
+            EmployeeName = employee.EmployeeName,
+
+            // Employee Type → type
+            EmployeeType = employeeType,
+
+            // Joining Date → join_date
+            JoiningDate = employee.JoiningDate,
+
+            // Permanent Date
+            PermanentDate = employee.PermanentDate,
+
+            // Grade → grad_Code
+            GradeId = gradeCode,
+
+            // Branch → brnc_code
+            BranchId = branchCode,
+
+            // Section → section
+            SectionId = employee.SectionId,
+
+            // Basic Salary → basic
+            BasicSalary = basicSalary,
+
+            // Last Increment
+            LastIncrementDate =
+                employee.LastSalaryIncrementDate,
+
+            // Retirement
+            RetirementDate =
+                employee.RetirementDate,
+
+
+            // ------------------------------------------
+            // OTHER
+            // ------------------------------------------
+
+            PensionFundOpeningBalance =
+                employee.PensionFundOpeningBalance.HasValue
+                ? Convert.ToDouble(
+                    employee.PensionFundOpeningBalance.Value)
+                : null,
+
+            PFNo =
+                employee.PFNumber,
+
+            PFOpeningBalance =
+                employee.PFOpeningBalance.HasValue
+                ? Convert.ToDouble(
+                    employee.PFOpeningBalance.Value)
+                : null,
+
+            PANNo =
+                employee.PANNumber,
+
+            ITSrNo =
+                employee.ITSerialNumber,
+
+            PFSrNo =
+                int.TryParse(
+                    employee.PFSerialNumber,
+                    out int pfSerial)
+                    ? pfSerial
+                    : null,
+
+            PFBalance =
+                employee.PFBalance.HasValue
+                ? Convert.ToInt32(
+                    employee.PFBalance.Value)
+                : null,
+
+            AadharNo =
+                decimal.TryParse(
+                    employee.AadhaarNumber,
+                    out decimal aadhaar)
+                    ? aadhaar
+                    : null,
+
+
+            // ------------------------------------------
+            // ADDRESS
+            // ------------------------------------------
+
+            CorrespondenceAddress1 =
+                employee.CorrespondenceAddress1,
+
+            CorrespondenceAddress2 =
+                employee.CorrespondenceAddress2,
+
+            PermanentAddress1 =
+                employee.PermanentAddress1,
+
+            PermanentAddress2 =
+                employee.PermanentAddress2,
+
+            FatherName =
+                employee.FatherName,
+
+
+            // ------------------------------------------
+            // PERSONAL
+            // ------------------------------------------
+
+            Religion =
+                religionCode,
+
+            CasteId =
+                casteCode,
+
+            Sex =
+                employee.Gender,
+
+            BirthDate =
+                employee.BirthDate,
+
+            BloodGroup =
+                employee.BloodGroup,
+
+            IdentificationMark =
+                employee.IdentificationMark,
+
+            Height =
+                employee.Height,
+
+            LanguagesKnown =
+                employee.KnownLanguage,
+
+            MotherTongue =
+                employee.MotherTongue,
+
+            Qualification =
+                employee.Education,
+
+            ModeOfSign =
+                employee.ModeOfSign,
+
+
+            // ------------------------------------------
+            // ENTRY
+            // ------------------------------------------
+
+            EntryDate = DateTime.Now
+        };
+
+
+        // ==============================================
+        // IMPORTANT
+        // DO NOT SAVE TO Employee TABLE
+        // ==============================================
+
+        _context.PayMasts.Add(payMast);
+
+        await _context.SaveChangesAsync();
+
+
+        // ==============================================
+        // SUCCESS
+        // ==============================================
+
+        TempData["Success"] =
+            "Employee saved successfully. " +
+            "Employee Code: " +
+            newEmployeeCode;
+
+        return RedirectToAction(nameof(Register));
+    }
+    catch (Exception ex)
+    {
+        ModelState.AddModelError(
+            "",
+            "Unable to save employee: " + ex.Message);
+
+        await LoadDropdown();
+
+        return View(employee);
+    }
+}
+
+
+// =========================================================
+// HELPER METHOD
+// Gets first NON-EMPTY form value
+// =========================================================
+
+private static string GetFirstNonEmpty(
+    IFormCollection form,
+    params string[] names)
+{
+    foreach (var name in names)
+    {
+        if (form.ContainsKey(name))
+        {
+            var value = form[name]
+                .FirstOrDefault();
+
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value.Trim();
+            }
+        }
+    }
+
+    return string.Empty;
+}
 
         [HttpGet]
         public async Task<IActionResult> SearchReligion(string term)
