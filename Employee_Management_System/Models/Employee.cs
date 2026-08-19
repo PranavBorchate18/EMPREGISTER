@@ -15,6 +15,9 @@ namespace Employee_Management_System.Models
 
         public string? EmployeeCode { get; set; }
 
+        [NotMapped]
+        public string? CustomerId { get; set; }
+
         [Required(ErrorMessage = "Employee Name is required")]
         public string? EmployeeName { get; set; }
 
