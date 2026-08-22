@@ -11,10 +11,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>Employee Registration</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet" />
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+          rel="stylesheet" />
+
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+          rel="stylesheet" />
 
     <style>
         .card-header {
@@ -39,9 +44,77 @@
             min-width: 100px;
         }
     </style>
-
 </head>
+
 <body>
+
+    @* ============================================================
+       SUCCESS POPUP
+       ============================================================ *@
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="modal fade"
+             id="employeeSuccessModal"
+             tabindex="-1"
+             aria-hidden="true">
+
+            <div class="modal-dialog modal-dialog-centered">
+
+                <div class="modal-content">
+
+                    <div class="modal-header bg-success text-white">
+
+                        <h5 class="modal-title">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            Employee Created Successfully
+                        </h5>
+
+                        <button type="button"
+                                class="btn-close btn-close-white"
+                                data-bs-dismiss="modal">
+                        </button>
+
+                    </div>
+
+                    <div class="modal-body text-center">
+
+                        <h4 class="text-success mb-4">
+                            @TempData["Success"]
+                        </h4>
+
+                        <p>
+                            <strong>Customer Name:</strong>
+                            <br />
+                            @TempData["SuccessCustomerName"]
+                        </p>
+
+                        <p>
+                            <strong>Employee Code:</strong>
+                            <br />
+
+                            <span class="fs-3 fw-bold text-success">
+                                @TempData["SuccessEmployeeCode"]
+                            </span>
+                        </p>
+
+                    </div>
+
+                    <div class="modal-footer justify-content-center">
+
+                        <button type="button"
+                                class="btn btn-success"
+                                data-bs-dismiss="modal">
+                            OK
+                        </button>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    }
+
 
     <div class="container mt-4">
 
@@ -57,7 +130,18 @@
 
             <div class="card-body">
 
-                <form asp-action="Register" method="post">
+                @* ==========================================
+                   DATABASE / VALIDATION ERROR
+                   ========================================== *@
+
+                <div asp-validation-summary="ModelOnly"
+                     class="text-danger mb-3">
+                </div>
+
+
+                <form asp-action="Register"
+                      method="post">
+
 
                     <!-- ==========================================
                          Customer Search
@@ -66,9 +150,11 @@
                     <div class="row mb-3">
 
                         <div class="col-md-2">
+
                             <label class="form-label fw-bold">
                                 Customer ID
                             </label>
+
                         </div>
 
                         <div class="col-md-3">
@@ -79,6 +165,12 @@
                                    placeholder="Enter Customer ID"
                                    autocomplete="off" />
 
+                            <!-- Hidden field - UI does not change -->
+                            <input type="hidden"
+                                   id="HiddenCustomerId"
+                                   name="CustomerId"
+                                   value="@Model.CustomerId" />
+
                         </div>
 
                         <div class="col-md-2">
@@ -86,9 +178,7 @@
                             <button type="button"
                                     id="btnSearchCustomer"
                                     class="btn btn-primary">
-
                                 Search
-
                             </button>
 
                         </div>
@@ -103,11 +193,13 @@
 
                     </div>
 
+
                     <hr />
 
-                    <!--==========================================
-                        Employee Information
-                    ===========================================-->
+
+                    <!-- ==========================================
+                         Employee Information
+                    ========================================== -->
 
                     <div class="row">
 
@@ -115,7 +207,8 @@
 
                         <div class="col-md-3 mb-3">
 
-                            <label asp-for="EmployeeCode" class="form-label">
+                            <label asp-for="EmployeeCode"
+                                   class="form-label">
                                 Employee Code
                             </label>
 
@@ -125,11 +218,13 @@
 
                         </div>
 
+
                         <!-- Employee Name -->
 
                         <div class="col-md-5 mb-3">
 
-                            <label asp-for="EmployeeName" class="form-label">
+                            <label asp-for="EmployeeName"
+                                   class="form-label">
                                 Employee Name
                             </label>
 
@@ -137,13 +232,19 @@
                                    id="EmployeeName"
                                    class="form-control" />
 
+                            <span asp-validation-for="EmployeeName"
+                                  class="text-danger">
+                            </span>
+
                         </div>
+
 
                         <!-- Employee Type -->
 
                         <div class="col-md-4 mb-3">
 
-                            <label asp-for="EmployeeType" class="form-label">
+                            <label asp-for="EmployeeType"
+                                   class="form-label">
                                 Employee Type
                             </label>
 
@@ -151,10 +252,21 @@
                                     id="EmployeeType"
                                     class="form-select">
 
-                                <option value="">Select Type</option>
-                                <option value="Permanent">Permanent</option>
-                                <option value="Temporary">Temporary</option>
-                                <option value="Contract">Contract</option>
+                                <option value="">
+                                    Select Type
+                                </option>
+
+                                <option value="1">
+                                    Permanent
+                                </option>
+
+                                <option value="2">
+                                    Temporary
+                                </option>
+
+                                <option value="3">
+                                    Contract
+                                </option>
 
                             </select>
 
@@ -162,41 +274,65 @@
 
                     </div>
 
-                    <!-- Tabs -->
+
+                    <!-- ==========================================
+                         Tabs
+                    ========================================== -->
 
                     <ul class="nav nav-tabs">
 
                         <li class="nav-item">
-                            <a class="nav-link active" data-bs-toggle="tab" href="#general">
+
+                            <a class="nav-link active"
+                               data-bs-toggle="tab"
+                               href="#general">
                                 General Information
                             </a>
+
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#other">
+
+                            <a class="nav-link"
+                               data-bs-toggle="tab"
+                               href="#other">
                                 Other Information
                             </a>
+
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#address">
+
+                            <a class="nav-link"
+                               data-bs-toggle="tab"
+                               href="#address">
                                 Address Information
                             </a>
+
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#personal">
+
+                            <a class="nav-link"
+                               data-bs-toggle="tab"
+                               href="#personal">
                                 Personal Information
                             </a>
+
                         </li>
 
                     </ul>
 
+
                     <div class="tab-content border border-top-0 p-4">
 
-                        <!-- ================= General Information ================= -->
 
-                        <div class="tab-pane fade show active" id="general">
+                        <!-- =================================================
+                             GENERAL INFORMATION
+                        ================================================== -->
+
+                        <div class="tab-pane fade show active"
+                             id="general">
 
                             <div class="container mt-3">
 
@@ -205,85 +341,148 @@
                                     <!-- Grade -->
 
                                     <div class="col-md-4">
-                                        <label asp-for="Grade" class="form-label fw-bold"></label>
 
-                                        <select asp-for="Grade"
+                                        <label asp-for="GradeId"
+                                               class="form-label fw-bold">
+                                            Grade
+                                        </label>
+
+                                        <select asp-for="GradeId"
                                                 asp-items="ViewBag.Grades"
                                                 class="form-select">
-                                            <option value="">-- Select Grade --</option>
+
+                                            <option value="">
+                                                -- Select Grade --
+                                            </option>
+
                                         </select>
 
-                                        <span asp-validation-for="Grade" class="text-danger"></span>
+                                        <span asp-validation-for="GradeId"
+                                              class="text-danger">
+                                        </span>
+
                                     </div>
+
 
                                     <!-- Section -->
 
                                     <div class="col-md-4">
-                                        <label asp-for="SectionId" class="form-label fw-bold">Section</label>
+
+                                        <label asp-for="SectionId"
+                                               class="form-label fw-bold">
+                                            Section
+                                        </label>
 
                                         <select asp-for="SectionId"
                                                 asp-items="ViewBag.Sections"
                                                 class="form-select">
-                                            <option value="">-- Select Section --</option>
+
+                                            <option value="">
+                                                -- Select Section --
+                                            </option>
+
                                         </select>
 
-                                        <span asp-validation-for="SectionId" class="text-danger"></span>
+                                        <span asp-validation-for="SectionId"
+                                              class="text-danger">
+                                        </span>
+
                                     </div>
+
 
                                     <!-- Branch -->
 
                                     <div class="col-md-4">
-                                        <label asp-for="BranchId" class="form-label fw-bold">Branch</label>
+
+                                        <label asp-for="BranchId"
+                                               class="form-label fw-bold">
+                                            Branch
+                                        </label>
 
                                         <select asp-for="BranchId"
                                                 asp-items="ViewBag.Branches"
                                                 class="form-select">
-                                            <option value="">-- Select Branch --</option>
+
+                                            <option value="">
+                                                -- Select Branch --
+                                            </option>
+
                                         </select>
 
-                                        <span asp-validation-for="BranchId" class="text-danger"></span>
+                                        <span asp-validation-for="BranchId"
+                                              class="text-danger">
+                                        </span>
+
                                     </div>
 
                                 </div>
 
+
                                 <div class="row mt-3">
 
                                     <div class="col-md-4">
-                                        <label asp-for="JoiningDate" class="form-label fw-bold"></label>
-                                        <input asp-for="JoiningDate" type="date" class="form-control" />
+
+                                        <label asp-for="JoiningDate"
+                                               class="form-label fw-bold">
+                                        </label>
+
+                                        <input asp-for="JoiningDate"
+                                               type="date"
+                                               class="form-control" />
+
                                     </div>
 
                                     <div class="col-md-4">
-                                        <label asp-for="PermanentDate" class="form-label fw-bold"></label>
-                                        <input asp-for="PermanentDate" type="date" class="form-control" />
+
+                                        <label asp-for="PermanentDate"
+                                               class="form-label fw-bold">
+                                        </label>
+
+                                        <input asp-for="PermanentDate"
+                                               type="date"
+                                               class="form-control" />
+
                                     </div>
 
                                     <div class="col-md-4">
-                                        <label asp-for="LastSalaryDate" class="form-label fw-bold"></label>
-                                        <input asp-for="LastSalaryDate" type="date" class="form-control" />
+
+                                        <label asp-for="LastSalaryDate"
+                                               class="form-label fw-bold">
+                                        </label>
+
+                                        <input asp-for="LastSalaryDate"
+                                               type="date"
+                                               class="form-control" />
+
                                     </div>
 
                                 </div>
 
+
                                 <div class="row mt-3">
 
-                                    @* <div class="col-md-4">
-                                        <label asp-for="Basic" class="form-label fw-bold"></label>
-                                        <input asp-for="Basic" class="form-control" />
-                                    </div> *@
-
                                     <div class="col-md-4">
-                                        <label asp-for="LastSalaryIncrementDate" class="form-label fw-bold"></label>
+
+                                        <label asp-for="LastSalaryIncrementDate"
+                                               class="form-label fw-bold">
+                                        </label>
+
                                         <input asp-for="LastSalaryIncrementDate"
                                                type="date"
                                                class="form-control" />
+
                                     </div>
 
                                     <div class="col-md-4">
-                                        <label asp-for="RetirementDate" class="form-label fw-bold"></label>
+
+                                        <label asp-for="RetirementDate"
+                                               class="form-label fw-bold">
+                                        </label>
+
                                         <input asp-for="RetirementDate"
                                                type="date"
                                                class="form-control" />
+
                                     </div>
 
                                 </div>
@@ -292,131 +491,257 @@
 
                         </div>
 
-                        <!-- ======================= Other Information ======================= -->
-                        <div class="tab-pane fade" id="other">
+
+                        <!-- =================================================
+                             OTHER INFORMATION
+                        ================================================== -->
+
+                        <div class="tab-pane fade"
+                             id="other">
 
                             <div class="row mt-3">
 
                                 <!-- Left Side -->
+
                                 <div class="col-md-6">
 
                                     <div class="mb-3 row">
-                                        <label class="col-md-6 col-form-label fw-bold">Pension Fund Open. Bal.</label>
+
+                                        <label class="col-md-6 col-form-label fw-bold">
+                                            Pension Fund Open. Bal.
+                                        </label>
+
                                         <div class="col-md-6">
-                                            <input asp-for="PensionFundOpeningBalance" class="form-control" />
+
+                                            <input asp-for="PensionFundOpeningBalance"
+                                                   class="form-control" />
+
                                         </div>
+
                                     </div>
 
-                                    <div class="mb-3 row">
-                                        <label class="col-md-6 col-form-label fw-bold">P.F. No.</label>
-                                        <div class="col-md-6">
-                                            <input asp-for="PFNumber" class="form-control" />
-                                        </div>
-                                    </div>
 
                                     <div class="mb-3 row">
-                                        <label class="col-md-6 col-form-label fw-bold">P.F. Opening Bal.</label>
+
+                                        <label class="col-md-6 col-form-label fw-bold">
+                                            P.F. No.
+                                        </label>
+
                                         <div class="col-md-6">
-                                            <input asp-for="PFOpeningBalance" class="form-control" />
+
+                                            <input asp-for="PFNumber"
+                                                   class="form-control" />
+
                                         </div>
+
                                     </div>
 
-                                    <div class="mb-3 row">
-                                        <label class="col-md-6 col-form-label fw-bold">PAN No.</label>
-                                        <div class="col-md-6">
-                                            <input asp-for="PANNumber" class="form-control" />
-                                        </div>
-                                    </div>
 
                                     <div class="mb-3 row">
-                                        <label class="col-md-6 col-form-label fw-bold">S/B.G.L. Code</label>
+
+                                        <label class="col-md-6 col-form-label fw-bold">
+                                            P.F. Opening Bal.
+                                        </label>
+
                                         <div class="col-md-6">
+
+                                            <input asp-for="PFOpeningBalance"
+                                                   class="form-control" />
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="mb-3 row">
+
+                                        <label class="col-md-6 col-form-label fw-bold">
+                                            PAN No.
+                                        </label>
+
+                                        <div class="col-md-6">
+
+                                            <input asp-for="PANNumber"
+                                                   id="PANNumber"
+                                                   class="form-control" />
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="mb-3 row">
+
+                                        <label class="col-md-6 col-form-label fw-bold">
+                                            S/B.G.L. Code
+                                        </label>
+
+                                        <div class="col-md-6">
+
                                             <div class="input-group">
-                                                <input asp-for="SavingGLCode" class="form-control" />
+
+                                                <input asp-for="SavingGLCode"
+                                                       class="form-control" />
+
                                                 <button type="button"
                                                         class="btn btn-outline-primary"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#SavingGLModal">
+
                                                     <i class="bi bi-search"></i>
+
                                                 </button>
+
                                             </div>
+
                                         </div>
+
                                     </div>
 
+
                                     <div class="mb-3 row">
-                                        <label class="col-md-6 col-form-label fw-bold">S/B.Br. Code</label>
+
+                                        <label class="col-md-6 col-form-label fw-bold">
+                                            S/B.Br. Code
+                                        </label>
+
                                         <div class="col-md-6">
+
                                             <div class="input-group">
-                                                <input asp-for="SavingBranchCode" class="form-control" />
+
+                                                <input asp-for="SavingBranchCode"
+                                                       class="form-control" />
+
                                                 <button type="button"
                                                         class="btn btn-outline-primary"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#SavingBranchModal">
+
                                                     <i class="bi bi-search"></i>
+
                                                 </button>
+
                                             </div>
+
                                         </div>
+
                                     </div>
 
+
                                     <div class="mb-3 row">
-                                        <label class="col-md-6 col-form-label fw-bold">S/B.Ac. Code</label>
+
+                                        <label class="col-md-6 col-form-label fw-bold">
+                                            S/B.Ac. Code
+                                        </label>
+
                                         <div class="col-md-6">
+
                                             <div class="input-group">
-                                                <input asp-for="SavingAccountCode" class="form-control" />
+
+                                                <input asp-for="SavingAccountCode"
+                                                       class="form-control" />
+
                                                 <button type="button"
                                                         class="btn btn-outline-primary"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#SavingAccountModal">
+
                                                     <i class="bi bi-search"></i>
+
                                                 </button>
+
                                             </div>
+
                                         </div>
+
                                     </div>
 
                                 </div>
 
+
                                 <!-- Right Side -->
+
                                 <div class="col-md-6">
 
                                     <div class="mb-3 row">
-                                        <label class="col-md-5 col-form-label fw-bold">IT Sr. No.</label>
+
+                                        <label class="col-md-5 col-form-label fw-bold">
+                                            IT Sr. No.
+                                        </label>
+
                                         <div class="col-md-7">
-                                            <input asp-for="ITSerialNumber" class="form-control" />
+
+                                            <input asp-for="ITSerialNumber"
+                                                   class="form-control" />
+
                                         </div>
+
                                     </div>
 
-                                    <div class="mb-3 row">
-                                        <label class="col-md-5 col-form-label fw-bold">P.F. Sr. No.</label>
-                                        <div class="col-md-7">
-                                            <input asp-for="PFSerialNumber" class="form-control" />
-                                        </div>
-                                    </div>
 
                                     <div class="mb-3 row">
-                                        <label class="col-md-5 col-form-label fw-bold">P.F. Balance</label>
+
+                                        <label class="col-md-5 col-form-label fw-bold">
+                                            P.F. Sr. No.
+                                        </label>
+
                                         <div class="col-md-7">
-                                            <input asp-for="PFBalance" class="form-control" />
+
+                                            <input asp-for="PFSerialNumber"
+                                                   class="form-control" />
+
                                         </div>
+
                                     </div>
 
+
                                     <div class="mb-3 row">
-                                        <label class="col-md-5 col-form-label fw-bold">Aadhaar No.</label>
+
+                                        <label class="col-md-5 col-form-label fw-bold">
+                                            P.F. Balance
+                                        </label>
+
                                         <div class="col-md-7">
-                                            <input asp-for="AadhaarNumber" class="form-control" maxlength="12" />
+
+                                            <input asp-for="PFBalance"
+                                                   class="form-control" />
+
                                         </div>
+
+                                    </div>
+
+
+                                    <div class="mb-3 row">
+
+                                        <label class="col-md-5 col-form-label fw-bold">
+                                            Aadhaar No.
+                                        </label>
+
+                                        <div class="col-md-7">
+
+                                            <input asp-for="AadhaarNumber"
+                                                   id="AadhaarNumber"
+                                                   class="form-control"
+                                                   maxlength="12" />
+
+                                        </div>
+
                                     </div>
 
                                 </div>
 
                             </div>
 
+
                             <div class="text-end mt-4">
 
-                                <button type="button" class="btn btn-secondary">
+                                <button type="button"
+                                        class="btn btn-secondary">
                                     Previous
                                 </button>
 
-                                <button type="button" class="btn btn-primary">
+                                <button type="button"
+                                        class="btn btn-primary">
                                     Next
                                 </button>
 
@@ -424,59 +749,140 @@
 
                         </div>
 
-                        <!-- ======================= Search Modals ======================= -->
 
-                        <div class="modal fade" id="SavingGLModal" tabindex="-1">
+                        <!-- =================================================
+                             SAVING GL MODAL
+                        ================================================== -->
+
+                        <div class="modal fade"
+                             id="SavingGLModal"
+                             tabindex="-1">
+
                             <div class="modal-dialog modal-lg">
+
                                 <div class="modal-content">
+
                                     <div class="modal-header bg-primary text-white">
-                                        <h5 class="modal-title">Saving G/L Code</h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+
+                                        <h5 class="modal-title">
+                                            Saving G/L Code
+                                        </h5>
+
+                                        <button type="button"
+                                                class="btn-close btn-close-white"
+                                                data-bs-dismiss="modal">
+                                        </button>
+
                                     </div>
+
                                     <div class="modal-body">
-                                        <p>Display Saving G/L Code list here.</p>
+
+                                        <p>
+                                            Display Saving G/L Code list here.
+                                        </p>
+
                                     </div>
+
                                 </div>
+
                             </div>
+
                         </div>
 
-                        <div class="modal fade" id="SavingBranchModal" tabindex="-1">
+
+                        <!-- =================================================
+                             SAVING BRANCH MODAL
+                        ================================================== -->
+
+                        <div class="modal fade"
+                             id="SavingBranchModal"
+                             tabindex="-1">
+
                             <div class="modal-dialog modal-lg">
+
                                 <div class="modal-content">
+
                                     <div class="modal-header bg-primary text-white">
-                                        <h5 class="modal-title">Saving Branch Code</h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+
+                                        <h5 class="modal-title">
+                                            Saving Branch Code
+                                        </h5>
+
+                                        <button type="button"
+                                                class="btn-close btn-close-white"
+                                                data-bs-dismiss="modal">
+                                        </button>
+
                                     </div>
+
                                     <div class="modal-body">
-                                        <p>Display Saving Branch list here.</p>
+
+                                        <p>
+                                            Display Saving Branch list here.
+                                        </p>
+
                                     </div>
+
                                 </div>
+
                             </div>
+
                         </div>
 
-                        <div class="modal fade" id="SavingAccountModal" tabindex="-1">
+
+                        <!-- =================================================
+                             SAVING ACCOUNT MODAL
+                        ================================================== -->
+
+                        <div class="modal fade"
+                             id="SavingAccountModal"
+                             tabindex="-1">
+
                             <div class="modal-dialog modal-lg">
+
                                 <div class="modal-content">
+
                                     <div class="modal-header bg-primary text-white">
-                                        <h5 class="modal-title">Saving Account Code</h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+
+                                        <h5 class="modal-title">
+                                            Saving Account Code
+                                        </h5>
+
+                                        <button type="button"
+                                                class="btn-close btn-close-white"
+                                                data-bs-dismiss="modal">
+                                        </button>
+
                                     </div>
+
                                     <div class="modal-body">
-                                        <p>Display Saving Account list here.</p>
+
+                                        <p>
+                                            Display Saving Account Code list here.
+                                        </p>
+
                                     </div>
+
                                 </div>
+
                             </div>
+
                         </div>
 
-                        <!-- ================= Address Information ================= -->
 
-                        <div class="tab-pane fade" id="address">
+                        <!-- =================================================
+                             ADDRESS INFORMATION
+                        ================================================== -->
+
+                        <div class="tab-pane fade"
+                             id="address">
 
                             <div class="container mt-3">
 
                                 <div class="row">
 
                                     <div class="col-md-8 offset-md-1">
+
 
                                         <!-- Correspondence Address -->
 
@@ -498,6 +904,7 @@
 
                                         </div>
 
+
                                         <!-- Permanent Address -->
 
                                         <div class="row mb-3">
@@ -518,6 +925,7 @@
 
                                         </div>
 
+
                                         <!-- Father's Name -->
 
                                         <div class="row mb-3">
@@ -529,11 +937,13 @@
                                             <div class="col-md-8">
 
                                                 <input asp-for="FatherName"
+                                                       id="FatherName"
                                                        class="form-control" />
 
                                             </div>
 
                                         </div>
+
 
                                         <!-- Address -->
 
@@ -546,9 +956,11 @@
                                             <div class="col-md-8">
 
                                                 <input asp-for="Address1"
+                                                       id="Address1"
                                                        class="form-control mb-2" />
 
                                                 <input asp-for="Address2"
+                                                       id="Address2"
                                                        class="form-control" />
 
                                             </div>
@@ -559,22 +971,17 @@
 
                                 </div>
 
-                                <!-- Navigation Buttons -->
 
                                 <div class="text-end mt-4">
 
                                     <button type="button"
                                             class="btn btn-secondary">
-
                                         Previous
-
                                     </button>
 
                                     <button type="button"
                                             class="btn btn-primary">
-
                                         Next
-
                                     </button>
 
                                 </div>
@@ -583,24 +990,31 @@
 
                         </div>
 
-                        <!-- ================= Personal Information ================= -->
 
-                        <div class="tab-pane fade" id="personal">
+                        <!-- =================================================
+                             PERSONAL INFORMATION
+                        ================================================== -->
+
+                        <div class="tab-pane fade"
+                             id="personal">
 
                             <div class="container mt-3">
 
                                 <div class="row">
 
+
                                     <!-- Left Side -->
 
                                     <div class="col-md-6">
+
+
+                                        <!-- Religion -->
 
                                         <div class="col-md-4">
 
                                             <label class="form-label">
                                                 Religion
                                             </label>
-
 
                                             <div class="input-group">
 
@@ -610,25 +1024,26 @@
                                                        placeholder="Search Religion"
                                                        readonly />
 
-
                                                 <button type="button"
                                                         class="btn btn-primary"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#ReligionModal">
-
                                                     🔍
-
                                                 </button>
 
                                             </div>
-
 
                                             <input type="hidden"
                                                    asp-for="Religion"
                                                    id="ReligionId" />
 
                                         </div>
-                                        <div class="modal fade" id="ReligionModal">
+
+
+                                        <!-- Religion Modal -->
+
+                                        <div class="modal fade"
+                                             id="ReligionModal">
 
                                             <div class="modal-dialog modal-lg">
 
@@ -637,9 +1052,12 @@
 
                                                     <div class="modal-header">
 
-                                                        <h5>Select Religion</h5>
+                                                        <h5>
+                                                            Select Religion
+                                                        </h5>
 
-                                                        <button class="btn-close"
+                                                        <button type="button"
+                                                                class="btn-close"
                                                                 data-bs-dismiss="modal">
                                                         </button>
 
@@ -647,7 +1065,6 @@
 
 
                                                     <div class="modal-body">
-
 
                                                         <input type="text"
                                                                id="searchReligion"
@@ -661,13 +1078,9 @@
                                                             <thead>
 
                                                                 <tr>
-
                                                                     <th>Code</th>
-
                                                                     <th>Religion</th>
-
                                                                     <th></th>
-
                                                                 </tr>
 
                                                             </thead>
@@ -675,44 +1088,34 @@
 
                                                             <tbody id="religionTable">
 
-
                                                                 @foreach (var item in ViewBag.Religions)
                                                                 {
-
                                                                     <tr>
 
                                                                         <td>
                                                                             @item.Code
                                                                         </td>
 
-
                                                                         <td>
                                                                             @item.ReligionName
                                                                         </td>
-
 
                                                                         <td>
 
                                                                             <button type="button"
                                                                                     class="btn btn-success btn-sm"
                                                                                     onclick="selectReligion('@item.Code','@item.ReligionName')">
-
                                                                                 Select
-
                                                                             </button>
 
                                                                         </td>
 
                                                                     </tr>
-
                                                                 }
-
 
                                                             </tbody>
 
-
                                                         </table>
-
 
                                                     </div>
 
@@ -721,148 +1124,126 @@
                                             </div>
 
                                         </div>
-                                            <div class="col-md-4">
-
-                                                <label class="form-label">
-                                                    Caste
-                                                </label>
-
-                                                <div class="input-group">
-
-                                                    <input type="text"
-                                                           id="CasteSearch"
-                                                           class="form-control"
-                                                           placeholder="Search Caste"
-                                                           readonly />
-
-                                                    <button type="button"
-                                                            class="btn btn-primary"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#CasteModal">
-
-                                                        🔍
-
-                                                    </button>
-
-                                                </div>
 
 
-                                                <input type="hidden"
-                                                       asp-for="Caste"
-                                                       id="CasteId" />
+                                        <!-- Caste -->
 
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
+                                                Caste
+                                            </label>
+
+                                            <div class="input-group">
+
+                                                <input type="text"
+                                                       id="CasteSearch"
+                                                       class="form-control"
+                                                       placeholder="Search Caste"
+                                                       readonly />
+
+                                                <button type="button"
+                                                        class="btn btn-primary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#CasteModal">
+                                                    🔍
+                                                </button>
 
                                             </div>
 
+                                            <input type="hidden"
+                                                   asp-for="Caste"
+                                                   id="CasteId" />
 
-                                            <!-- Caste Modal -->
-
-                                            <div class="modal fade" id="CasteModal">
-
-                                                <div class="modal-dialog modal-lg">
-
-                                                    <div class="modal-content">
+                                        </div>
 
 
-                                                        <div class="modal-header">
+                                        <!-- Caste Modal -->
 
-                                                            <h5 class="modal-title">
-                                                                Select Caste
-                                                            </h5>
+                                        <div class="modal fade"
+                                             id="CasteModal">
 
-                                                            <button type="button"
-                                                                    class="btn-close"
-                                                                    data-bs-dismiss="modal">
-                                                            </button>
+                                            <div class="modal-dialog modal-lg">
 
-                                                        </div>
+                                                <div class="modal-content">
 
 
-                                                        <div class="modal-body">
+                                                    <div class="modal-header">
+
+                                                        <h5 class="modal-title">
+                                                            Select Caste
+                                                        </h5>
+
+                                                        <button type="button"
+                                                                class="btn-close"
+                                                                data-bs-dismiss="modal">
+                                                        </button>
+
+                                                    </div>
 
 
-                                                            <input type="text"
-                                                                   id="searchCaste"
-                                                                   class="form-control mb-3"
-                                                                   placeholder="Search Caste"
-                                                                   onkeyup="searchCaste()" />
+                                                    <div class="modal-body">
+
+                                                        <input type="text"
+                                                               id="searchCaste"
+                                                               class="form-control mb-3"
+                                                               placeholder="Search Caste"
+                                                               onkeyup="searchCaste()" />
 
 
+                                                        <table class="table table-bordered table-hover">
 
-                                                            <table class="table table-bordered table-hover">
+                                                            <thead>
 
-                                                                <thead>
+                                                                <tr>
+                                                                    <th>Code</th>
+                                                                    <th>Caste Name</th>
+                                                                    <th>Action</th>
+                                                                </tr>
 
+                                                            </thead>
+
+
+                                                            <tbody id="casteTable">
+
+                                                                @foreach (var item in ViewBag.Castes)
+                                                                {
                                                                     <tr>
 
-                                                                        <th>
-                                                                            Code
-                                                                        </th>
+                                                                        <td>
+                                                                            @item.Code
+                                                                        </td>
 
-                                                                        <th>
-                                                                            Caste Name
-                                                                        </th>
+                                                                        <td>
+                                                                            @item.CastName
+                                                                        </td>
 
-                                                                        <th>
-                                                                            Action
-                                                                        </th>
+                                                                        <td>
+
+                                                                            <button type="button"
+                                                                                    class="btn btn-success btn-sm"
+                                                                                    onclick="selectCaste('@item.Code','@item.CastName')">
+                                                                                Select
+                                                                            </button>
+
+                                                                        </td>
 
                                                                     </tr>
+                                                                }
 
-                                                                </thead>
+                                                            </tbody>
 
-
-                                                                <tbody id="casteTable">
-
-
-                                                                    @foreach (var item in ViewBag.Castes)
-                                                                    {
-
-                                                                        <tr>
-
-                                                                            <td>
-                                                                                @item.Code
-                                                                            </td>
-
-
-                                                                            <td>
-                                                                                @item.CastName
-                                                                            </td>
-
-
-                                                                            <td>
-
-                                                                                <button type="button"
-                                                                                        class="btn btn-success btn-sm"
-                                                                                        onclick="selectCaste('@item.Code','@item.CastName')">
-
-                                                                                    Select
-
-                                                                                </button>
-
-                                                                            </td>
-
-
-                                                                        </tr>
-
-                                                                    }
-
-
-                                                                </tbody>
-
-
-                                                            </table>
-
-
-                                                        </div>
-
+                                                        </table>
 
                                                     </div>
 
                                                 </div>
 
                                             </div>
-                                      
+
+                                        </div>
+
+
                                         <!-- Gender -->
 
                                         <div class="mb-3 row">
@@ -878,7 +1259,7 @@
                                                     <input asp-for="Gender"
                                                            class="form-check-input"
                                                            type="radio"
-                                                           value="Male">
+                                                           value="M">
 
                                                     <label class="form-check-label">
                                                         Male
@@ -891,7 +1272,7 @@
                                                     <input asp-for="Gender"
                                                            class="form-check-input"
                                                            type="radio"
-                                                           value="Female">
+                                                           value="F">
 
                                                     <label class="form-check-label">
                                                         Female
@@ -902,6 +1283,7 @@
                                             </div>
 
                                         </div>
+
 
                                         <!-- Birth Date -->
 
@@ -914,12 +1296,14 @@
                                             <div class="col-md-7">
 
                                                 <input asp-for="BirthDate"
+                                                       id="BirthDate"
                                                        type="date"
                                                        class="form-control" />
 
                                             </div>
 
                                         </div>
+
 
                                         <!-- Identification Mark -->
 
@@ -938,6 +1322,7 @@
 
                                         </div>
 
+
                                         <!-- Known Language -->
 
                                         <div class="mb-3 row">
@@ -954,6 +1339,7 @@
                                             </div>
 
                                         </div>
+
 
                                         <!-- Education -->
 
@@ -974,9 +1360,13 @@
 
                                     </div>
 
+
                                     <!-- Right Side -->
 
                                     <div class="col-md-6">
+
+
+                                        <!-- Blood Group -->
 
                                         <div class="mb-3 row">
 
@@ -989,7 +1379,10 @@
                                                 <select asp-for="BloodGroup"
                                                         class="form-select">
 
-                                                    <option value="">Select</option>
+                                                    <option value="">
+                                                        Select
+                                                    </option>
+
                                                     <option>A+</option>
                                                     <option>A-</option>
                                                     <option>B+</option>
@@ -1004,6 +1397,9 @@
                                             </div>
 
                                         </div>
+
+
+                                        <!-- Height -->
 
                                         <div class="mb-3 row">
 
@@ -1020,6 +1416,9 @@
 
                                         </div>
 
+
+                                        <!-- Mother Tongue -->
+
                                         <div class="mb-3 row">
 
                                             <label class="col-md-5 col-form-label fw-bold">
@@ -1034,6 +1433,9 @@
                                             </div>
 
                                         </div>
+
+
+                                        <!-- Mode of Sign -->
 
                                         <div class="mb-3 row">
 
@@ -1053,6 +1455,7 @@
                                     </div>
 
                                 </div>
+
 
                                 <div class="text-end mt-4">
 
@@ -1074,35 +1477,64 @@
 
                     </div>
 
+
+                    <!-- ==========================================
+                         Existing Main Buttons
+                    ========================================== -->
+
                     <div class="text-center mt-4">
 
-                        <button type="reset" class="btn btn-primary">
-                            <i class="bi bi-plus-circle"></i> New
+                        <button type="reset"
+                                class="btn btn-primary">
+
+                            <i class="bi bi-plus-circle"></i>
+                            New
+
                         </button>
 
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-save"></i> Save
+                        <button type="submit"
+                                class="btn btn-success">
+
+                            <i class="bi bi-save"></i>
+                            Save
+
                         </button>
 
-                        <button type="button" class="btn btn-warning">
-                            <i class="bi bi-pencil-square"></i> Update
+                        <button type="button"
+                                class="btn btn-warning">
+
+                            <i class="bi bi-pencil-square"></i>
+                            Update
+
                         </button>
 
-                        <button type="button" class="btn btn-danger">
-                            <i class="bi bi-trash"></i> Delete
+                        <button type="button"
+                                class="btn btn-danger">
+
+                            <i class="bi bi-trash"></i>
+                            Delete
+
                         </button>
 
-                        <button type="button" class="btn btn-info text-white">
-                            <i class="bi bi-eye"></i> View
+                        <button type="button"
+                                class="btn btn-info text-white">
+
+                            <i class="bi bi-eye"></i>
+                            View
+
                         </button>
 
                         <a asp-controller="Home"
                            asp-action="Index"
                            class="btn btn-secondary">
-                            <i class="bi bi-box-arrow-right"></i> Exit
+
+                            <i class="bi bi-box-arrow-right"></i>
+                            Exit
+
                         </a>
 
                     </div>
+
 
                 </form>
 
@@ -1113,12 +1545,18 @@
     </div>
 
 
-
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js">
+    </script>
+
 
     <!-- Bootstrap JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
+    </script>
+
+
     <script>
 
         // ============================================================
@@ -1127,131 +1565,197 @@
 
         $(document).ready(function () {
 
-            console.log("Register page JavaScript loaded.");
+            console.log(
+                "Register page JavaScript loaded."
+            );
+
+
+            // ========================================================
+            // SHOW SUCCESS POPUP
+            // ========================================================
+
+            var successModalElement =
+                document.getElementById(
+                    "employeeSuccessModal"
+                );
+
+            if (successModalElement) {
+
+                var successModal =
+                    new bootstrap.Modal(
+                        successModalElement
+                    );
+
+                successModal.show();
+            }
+
+                  // ========================================================
+        // NEXT BUTTON
+        // ========================================================
+
+        $(".btn-next").on("click", function () {
+
+            var currentTab =
+                $(".nav-tabs .nav-link.active");
+
+            var currentItem =
+                currentTab.closest(".nav-item");
+
+            var nextItem =
+                currentItem.next(".nav-item");
+
+            if (nextItem.length > 0) {
+
+                var nextTabElement =
+                    nextItem.find(".nav-link")[0];
+
+                var nextTab =
+                    new bootstrap.Tab(nextTabElement);
+
+                nextTab.show();
+            }
+        });
+
+
+        // ========================================================
+        // PREVIOUS BUTTON
+        // ========================================================
+
+        $(".btn-previous").on("click", function () {
+
+            var currentTab =
+                $(".nav-tabs .nav-link.active");
+
+            var currentItem =
+                currentTab.closest(".nav-item");
+
+            var previousItem =
+                currentItem.prev(".nav-item");
+
+            if (previousItem.length > 0) {
+
+                var previousTabElement =
+                    previousItem.find(".nav-link")[0];
+
+                var previousTab =
+                    new bootstrap.Tab(previousTabElement);
+
+                previousTab.show();
+            }
+        });
+
+
 
 
             // ========================================================
             // CUSTOMER SEARCH BUTTON
             // ========================================================
 
-            $("#btnSearchCustomer").on("click", function () {
-
-                GetEmployee();
-
-            });
-
-
-            // ========================================================
-            // CUSTOMER ID - ENTER KEY
-            // ========================================================
-
-            $("#EmployeeIdSearch").on("keydown", function (e) {
-
-                if (e.key === "Enter") {
-
-                    e.preventDefault();
+            $("#btnSearchCustomer").on(
+                "click",
+                function () {
 
                     GetEmployee();
 
                 }
+            );
 
-            });
+
+            // ========================================================
+            // CUSTOMER ID ENTER KEY
+            // ========================================================
+
+            $("#EmployeeIdSearch").on(
+                "keydown",
+                function (e) {
+
+                    if (e.key === "Enter") {
+
+                        e.preventDefault();
+
+                        GetEmployee();
+                    }
+
+                }
+            );
 
         });
 
 
         // ============================================================
-        // GET CUSTOMER / EMPLOYEE INFORMATION
+        // GET CUSTOMER INFORMATION
         // ============================================================
 
         function GetEmployee() {
 
-            // --------------------------------------------------------
-            // Get Customer ID
-            // --------------------------------------------------------
-
             var custId =
-                $.trim($("#EmployeeIdSearch").val());
+                $.trim(
+                    $("#EmployeeIdSearch").val()
+                );
 
-
-            console.log(
-                "Customer ID entered:",
-                custId
-            );
-
-
-            // --------------------------------------------------------
-            // Validate Customer ID
-            // --------------------------------------------------------
 
             if (custId === "") {
 
                 $("#CustomerSearchMessage")
                     .removeClass("text-success")
                     .addClass("text-danger")
-                    .text("Please enter Customer ID.");
+                    .text(
+                        "Please enter Customer ID."
+                    );
 
                 return;
             }
 
 
-            // --------------------------------------------------------
-            // Disable Search Button
-            // --------------------------------------------------------
-
             $("#btnSearchCustomer")
-                .prop("disabled", true)
-                .text("Searching...");
-
-
-            // --------------------------------------------------------
-            // Show Searching Message
-            // --------------------------------------------------------
+                .prop(
+                    "disabled",
+                    true
+                )
+                .text(
+                    "Searching..."
+                );
 
 
             $("#CustomerSearchMessage")
-                .removeClass("text-success text-danger")
-                .text("Searching customer...");
+                .removeClass(
+                    "text-success text-danger"
+                )
+                .text(
+                    "Searching customer..."
+                );
 
-
-            // ========================================================
-            // AJAX REQUEST
-            // ========================================================
 
             $.ajax({
 
-                url: "/Employee/GetEmployee",
+                url:
+                    "/Employee/GetEmployee",
 
-                type: "GET",
+                type:
+                    "GET",
+
+                dataType:
+                    "json",
 
                 data: {
-                    custId: custId
+
+                    custId:
+                        custId
+
                 },
 
-                dataType: "json",
-
-
-                // ====================================================
-                // SUCCESS
-                // ====================================================
 
                 success: function (response) {
-
-                    console.log(
-                        "SERVER RESPONSE:",
-                        response
-                    );
-
-
-                    // ------------------------------------------------
-                    // Check Success
-                    // ------------------------------------------------
 
                     if (!response.success) {
 
                         $("#CustomerSearchMessage")
-                            .removeClass("text-success")
-                            .addClass("text-danger")
+                            .removeClass(
+                                "text-success"
+                            )
+                            .addClass(
+                                "text-danger"
+                            )
                             .text(
                                 response.message ||
                                 "Customer not found."
@@ -1263,127 +1767,208 @@
                     }
 
 
-                    // ------------------------------------------------
-                    // Get Returned Data
-                    // ------------------------------------------------
-
-                    var data = response.data;
-
-
-                    console.log(
-                        "CUSTOMER DATA:",
-                        data
-                    );
+                    var data =
+                        response.data;
 
 
                     // =================================================
-                    // GENERAL INFORMATION
+                    // CUSTOMER ID
                     // =================================================
 
-                    // Customer ID
                     $("#EmployeeIdSearch")
-                        .val(data.customerId || custId);
+                        .val(
+                            data.customerId ||
+                            custId
+                        );
 
 
-                    // Employee Code
+                    $("#HiddenCustomerId")
+                        .val(
+                            data.customerId ||
+                            custId
+                        );
+
+
+                    // =================================================
+                    // EMPLOYEE CODE
+                    // =================================================
+
                     $("#EmployeeCode")
-                        .val(data.employeeCode || "");
+                        .val(
+                            data.employeeCode ||
+                            ""
+                        );
 
 
-                    // Employee Name
+                    // =================================================
+                    // EMPLOYEE NAME
+                    // =================================================
+
                     $("#EmployeeName")
-                        .val(data.employeeName || "");
+                        .val(
+                            data.employeeName ||
+                            ""
+                        );
 
 
-                    // Employee Type
-                    if (data.employeeType) {
+                    // =================================================
+                    // ADDRESS
+                    // =================================================
 
-                        $("#EmployeeType")
-                            .val(data.employeeType);
+                    $("#Address1")
+                        .val(
+                            data.address1 ||
+                            ""
+                        );
 
+                    $("#Address2")
+                        .val(
+                            data.address2 ||
+                            ""
+                        );
+
+                    $("#Address3")
+                        .val(
+                            data.address3 ||
+                            ""
+                        );
+
+                    $("#Address4")
+                        .val(
+                            data.address4 ||
+                            ""
+                        );
+
+                    $("#Address5")
+                        .val(
+                            data.address5 ||
+                            ""
+                        );
+
+
+                    // =================================================
+                    // LOCATION
+                    // =================================================
+
+                    $("#City")
+                        .val(
+                            data.city ||
+                            ""
+                        );
+
+                    $("#State")
+                        .val(
+                            data.state ||
+                            ""
+                        );
+
+                    $("#District")
+                        .val(
+                            data.district ||
+                            ""
+                        );
+
+                    $("#Taluka")
+                        .val(
+                            data.taluka ||
+                            ""
+                        );
+
+
+                    // =================================================
+                    // CONTACT
+                    // =================================================
+
+                    $("#Phone")
+                        .val(
+                            data.phone ||
+                            ""
+                        );
+
+                    $("#Phone1")
+                        .val(
+                            data.phone1 ||
+                            ""
+                        );
+
+                    $("#Mobile")
+                        .val(
+                            data.mobile ||
+                            ""
+                        );
+
+                    $("#Email")
+                        .val(
+                            data.email ||
+                            ""
+                        );
+
+
+                    // =================================================
+                    // FATHER NAME
+                    // =================================================
+
+                    $("#FatherName")
+                        .val(
+                            data.fatherName ||
+                            ""
+                        );
+
+
+                    // =================================================
+                    // GENDER
+                    // prtymast may contain M/F or Male/Female
+                    // =================================================
+
+                    $("input[name='Gender']")
+                        .prop(
+                            "checked",
+                            false
+                        );
+
+
+                    if (data.gender) {
+
+                        var gender =
+                            data.gender
+                                .toString()
+                                .trim()
+                                .toUpperCase();
+
+
+                        if (gender === "MALE") {
+                            gender = "M";
+                        }
+
+
+                        if (gender === "FEMALE") {
+                            gender = "F";
+                        }
+
+
+                        if (
+                            gender === "M" ||
+                            gender === "F"
+                        ) {
+
+                            $("input[name='Gender'][value='" + gender + "']")
+                                .prop(
+                                    "checked",
+                                    true
+                                );
+                        }
                     }
 
 
                     // =================================================
-                    // ADDRESS INFORMATION
+                    // BIRTH DATE
                     // =================================================
 
-                    $("#Address1")
-                        .val(data.address1 || "");
-
-
-                    $("#Address2")
-                        .val(data.address2 || "");
-
-
-                    $("#Address3")
-                        .val(data.address3 || "");
-
-
-                    $("#Address4")
-                        .val(data.address4 || "");
-
-
-                    $("#Address5")
-                        .val(data.address5 || "");
-
-
-                    // City
-                    $("#City")
-                        .val(data.city || "");
-
-
-                    // State
-                    $("#State")
-                        .val(data.state || "");
-
-
-                    // District
-                    $("#District")
-                        .val(data.district || "");
-
-
-                    // Taluka
-                    $("#Taluka")
-                        .val(data.taluka || "");
-
-
-                    // =================================================
-                    // CONTACT INFORMATION
-                    // =================================================
-
-                    $("#Phone")
-                        .val(data.phone || "");
-
-
-                    $("#Phone1")
-                        .val(data.phone1 || "");
-
-
-                    $("#Mobile")
-                        .val(data.mobile || "");
-
-
-                    $("#Email")
-                        .val(data.email || "");
-
-
-                    // =================================================
-                    // PERSONAL INFORMATION
-                    // =================================================
-
-                    $("#FatherName")
-                        .val(data.fatherName || "");
-
-
-                    $("#Gender")
-                        .val(data.gender || "");
-
-
-                    // Birth Date
                     $("#BirthDate")
                         .val(
-                            formatDate(data.birthDate)
+                            formatDate(
+                                data.birthDate
+                            )
                         );
 
 
@@ -1391,79 +1976,78 @@
                     // RELIGION
                     // =================================================
 
-                    console.log(
-                        "Religion:",
-                        data.religion
-                    );
-
-
-                    console.log(
-                        "Religion Code:",
-                        data.religionCode
-                    );
-
-
                     $("#ReligionSearch")
-                        .val(data.religion || "");
+                        .val(
+                            data.religion ||
+                            ""
+                        );
 
 
-                    // If your page has a hidden Religion field
-                    $("#Religion")
-                        .val(data.religion || "");
+                    $("#ReligionId")
+                        .val(
+                            data.religionCode ||
+                            ""
+                        );
 
 
                     // =================================================
                     // CASTE
                     // =================================================
 
-                    console.log(
-                        "Caste:",
-                        data.caste
-                    );
-
-
-                    console.log(
-                        "Caste Code:",
-                        data.casteCode
-                    );
-
-
                     $("#CasteSearch")
-                        .val(data.caste || "");
+                        .val(
+                            data.caste ||
+                            ""
+                        );
 
 
-                    // If your page has a hidden Caste field
-                    $("#Caste")
-                        .val(data.caste || "");
+                    $("#CasteId")
+                        .val(
+                            data.casteCode ||
+                            ""
+                        );
 
 
                     // =================================================
-                    // DOCUMENT INFORMATION
+                    // DOCUMENT
                     // =================================================
 
                     $("#PANNumber")
-                        .val(data.panNumber || "");
+                        .val(
+                            data.panNumber ||
+                            ""
+                        );
 
 
                     $("#AadhaarNumber")
-                        .val(data.aadhaarNumber || "");
+                        .val(
+                            data.aadhaarNumber ||
+                            ""
+                        );
 
 
                     // =================================================
-                    // OTHER INFORMATION
+                    // NATIONALITY
                     // =================================================
 
                     $("#Nationality")
-                        .val(data.nationality || "");
+                        .val(
+                            data.nationality ||
+                            ""
+                        );
 
 
                     // =================================================
-                    // SUCCESS MESSAGE
+                    // SUCCESS
                     // =================================================
 
                     $("#CustomerSearchMessage")
-                        .removeClass("text-danger")
-                        .addClass("text-success")
+                        .removeClass(
+                            "text-danger"
+                        )
+                        .addClass(
+                            "text-success"
+                        )
                         .text(
                             "Customer information loaded successfully."
                         );
@@ -1471,29 +2055,7 @@
                 },
 
 
-                // ====================================================
-                // AJAX ERROR
-                // ====================================================
-
                 error: function (xhr) {
-
-                    console.error(
-                        "AJAX ERROR:",
-                        xhr
-                    );
-
-
-                    console.error(
-                        "STATUS:",
-                        xhr.status
-                    );
-
-
-                    console.error(
-                        "SERVER RESPONSE:",
-                        xhr.responseText
-                    );
-
 
                     var message =
                         "Unable to retrieve customer information.";
@@ -1506,30 +2068,35 @@
 
                         message =
                             xhr.responseJSON.message;
-
                     }
 
 
                     $("#CustomerSearchMessage")
-                        .removeClass("text-success")
-                        .addClass("text-danger")
-                        .text(message);
+                        .removeClass(
+                            "text-success"
+                        )
+                        .addClass(
+                            "text-danger"
+                        )
+                        .text(
+                            message
+                        );
 
 
                     clearCustomerFields();
-
                 },
 
-
-                // ====================================================
-                // COMPLETE
-                // ====================================================
 
                 complete: function () {
 
                     $("#btnSearchCustomer")
-                        .prop("disabled", false)
-                        .text("Search");
+                        .prop(
+                            "disabled",
+                            false
+                        )
+                        .text(
+                            "Search"
+                        );
 
                 }
 
@@ -1545,35 +2112,169 @@
         function formatDate(date) {
 
             if (!date) {
-
                 return "";
-
             }
 
 
-            // If already yyyy-MM-dd
             if (
                 typeof date === "string" &&
                 /^\d{4}-\d{2}-\d{2}$/.test(date)
             ) {
 
                 return date;
-
             }
 
 
-            // Handle ISO date
             if (
                 typeof date === "string" &&
                 date.length >= 10
             ) {
 
-                return date.substring(0, 10);
-
+                return date.substring(
+                    0,
+                    10
+                );
             }
 
 
             return "";
+        }
+
+
+        // ============================================================
+        // SELECT RELIGION
+        // ============================================================
+
+        function selectReligion(
+            code,
+            name
+        ) {
+
+            $("#ReligionId")
+                .val(
+                    code
+                );
+
+
+            $("#ReligionSearch")
+                .val(
+                    name
+                );
+
+
+            var modalElement =
+                document.getElementById(
+                    "ReligionModal"
+                );
+
+
+            var modal =
+                bootstrap.Modal.getInstance(
+                    modalElement
+                );
+
+
+            if (modal) {
+                modal.hide();
+            }
+
+        }
+
+
+        // ============================================================
+        // SEARCH RELIGION
+        // ============================================================
+
+        function searchReligion() {
+
+            var value =
+                $("#searchReligion")
+                    .val()
+                    .toLowerCase();
+
+
+            $("#religionTable tr")
+                .filter(function () {
+
+                    $(this).toggle(
+
+                        $(this)
+                            .text()
+                            .toLowerCase()
+                            .indexOf(value) > -1
+
+                    );
+
+                });
+
+        }
+
+
+        // ============================================================
+        // SELECT CASTE
+        // ============================================================
+
+        function selectCaste(
+            code,
+            name
+        ) {
+
+            $("#CasteId")
+                .val(
+                    code
+                );
+
+
+            $("#CasteSearch")
+                .val(
+                    name
+                );
+
+
+            var modalElement =
+                document.getElementById(
+                    "CasteModal"
+                );
+
+
+            var modal =
+                bootstrap.Modal.getInstance(
+                    modalElement
+                );
+
+
+            if (modal) {
+                modal.hide();
+            }
+
+        }
+
+
+        // ============================================================
+        // SEARCH CASTE
+        // ============================================================
+
+        function searchCaste() {
+
+            var value =
+                $("#searchCaste")
+                    .val()
+                    .toLowerCase();
+
+
+            $("#casteTable tr")
+                .filter(function () {
+
+                    $(this).toggle(
+
+                        $(this)
+                            .text()
+                            .toLowerCase()
+                            .indexOf(value) > -1
+
+                    );
+
+                });
 
         }
 
@@ -1583,6 +2284,8 @@
         // ============================================================
 
         function clearCustomerFields() {
+
+            $("#HiddenCustomerId").val("");
 
             $("#EmployeeCode").val("");
 
@@ -1616,26 +2319,30 @@
 
             $("#FatherName").val("");
 
-            $("#Gender").val("");
+            $("input[name='Gender']")
+                .prop(
+                    "checked",
+                    false
+                );
 
             $("#BirthDate").val("");
 
             $("#ReligionSearch").val("");
 
-            $("#Religion").val("");
+            $("#ReligionId").val("");
 
             $("#CasteSearch").val("");
 
-            $("#Caste").val("");
+            $("#CasteId").val("");
 
             $("#PANNumber").val("");
 
             $("#AadhaarNumber").val("");
 
             $("#Nationality").val("");
-
         }
 
     </script>
+
 </body>
 </html>
