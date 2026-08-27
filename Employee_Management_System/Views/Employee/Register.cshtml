@@ -6,13 +6,9 @@
 
 <!DOCTYPE html>
 <html>
-
 <head>
-
     <meta charset="utf-8" />
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>Employee Registration</title>
 
@@ -23,7 +19,6 @@
           rel="stylesheet" />
 
     <style>
-
         .card-header {
             background-color: #0d6efd;
             color: white;
@@ -45,17 +40,13 @@
         .existing-result-table tbody tr:hover {
             background-color: #f3f6f9;
         }
-
     </style>
-
 </head>
-
 
 <body>
 
-
     @* ============================================================
-       NEW EMPLOYEE SUCCESS POPUP
+       SAVE SUCCESS POPUP
        ============================================================ *@
 
     @if (TempData["Success"] != null)
@@ -72,11 +63,8 @@
                     <div class="modal-header bg-success text-white">
 
                         <h5 class="modal-title">
-
                             <i class="bi bi-check-circle-fill me-2"></i>
-
                             Employee Created Successfully
-
                         </h5>
 
                         <button type="button"
@@ -86,66 +74,42 @@
 
                     </div>
 
-
                     <div class="modal-body text-center">
 
                         <i class="bi bi-check-circle-fill text-success"
                            style="font-size:55px;">
                         </i>
 
-                        <h4 class="text-success mt-3 mb-4">
-
+                        <h4 class="text-success mt-3">
                             Employee created successfully!
-
                         </h4>
 
+                        <hr />
 
                         <p>
-
-                            <strong>
-                                Employee Name:
-                            </strong>
-
-                            <br />
+                            <strong>Employee Name:</strong><br />
 
                             <span class="fs-5">
-
-                                @(TempData["SuccessCustomerName"]
-                                    ?? TempData["SuccessEmployeeName"]
-                                    ?? "")
-
+                                @(TempData["SuccessEmployeeName"] ?? "")
                             </span>
-
                         </p>
 
-
                         <p>
-
-                            <strong>
-                                Employee Code:
-                            </strong>
-
-                            <br />
+                            <strong>Employee Code:</strong><br />
 
                             <span class="fs-3 fw-bold text-success">
-
                                 @TempData["SuccessEmployeeCode"]
-
                             </span>
-
                         </p>
 
                     </div>
-
 
                     <div class="modal-footer justify-content-center">
 
                         <button type="button"
                                 class="btn btn-success"
                                 data-bs-dismiss="modal">
-
                             OK
-
                         </button>
 
                     </div>
@@ -156,7 +120,6 @@
 
         </div>
     }
-
 
 
     @* ============================================================
@@ -177,13 +140,9 @@
                     <div class="modal-header bg-success text-white">
 
                         <h5 class="modal-title">
-
                             <i class="bi bi-check-circle-fill me-2"></i>
-
-                            Employee Successfully Updated!
-
+                            Employee Successfully Updated
                         </h5>
-
 
                         <button type="button"
                                 class="btn-close btn-close-white"
@@ -192,65 +151,42 @@
 
                     </div>
 
-
                     <div class="modal-body text-center">
 
                         <i class="bi bi-check-circle-fill text-success"
                            style="font-size:55px;">
                         </i>
 
-
-                        <h4 class="text-success mt-3 mb-4">
-
+                        <h4 class="text-success mt-3">
                             Employee Successfully Updated!
-
                         </h4>
 
+                        <hr />
 
                         <p>
-
-                            <strong>
-                                Employee Name:
-                            </strong>
-
-                            <br />
+                            <strong>Employee Name:</strong><br />
 
                             <span class="fs-5">
-
                                 @TempData["UpdatedEmployeeName"]
-
                             </span>
-
                         </p>
 
-
                         <p>
-
-                            <strong>
-                                Employee Code:
-                            </strong>
-
-                            <br />
+                            <strong>Employee Code:</strong><br />
 
                             <span class="fs-3 fw-bold text-success">
-
                                 @TempData["UpdatedEmployeeCode"]
-
                             </span>
-
                         </p>
 
                     </div>
-
 
                     <div class="modal-footer justify-content-center">
 
                         <button type="button"
                                 class="btn btn-success"
                                 data-bs-dismiss="modal">
-
                             OK
-
                         </button>
 
                     </div>
@@ -261,7 +197,6 @@
 
         </div>
     }
-
 
 
     @* ============================================================
@@ -280,11 +215,8 @@
                 <div class="modal-header bg-warning">
 
                     <h5 class="modal-title">
-
                         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-
                         Employee Already Exists
-
                     </h5>
 
                     <button type="button"
@@ -294,61 +226,42 @@
 
                 </div>
 
-
                 <div class="modal-body text-center">
 
                     <i class="bi bi-exclamation-triangle-fill text-warning"
                        style="font-size:55px;">
                     </i>
 
-
-                    <h5 class="text-danger mt-3 mb-4">
-
+                    <h5 class="text-danger mt-3">
                         Employee already exists for this Customer ID.
-
                     </h5>
 
+                    <hr />
 
                     <p>
-
-                        <strong>
-                            Employee Name:
-                        </strong>
-
-                        <br />
+                        <strong>Employee Name:</strong><br />
 
                         <span id="existingEmployeeName"
                               class="fs-5">
                         </span>
-
                     </p>
 
-
                     <p>
-
-                        <strong>
-                            Employee Code:
-                        </strong>
-
-                        <br />
+                        <strong>Employee Code:</strong><br />
 
                         <span id="existingEmployeeCode"
                               class="fs-3 fw-bold text-primary">
                         </span>
-
                     </p>
 
                 </div>
-
 
                 <div class="modal-footer justify-content-center">
 
                     <button type="button"
                             class="btn btn-warning"
                             data-bs-dismiss="modal">
-
                         OK
-
                     </button>
 
                 </div>
@@ -358,7 +271,6 @@
         </div>
 
     </div>
-
 
 
     @* ============================================================
@@ -371,17 +283,15 @@
 
             <div class="card-header">
 
-                <h3 class="text-center mb-0">
-
+                <h3 class="text-center mb-0"
+                    id="registrationTitle">
                     Employee Registration
-
                 </h3>
 
             </div>
 
 
             <div class="card-body">
-
 
                 <div asp-validation-summary="All"
                      class="text-danger mb-3">
@@ -393,12 +303,11 @@
                       method="post"
                       id="employeeForm">
 
-
                     @Html.AntiForgeryToken()
 
 
                     @* =================================================
-                       HIDDEN FIELDS
+                       HIDDEN VALUES
                        ================================================= *@
 
                     <input type="hidden"
@@ -406,27 +315,28 @@
                            name="CustomerId"
                            value="@Model.CustomerId" />
 
-
                     <input type="hidden"
                            id="ExistingEmployeeCode"
                            name="existingEmployeeCode"
                            value="" />
 
+                    @* Used to know whether page is NEW or UPDATE mode *@
+                    <input type="hidden"
+                           id="EmployeeFormMode"
+                           value="normal" />
 
 
                     @* =================================================
                        CUSTOMER SEARCH
                        ================================================= *@
 
-                    <div class="row mb-3 align-items-end">
-
+                    <div class="row mb-3 align-items-end"
+                         id="customerSearchSection">
 
                         <div class="col-md-2">
 
-                            <label class="form-label fw-bold">
-
+                            <label class="form-label">
                                 Customer ID
-
                             </label>
 
                         </div>
@@ -450,7 +360,6 @@
                                     class="btn btn-primary">
 
                                 <i class="bi bi-search"></i>
-
                                 Search
 
                             </button>
@@ -463,7 +372,6 @@
                                     data-bs-target="#ExistingEmployeeModal">
 
                                 <i class="bi bi-database"></i>
-
                                 Existing Data
 
                             </button>
@@ -479,12 +387,10 @@
 
                         </div>
 
-
                     </div>
 
 
                     <hr />
-
 
 
                     @* =================================================
@@ -492,7 +398,6 @@
                        ================================================= *@
 
                     <div class="row">
-
 
                         <div class="col-md-3 mb-3">
 
@@ -564,9 +469,7 @@
 
                         </div>
 
-
                     </div>
-
 
 
                     @* =================================================
@@ -575,7 +478,6 @@
 
                     <ul class="nav nav-tabs"
                         id="employeeTabs">
-
 
                         <li class="nav-item">
 
@@ -636,14 +538,10 @@
 
                         </li>
 
-
                     </ul>
 
 
-
-                    <div class="tab-content border border-top-0 p-4"
-                         id="employeeTabContent">
-
+                    <div class="tab-content border border-top-0 p-4">
 
 
                         @* =================================================
@@ -653,9 +551,7 @@
                         <div class="tab-pane fade show active"
                              id="general">
 
-
                             <div class="row">
-
 
                                 <div class="col-md-4 mb-3">
 
@@ -725,13 +621,10 @@
 
                                 </div>
 
-
                             </div>
 
 
-
                             <div class="row">
-
 
                                 <div class="col-md-4 mb-3">
 
@@ -783,13 +676,10 @@
 
                                 </div>
 
-
                             </div>
 
 
-
                             <div class="row">
-
 
                                 <div class="col-md-4 mb-3">
 
@@ -840,7 +730,6 @@
 
                                 </div>
 
-
                             </div>
 
 
@@ -851,18 +740,13 @@
                                         onclick="openEmployeeTab('other-tab')">
 
                                     Next
-
                                     <i class="bi bi-arrow-right"></i>
 
                                 </button>
 
                             </div>
 
-
                         </div>
-
-
-
                         @* =================================================
                            OTHER INFORMATION
                            ================================================= *@
@@ -870,233 +754,165 @@
                         <div class="tab-pane fade"
                              id="other">
 
-
                             <div class="row">
-
 
                                 <div class="col-md-6">
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="PensionFundOpeningBalance"
                                                class="form-label">
-
                                             Pension Fund Opening Balance
-
                                         </label>
 
                                         <input asp-for="PensionFundOpeningBalance"
                                                id="PensionFundOpeningBalance"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="PFNumber"
                                                class="form-label">
-
                                             P.F. Number
-
                                         </label>
 
                                         <input asp-for="PFNumber"
                                                id="PFNumber"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="PFOpeningBalance"
                                                class="form-label">
-
                                             P.F. Opening Balance
-
                                         </label>
 
                                         <input asp-for="PFOpeningBalance"
                                                id="PFOpeningBalance"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="PANNumber"
                                                class="form-label">
-
                                             PAN Number
-
                                         </label>
 
                                         <input asp-for="PANNumber"
                                                id="PANNumber"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="SavingGLCode"
                                                class="form-label">
-
                                             S/B G/L Code
-
                                         </label>
 
                                         <input asp-for="SavingGLCode"
                                                id="SavingGLCode"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="SavingBranchCode"
                                                class="form-label">
-
                                             S/B Branch Code
-
                                         </label>
 
                                         <input asp-for="SavingBranchCode"
                                                id="SavingBranchCode"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="SavingAccountCode"
                                                class="form-label">
-
                                             S/B Account Code
-
                                         </label>
 
                                         <input asp-for="SavingAccountCode"
                                                id="SavingAccountCode"
                                                class="form-control" />
-
                                     </div>
-
 
                                 </div>
 
 
-
                                 <div class="col-md-6">
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="ITSerialNumber"
                                                class="form-label">
-
                                             IT Serial Number
-
                                         </label>
 
                                         <input asp-for="ITSerialNumber"
                                                id="ITSerialNumber"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="PFSerialNumber"
                                                class="form-label">
-
                                             P.F. Serial Number
-
                                         </label>
 
                                         <input asp-for="PFSerialNumber"
                                                id="PFSerialNumber"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="PFBalance"
                                                class="form-label">
-
                                             P.F. Balance
-
                                         </label>
 
                                         <input asp-for="PFBalance"
                                                id="PFBalance"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="AadhaarNumber"
                                                class="form-label">
-
                                             Aadhaar Number
-
                                         </label>
 
                                         <input asp-for="AadhaarNumber"
                                                id="AadhaarNumber"
-                                               class="form-control"
-                                               maxlength="12" />
-
+                                               maxlength="12"
+                                               class="form-control" />
                                     </div>
 
-
                                 </div>
-
 
                             </div>
 
 
-                            <div class="text-end mt-4">
-
+                            <div class="d-flex justify-content-between mt-4">
 
                                 <button type="button"
-                                        class="btn btn-secondary me-2"
+                                        class="btn btn-secondary"
                                         onclick="openEmployeeTab('general-tab')">
 
                                     <i class="bi bi-arrow-left"></i>
-
                                     Previous
 
                                 </button>
-
 
                                 <button type="button"
                                         class="btn btn-primary"
                                         onclick="openEmployeeTab('address-tab')">
 
                                     Next
-
                                     <i class="bi bi-arrow-right"></i>
 
                                 </button>
 
-
                             </div>
 
-
                         </div>
-
 
 
                         @* =================================================
@@ -1106,168 +922,120 @@
                         <div class="tab-pane fade"
                              id="address">
 
-
                             <div class="row">
-
 
                                 <div class="col-md-6">
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="CorrespondenceAddress1"
                                                class="form-label">
-
                                             Correspondence Address 1
-
                                         </label>
 
                                         <input asp-for="CorrespondenceAddress1"
                                                id="CorrespondenceAddress1"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="CorrespondenceAddress2"
                                                class="form-label">
-
                                             Correspondence Address 2
-
                                         </label>
 
                                         <input asp-for="CorrespondenceAddress2"
                                                id="CorrespondenceAddress2"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="PermanentAddress1"
                                                class="form-label">
-
                                             Permanent Address 1
-
                                         </label>
 
                                         <input asp-for="PermanentAddress1"
                                                id="PermanentAddress1"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="PermanentAddress2"
                                                class="form-label">
-
                                             Permanent Address 2
-
                                         </label>
 
                                         <input asp-for="PermanentAddress2"
                                                id="PermanentAddress2"
                                                class="form-control" />
-
                                     </div>
-
 
                                 </div>
 
 
-
                                 <div class="col-md-6">
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="FatherName"
                                                class="form-label">
-
                                             Father's Name
-
                                         </label>
 
                                         <input asp-for="FatherName"
                                                id="FatherName"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="Address1"
                                                class="form-label">
-
                                             Address 1
-
                                         </label>
 
                                         <input asp-for="Address1"
                                                id="Address1"
                                                class="form-control" />
-
                                     </div>
 
-
                                     <div class="mb-3">
-
                                         <label asp-for="Address2"
                                                class="form-label">
-
                                             Address 2
-
                                         </label>
 
                                         <input asp-for="Address2"
                                                id="Address2"
                                                class="form-control" />
-
                                     </div>
 
-
                                 </div>
-
 
                             </div>
 
 
-                            <div class="text-end mt-4">
-
+                            <div class="d-flex justify-content-between mt-4">
 
                                 <button type="button"
-                                        class="btn btn-secondary me-2"
+                                        class="btn btn-secondary"
                                         onclick="openEmployeeTab('other-tab')">
 
                                     <i class="bi bi-arrow-left"></i>
-
                                     Previous
 
                                 </button>
-
 
                                 <button type="button"
                                         class="btn btn-primary"
                                         onclick="openEmployeeTab('personal-tab')">
 
                                     Next
-
                                     <i class="bi bi-arrow-right"></i>
 
                                 </button>
 
-
                             </div>
 
-
                         </div>
-
 
 
                         @* =================================================
@@ -1277,23 +1045,16 @@
                         <div class="tab-pane fade"
                              id="personal">
 
-
                             <div class="row">
-
 
                                 <div class="col-md-6">
 
-
                                     @* RELIGION *@
-
                                     <div class="mb-3">
 
                                         <label class="form-label">
-
                                             Religion
-
                                         </label>
-
 
                                         <div class="input-group">
 
@@ -1302,7 +1063,6 @@
                                                    class="form-control"
                                                    placeholder="Search Religion"
                                                    readonly />
-
 
                                             <button type="button"
                                                     class="btn btn-primary"
@@ -1315,7 +1075,6 @@
 
                                         </div>
 
-
                                         <input type="hidden"
                                                asp-for="Religion"
                                                id="ReligionId" />
@@ -1323,17 +1082,12 @@
                                     </div>
 
 
-
                                     @* CASTE *@
-
                                     <div class="mb-3">
 
                                         <label class="form-label">
-
                                             Caste
-
                                         </label>
-
 
                                         <div class="input-group">
 
@@ -1342,7 +1096,6 @@
                                                    class="form-control"
                                                    placeholder="Search Caste"
                                                    readonly />
-
 
                                             <button type="button"
                                                     class="btn btn-primary"
@@ -1355,7 +1108,6 @@
 
                                         </div>
 
-
                                         <input type="hidden"
                                                asp-for="Caste"
                                                id="CasteId" />
@@ -1363,20 +1115,14 @@
                                     </div>
 
 
-
                                     @* GENDER *@
-
                                     <div class="mb-3">
 
                                         <label class="form-label">
-
                                             Gender
-
                                         </label>
 
-
                                         <div>
-
 
                                             <div class="form-check form-check-inline">
 
@@ -1386,13 +1132,10 @@
                                                        value="M" />
 
                                                 <label class="form-check-label">
-
                                                     Male
-
                                                 </label>
 
                                             </div>
-
 
                                             <div class="form-check form-check-inline">
 
@@ -1402,27 +1145,21 @@
                                                        value="F" />
 
                                                 <label class="form-check-label">
-
                                                     Female
-
                                                 </label>
 
                                             </div>
-
 
                                         </div>
 
                                     </div>
 
 
-
                                     <div class="mb-3">
 
                                         <label asp-for="BirthDate"
                                                class="form-label">
-
                                             Birth Date
-
                                         </label>
 
                                         <input asp-for="BirthDate"
@@ -1433,14 +1170,11 @@
                                     </div>
 
 
-
                                     <div class="mb-3">
 
                                         <label asp-for="IdentificationMark"
                                                class="form-label">
-
                                             Identification Mark
-
                                         </label>
 
                                         <input asp-for="IdentificationMark"
@@ -1450,14 +1184,11 @@
                                     </div>
 
 
-
                                     <div class="mb-3">
 
                                         <label asp-for="KnownLanguage"
                                                class="form-label">
-
                                             Known Language
-
                                         </label>
 
                                         <input asp-for="KnownLanguage"
@@ -1467,14 +1198,11 @@
                                     </div>
 
 
-
                                     <div class="mb-3">
 
                                         <label asp-for="Education"
                                                class="form-label">
-
                                             Education
-
                                         </label>
 
                                         <input asp-for="Education"
@@ -1483,31 +1211,23 @@
 
                                     </div>
 
-
                                 </div>
 
 
-
                                 <div class="col-md-6">
-
 
                                     <div class="mb-3">
 
                                         <label asp-for="BloodGroup"
                                                class="form-label">
-
                                             Blood Group
-
                                         </label>
 
                                         <select asp-for="BloodGroup"
                                                 id="BloodGroup"
                                                 class="form-select">
 
-                                            <option value="">
-                                                Select
-                                            </option>
-
+                                            <option value="">Select</option>
                                             <option>A+</option>
                                             <option>A-</option>
                                             <option>B+</option>
@@ -1522,14 +1242,11 @@
                                     </div>
 
 
-
                                     <div class="mb-3">
 
                                         <label asp-for="Height"
                                                class="form-label">
-
                                             Height
-
                                         </label>
 
                                         <input asp-for="Height"
@@ -1539,21 +1256,18 @@
                                     </div>
 
 
-
                                     <div class="mb-3">
 
                                         <label asp-for="MotherTongue"
                                                class="form-label">
-
                                             Mother Tongue
-
                                         </label>
 
                                         <input asp-for="MotherTongue"
                                                id="MotherTongue"
-                                               class="form-control"
                                                maxlength="10"
-                                               placeholder="Enter Mother Tongue" />
+                                               placeholder="Enter Mother Tongue"
+                                               class="form-control" />
 
                                         <span asp-validation-for="MotherTongue"
                                               class="text-danger">
@@ -1562,14 +1276,11 @@
                                     </div>
 
 
-
                                     <div class="mb-3">
 
                                         <label asp-for="ModeOfSign"
                                                class="form-label">
-
                                             Mode Of Sign
-
                                         </label>
 
                                         <input asp-for="ModeOfSign"
@@ -1578,140 +1289,140 @@
 
                                     </div>
 
-
                                 </div>
-
 
                             </div>
 
 
+                            @* =================================================
+                               PERSONAL INFORMATION BUTTONS
+                               ================================================= *@
 
-                            <div class="text-end mt-4">
-
+                            <div class="d-flex justify-content-between align-items-center mt-4">
 
                                 <button type="button"
-                                        class="btn btn-secondary me-2"
+                                        class="btn btn-secondary"
                                         onclick="openEmployeeTab('address-tab')">
 
                                     <i class="bi bi-arrow-left"></i>
-
                                     Previous
 
                                 </button>
 
 
+                                @* NEW EMPLOYEE SAVE *@
                                 <button type="submit"
                                         id="btnSaveEmployee"
-                                        class="btn btn-success">
+                                        class="btn btn-success"
+                                        style="display:none;">
 
                                     <i class="bi bi-save"></i>
-
                                     Save Employee
 
                                 </button>
 
 
+                                @* EXISTING EMPLOYEE UPDATE *@
+                                <button type="submit"
+                                        id="btnFinalUpdateEmployee"
+                                        class="btn btn-warning"
+                                        formaction="@Url.Action("UpdateEmployee", "Employee")"
+                                        formmethod="post"
+                                        style="display:none;">
+
+                                    <i class="bi bi-pencil-square"></i>
+                                    Update Employee
+
+                                </button>
+
                             </div>
 
-
                         </div>
-
 
                     </div>
 
 
-
                     @* =================================================
-                       BOTTOM BUTTONS
+                       BOTTOM ACTION BUTTONS
                        ================================================= *@
 
-                    <div class="text-center mt-4">
+                    <div class="text-center mt-4"
+                         id="bottomActionButtons">
 
-
-                        <button type="reset"
+                        <button type="button"
                                 id="btnNewEmployee"
                                 class="btn btn-primary">
 
                             <i class="bi bi-plus-circle"></i>
-
                             New
 
                         </button>
 
 
-                        <button type="submit"
-                                id="btnBottomSave"
-                                class="btn btn-success">
-
-                            <i class="bi bi-save"></i>
-
-                            Save
-
-                        </button>
-
-
-                        <button type="submit"
+                        <button type="button"
                                 id="btnUpdateEmployee"
-                                class="btn btn-warning"
-                                formaction="@Url.Action("UpdateEmployee", "Employee")"
-                                formmethod="post"
-                                disabled>
+                                class="btn btn-warning">
 
                             <i class="bi bi-pencil-square"></i>
-
                             Update
 
                         </button>
 
 
                         <button type="button"
+                                id="btnDeleteEmployee"
                                 class="btn btn-danger">
 
                             <i class="bi bi-trash"></i>
-
                             Delete
 
                         </button>
 
 
                         <button type="button"
+                                id="btnViewEmployee"
                                 class="btn btn-info text-white">
 
                             <i class="bi bi-eye"></i>
-
                             View
+
+                        </button>
+
+
+                        @* UPDATE MODE मध्येच दिसेल *@
+                        <button type="button"
+                                id="btnCancelUpdate"
+                                class="btn btn-danger"
+                                style="display:none;">
+
+                            <i class="bi bi-x-circle"></i>
+                            Cancel
 
                         </button>
 
 
                         <a asp-controller="Home"
                            asp-action="Index"
+                           id="btnExitEmployee"
                            class="btn btn-secondary">
 
                             <i class="bi bi-box-arrow-right"></i>
-
                             Exit
 
                         </a>
 
-
                     </div>
-
 
                 </form>
 
-
             </div>
 
-
         </div>
-
 
     </div>
 
 
-
-    @* ============================================================
+@* ============================================================
        EXISTING EMPLOYEE MODAL
        ============================================================ *@
 
@@ -1720,62 +1431,46 @@
          tabindex="-1"
          aria-hidden="true">
 
-
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
-
 
             <div class="modal-content">
 
-
                 <div class="modal-header bg-dark text-white">
-
 
                     <h5 class="modal-title">
 
                         <i class="bi bi-database me-2"></i>
-
                         Existing Employee Search
 
                     </h5>
-
 
                     <button type="button"
                             class="btn-close btn-close-white"
                             data-bs-dismiss="modal">
                     </button>
 
-
                 </div>
 
 
                 <div class="modal-body">
 
-
                     <div class="row g-3 align-items-end">
-
 
                         <div class="col-md-4">
 
                             <label class="form-label">
-
                                 Search By
-
                             </label>
-
 
                             <select id="ExistingSearchBy"
                                     class="form-select">
 
                                 <option value="code">
-
                                     Employee Code
-
                                 </option>
 
                                 <option value="name">
-
                                     Employee Name
-
                                 </option>
 
                             </select>
@@ -1786,11 +1481,8 @@
                         <div class="col-md-5">
 
                             <label class="form-label">
-
                                 Search Value
-
                             </label>
-
 
                             <input type="text"
                                    id="ExistingSearchText"
@@ -1808,16 +1500,13 @@
                                     class="btn btn-primary">
 
                                 <i class="bi bi-search"></i>
-
                                 Search
 
                             </button>
 
                         </div>
 
-
                     </div>
-
 
 
                     <div id="ExistingSearchMessage"
@@ -1825,29 +1514,16 @@
                     </div>
 
 
-
                     <div class="table-responsive mt-3">
 
-
                         <table class="table table-bordered table-hover existing-result-table">
-
 
                             <thead class="table-light">
 
                                 <tr>
-
-                                    <th>
-                                        Employee Code
-                                    </th>
-
-                                    <th>
-                                        Employee Name
-                                    </th>
-
-                                    <th>
-                                        Action
-                                    </th>
-
+                                    <th>Employee Code</th>
+                                    <th>Employee Name</th>
+                                    <th>Action</th>
                                 </tr>
 
                             </thead>
@@ -1868,47 +1544,36 @@
 
                             </tbody>
 
-
                         </table>
-
 
                     </div>
 
-
                 </div>
-
 
             </div>
 
-
         </div>
-
 
     </div>
 
 
-
-    @* ============================================================
+@* ============================================================
        RELIGION MODAL
        ============================================================ *@
 
     <div class="modal fade"
          id="ReligionModal"
-         tabindex="-1">
+         tabindex="-1"
+         aria-hidden="true">
 
-
-        <div class="modal-dialog modal-lg">
-
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
 
             <div class="modal-content">
-
 
                 <div class="modal-header">
 
                     <h5 class="modal-title">
-
                         Select Religion
-
                     </h5>
 
                     <button type="button"
@@ -1921,7 +1586,6 @@
 
                 <div class="modal-body">
 
-
                     <input type="text"
                            id="searchReligion"
                            class="form-control mb-3"
@@ -1931,23 +1595,12 @@
 
                     <table class="table table-bordered table-hover">
 
-
                         <thead>
 
                             <tr>
-
-                                <th>
-                                    Code
-                                </th>
-
-                                <th>
-                                    Religion
-                                </th>
-
-                                <th>
-                                    Action
-                                </th>
-
+                                <th>Code</th>
+                                <th>Religion</th>
+                                <th>Action</th>
                             </tr>
 
                         </thead>
@@ -1955,20 +1608,15 @@
 
                         <tbody id="religionTable">
 
-
                             @if (ViewBag.Religions != null)
                             {
                                 foreach (var item in ViewBag.Religions)
                                 {
                                     <tr>
 
-                                        <td>
-                                            @item.Code
-                                        </td>
+                                        <td>@item.Code</td>
 
-                                        <td>
-                                            @item.ReligionName
-                                        </td>
+                                        <td>@item.ReligionName</td>
 
                                         <td>
 
@@ -1986,47 +1634,36 @@
                                 }
                             }
 
-
                         </tbody>
-
 
                     </table>
 
-
                 </div>
-
 
             </div>
 
-
         </div>
-
 
     </div>
 
 
-
-    @* ============================================================
+@* ============================================================
        CASTE MODAL
        ============================================================ *@
 
     <div class="modal fade"
          id="CasteModal"
-         tabindex="-1">
+         tabindex="-1"
+         aria-hidden="true">
 
-
-        <div class="modal-dialog modal-lg">
-
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
 
             <div class="modal-content">
-
 
                 <div class="modal-header">
 
                     <h5 class="modal-title">
-
                         Select Caste
-
                     </h5>
 
                     <button type="button"
@@ -2039,7 +1676,6 @@
 
                 <div class="modal-body">
 
-
                     <input type="text"
                            id="searchCaste"
                            class="form-control mb-3"
@@ -2049,23 +1685,12 @@
 
                     <table class="table table-bordered table-hover">
 
-
                         <thead>
 
                             <tr>
-
-                                <th>
-                                    Code
-                                </th>
-
-                                <th>
-                                    Caste Name
-                                </th>
-
-                                <th>
-                                    Action
-                                </th>
-
+                                <th>Code</th>
+                                <th>Caste Name</th>
+                                <th>Action</th>
                             </tr>
 
                         </thead>
@@ -2073,20 +1698,15 @@
 
                         <tbody id="casteTable">
 
-
                             @if (ViewBag.Castes != null)
                             {
                                 foreach (var item in ViewBag.Castes)
                                 {
                                     <tr>
 
-                                        <td>
-                                            @item.Code
-                                        </td>
+                                        <td>@item.Code</td>
 
-                                        <td>
-                                            @item.CastName
-                                        </td>
+                                        <td>@item.CastName</td>
 
                                         <td>
 
@@ -2104,198 +1724,429 @@
                                 }
                             }
 
-
                         </tbody>
-
 
                     </table>
 
-
                 </div>
-
 
             </div>
 
-
         </div>
-
 
     </div>
 
 
+@* ============================================================
+       JAVASCRIPT LIBRARIES
+       ============================================================ *@
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 
+@* ============================================================
+       PART 2 END
+
+       IMPORTANT:
+       </body> आणि </html> इथे लिहू नका.
+
+       PART 3 मधील <script> याच्या खाली paste करा.
+       ============================================================ *@
 
     <script>
 
+        // ============================================================
+        // GLOBAL MODE
+        // ============================================================
 
-        // ==========================================================
+        var isUpdateMode = false;
+
+
+        // ============================================================
         // DOCUMENT READY
-        // ==========================================================
+        // ============================================================
 
         $(document).ready(function () {
 
+            // Normal page load
+            $("#btnSaveEmployee").hide();
+            $("#btnFinalUpdateEmployee").hide();
+            $("#btnCancelUpdate").hide();
 
-            // ======================================================
-            // NEW EMPLOYEE SUCCESS POPUP
-            // ======================================================
+            $("#EmployeeFormMode").val("normal");
+
+
+            // ========================================================
+            // SAVE SUCCESS POPUP
+            // ========================================================
 
             var successModalElement =
-                document.getElementById(
-                    "employeeSuccessModal"
-                );
-
+                document.getElementById("employeeSuccessModal");
 
             if (successModalElement) {
 
-                bootstrap.Modal
-                    .getOrCreateInstance(
-                        successModalElement
-                    )
-                    .show();
+                var successModal =
+                    new bootstrap.Modal(successModalElement);
 
+                successModal.show();
             }
 
 
-
-            // ======================================================
+            // ========================================================
             // UPDATE SUCCESS POPUP
-            // ======================================================
+            // ========================================================
 
-            var updateModalElement =
+            var updateSuccessModalElement =
                 document.getElementById(
                     "employeeUpdateSuccessModal"
                 );
 
+            if (updateSuccessModalElement) {
 
-            if (updateModalElement) {
+                var updateSuccessModal =
+                    new bootstrap.Modal(
+                        updateSuccessModalElement
+                    );
 
-                bootstrap.Modal
-                    .getOrCreateInstance(
-                        updateModalElement
-                    )
-                    .show();
-
+                updateSuccessModal.show();
             }
 
 
+            // ========================================================
+            // DUPLICATE FROM SERVER
+            // ========================================================
 
-            // ======================================================
-            // DUPLICATE POPUP
-            // ======================================================
-
-            @if (TempData["DuplicateEmployee"] != null)
+            @if (TempData["DuplicateEmployee"]?.ToString() == "true")
             {
-                <text>
+                    <text>
 
-                    $("#existingEmployeeName")
-                        .text(
-                            @Html.Raw(
-                                System.Text.Json.JsonSerializer.Serialize(
-                                    TempData["DuplicateEmployeeName"]?.ToString() ?? ""
-                                )
-                            )
-                        );
-
+                        $("#existingEmployeeName")
+                            .text('@Html.Raw(
+                                                            System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(
+                                                                    TempData["DuplicateEmployeeName"]?.ToString() ?? ""
+                                                            )
+                                                    )');
 
                     $("#existingEmployeeCode")
-                        .text(
-                            @Html.Raw(
-                                System.Text.Json.JsonSerializer.Serialize(
-                                    TempData["DuplicateEmployeeCode"]?.ToString() ?? ""
-                                )
-                            )
-                        );
-
+                        .text('@Html.Raw(
+                                                        System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(
+                                                                TempData["DuplicateEmployeeCode"]?.ToString() ?? ""
+                                                        )
+                                                )');
 
                     var duplicateModalElement =
                         document.getElementById(
                             "employeeAlreadyExistsModal"
                         );
 
+                        if (duplicateModalElement) {
 
-                    if (duplicateModalElement) {
+                            var duplicateModal =
+                                new bootstrap.Modal(
+                                    duplicateModalElement
+                                );
 
-                        bootstrap.Modal
-                            .getOrCreateInstance(
-                                duplicateModalElement
-                            )
-                            .show();
+                            duplicateModal.show();
+                        }
+
+                    </text>
+                        }
+
+
+            // ========================================================
+            // CUSTOMER SEARCH BUTTON
+            // ========================================================
+
+            $("#btnSearchCustomer").click(function () {
+
+                searchCustomer();
+
+            });
+
+
+            // ========================================================
+            // ENTER KEY CUSTOMER SEARCH
+            // ========================================================
+
+            $("#EmployeeIdSearch").keydown(function (e) {
+
+                if (e.key === "Enter") {
+
+                    e.preventDefault();
+
+                    if (!isUpdateMode) {
+
+                        searchCustomer();
 
                     }
+                }
 
-                </text>
-            }
+            });
 
 
+            // ========================================================
+            // NEW BUTTON
+            // ========================================================
 
-            // ======================================================
-            // CUSTOMER SEARCH
-            // ======================================================
+            $("#btnNewEmployee").click(function () {
 
-            $("#btnSearchCustomer")
-                .click(function () {
+                isUpdateMode = false;
 
-                    GetEmployee();
+                $("#EmployeeFormMode").val("new");
 
+
+                // Clear form
+                var form =
+                    document.getElementById(
+                        "employeeForm"
+                    );
+
+                if (form) {
+
+                    form.reset();
+
+                }
+
+
+                clearCustomerFields();
+
+
+                $("#EmployeeIdSearch").val("");
+
+                $("#HiddenCustomerId").val("");
+
+                $("#ExistingEmployeeCode").val("");
+
+                $("#EmployeeCode").val("");
+
+                $("#CustomerSearchMessage").text("");
+
+
+                // TITLE
+                $("#registrationTitle")
+                    .text(
+                        "New Employee Registration"
+                    );
+
+
+                // TOP
+                $("#btnSearchCustomer").show();
+
+                $("#btnExistingData").hide();
+
+                $("#EmployeeIdSearch")
+                    .prop("readonly", false);
+
+
+                // BOTTOM
+                $("#btnNewEmployee").hide();
+
+                $("#btnUpdateEmployee").hide();
+
+                $("#btnDeleteEmployee").show();
+
+                $("#btnViewEmployee").hide();
+
+                $("#btnCancelUpdate").hide();
+
+                $("#btnExitEmployee").show();
+
+
+                // PERSONAL INFORMATION
+                $("#btnSaveEmployee")
+                    .show()
+                    .prop("disabled", false);
+
+                $("#btnFinalUpdateEmployee")
+                    .hide()
+                    .prop("disabled", true);
+
+
+                openEmployeeTab(
+                    "general-tab"
+                );
+
+
+                window.scrollTo({
+                    top: 0,
+                    behavior: "smooth"
                 });
 
 
+                setTimeout(function () {
 
-            $("#EmployeeIdSearch")
-                .keydown(function (e) {
+                    $("#EmployeeIdSearch")
+                        .focus();
 
-                    if (e.key === "Enter") {
+                }, 300);
 
-                        e.preventDefault();
+            });
 
-                        GetEmployee();
 
-                    }
+            // ========================================================
+            // UPDATE BUTTON
+            // ========================================================
 
+            $("#btnUpdateEmployee").click(function () {
+
+                isUpdateMode = true;
+
+                $("#EmployeeFormMode")
+                    .val("update");
+
+
+                // TITLE
+                $("#registrationTitle")
+                    .text(
+                        "Update Employee"
+                    );
+
+
+                // SEARCH BUTTON HIDE
+                $("#btnSearchCustomer").hide();
+
+
+                // EXISTING DATA SHOW
+                $("#btnExistingData").show();
+
+
+                $("#EmployeeIdSearch")
+                    .val("")
+                    .prop("readonly", true);
+
+
+                // Clear previous employee
+                clearCustomerFields();
+
+                $("#HiddenCustomerId").val("");
+
+                $("#ExistingEmployeeCode").val("");
+
+                $("#EmployeeCode").val("");
+
+
+                // BOTTOM:
+                // ONLY CANCEL + EXIT
+                $("#btnNewEmployee").hide();
+
+                $("#btnUpdateEmployee").hide();
+
+                $("#btnDeleteEmployee").hide();
+
+                $("#btnViewEmployee").hide();
+
+                $("#btnCancelUpdate").show();
+
+                $("#btnExitEmployee").show();
+
+
+                // PERSONAL
+                $("#btnSaveEmployee")
+                    .hide()
+                    .prop("disabled", true);
+
+                // Employee select झाल्यानंतरच show
+                $("#btnFinalUpdateEmployee")
+                    .hide()
+                    .prop("disabled", true);
+
+
+                $("#CustomerSearchMessage")
+                    .removeClass(
+                        "text-danger text-success"
+                    )
+                    .addClass(
+                        "text-primary"
+                    )
+                    .text(
+                        "Click Existing Data and select employee to update."
+                    );
+
+
+                openEmployeeTab(
+                    "general-tab"
+                );
+
+
+                window.scrollTo({
+                    top: 0,
+                    behavior: "smooth"
                 });
 
+            });
 
 
-            // ======================================================
-            // EXISTING DATA MODAL
-            // ======================================================
+            // ========================================================
+            // CANCEL UPDATE
+            // ========================================================
+
+            $("#btnCancelUpdate").click(function () {
+
+                window.location.href =
+                    '@Url.Action("Register", "Employee")';
+
+            });
+
+
+            // ========================================================
+            // EXISTING MODAL OPEN
+            // ========================================================
 
             $("#ExistingEmployeeModal")
                 .on(
                     "shown.bs.modal",
                     function () {
 
-                        LoadInitialExistingEmployees();
+                        $("#ExistingSearchText")
+                            .val("");
+
+                        $("#ExistingSearchMessage")
+                            .text("");
+
+                        $("#ExistingSearchBy")
+                            .val("code");
+
+                        $("#ExistingSearchText")
+                            .attr(
+                                "placeholder",
+                                "Enter Employee Code"
+                            );
+
+
+                        loadLatestEmployees();
+
+
+                        setTimeout(function () {
+
+                            $("#ExistingSearchText")
+                                .focus();
+
+                        }, 200);
 
                     }
                 );
 
 
-            // ======================================================
-            // IMPORTANT GREY SCREEN FIX
-            // ======================================================
-
-            $("#ExistingEmployeeModal")
-                .on(
-                    "hidden.bs.modal",
-                    function () {
-
-                        cleanModalBackdrop();
-
-                    }
-                );
-
-
+            // ========================================================
+            // SEARCH TYPE CHANGE
+            // ========================================================
 
             $("#ExistingSearchBy")
                 .change(function () {
 
-                    if ($(this).val() === "name") {
+                    var searchBy =
+                        $(this).val();
+
+                    $("#ExistingSearchText")
+                        .val("");
+
+                    $("#ExistingSearchMessage")
+                        .text("");
+
+
+                    if (searchBy === "name") {
 
                         $("#ExistingSearchText")
                             .attr(
@@ -2316,24 +2167,26 @@
 
 
                     $("#ExistingSearchText")
-                        .val("");
-
-
-                    $("#ExistingSearchMessage")
-                        .text("");
+                        .focus();
 
                 });
 
 
+            // ========================================================
+            // EXISTING SEARCH BUTTON
+            // ========================================================
 
             $("#btnSearchExistingEmployee")
                 .click(function () {
 
-                    SearchExistingEmployees();
+                    searchExistingEmployees();
 
                 });
 
 
+            // ========================================================
+            // EXISTING SEARCH ENTER
+            // ========================================================
 
             $("#ExistingSearchText")
                 .keydown(function (e) {
@@ -2342,139 +2195,59 @@
 
                         e.preventDefault();
 
-                        SearchExistingEmployees();
+                        searchExistingEmployees();
 
                     }
 
                 });
 
 
+            // ========================================================
+            // MODAL CLEANUP
+            // ========================================================
 
-            // ======================================================
-            // NEW BUTTON
-            // ======================================================
+            $(".modal")
+                .on(
+                    "hidden.bs.modal",
+                    function () {
 
-            $("#btnNewEmployee")
-                .click(function () {
+                        setTimeout(function () {
 
-                    setTimeout(
-                        function () {
+                            cleanModalBackdrop();
 
-                            clearCustomerFields();
+                        }, 100);
 
-                            $("#EmployeeIdSearch")
-                                .val("");
-
-                            $("#CustomerSearchMessage")
-                                .text("");
-
-                            enableNewEmployeeMode();
-
-                            openEmployeeTab(
-                                "general-tab"
-                            );
-
-                        },
-                        50
-                    );
-
-                });
-
+                    }
+                );
 
         });
 
 
 
-        // ==========================================================
-        // GREY BACKDROP FIX
-        // ==========================================================
+        // ============================================================
+        // CUSTOMER SEARCH FROM PRTYMAST
+        // ============================================================
 
-        function cleanModalBackdrop() {
+        function searchCustomer() {
 
-
-            $(".modal-backdrop")
-                .remove();
-
-
-            $("body")
-                .removeClass(
-                    "modal-open"
-                );
-
-
-            $("body")
-                .css(
-                    {
-                        "overflow": "",
-                        "padding-right": ""
-                    }
-                );
-
-
-            $("html")
-                .css(
-                    "overflow",
-                    ""
-                );
-
-
-        }
-
-
-
-        // ==========================================================
-        // NEXT / PREVIOUS
-        // ==========================================================
-
-        function openEmployeeTab(
-            tabButtonId
-        ) {
-
-
-            var tabButton =
-                document.getElementById(
-                    tabButtonId
-                );
-
-
-            if (!tabButton) {
+            if (isUpdateMode) {
 
                 return;
 
             }
 
 
-            bootstrap.Tab
-                .getOrCreateInstance(
-                    tabButton
-                )
-                .show();
-
-
-        }
-
-
-
-        // ==========================================================
-        // CUSTOMER SEARCH FROM prtymast
-        // ==========================================================
-
-        function GetEmployee() {
-
-
-            var custId =
+            var customerId =
                 $.trim(
-                    $("#EmployeeIdSearch")
-                        .val()
+                    $("#EmployeeIdSearch").val()
                 );
 
 
-            if (custId === "") {
-
+            if (customerId === "") {
 
                 $("#CustomerSearchMessage")
                     .removeClass(
-                        "text-success"
+                        "text-success text-primary"
                     )
                     .addClass(
                         "text-danger"
@@ -2483,28 +2256,19 @@
                         "Please enter Customer ID."
                     );
 
+                $("#EmployeeIdSearch")
+                    .focus();
 
                 return;
-
-
             }
 
 
-            enableNewEmployeeMode();
-
-
-            $("#HiddenCustomerId")
-                .val("");
-
-
-            $("#EmployeeCode")
-                .val("");
-
-
-            $("#btnSearchCustomer")
-                .prop(
-                    "disabled",
-                    true
+            $("#CustomerSearchMessage")
+                .removeClass(
+                    "text-danger text-success"
+                )
+                .addClass(
+                    "text-primary"
                 )
                 .text(
                     "Searching..."
@@ -2513,401 +2277,249 @@
 
             $.ajax({
 
-
                 url:
-                    "/Employee/GetEmployee",
-
+                    '@Url.Action("GetEmployee", "Employee")',
 
                 type:
                     "GET",
 
-
-                dataType:
-                    "json",
-
-
                 data: {
-
                     custId:
-                        custId
-
+                        customerId
                 },
 
+                success:
+                    function (response) {
 
-                success: function (response) {
+                        if (!response.success) {
 
+                            if (response.alreadyExists) {
 
-                    // =================================================
-                    // DUPLICATE
-                    // =================================================
+                                $("#existingEmployeeName")
+                                    .text(
+                                        response.employeeName || ""
+                                    );
 
-                    if (response.alreadyExists === true) {
-
-
-                        clearCustomerFields();
-
-
-                        $("#EmployeeIdSearch")
-                            .val(
-                                custId
-                            );
+                                $("#existingEmployeeCode")
+                                    .text(
+                                        response.employeeCode || ""
+                                    );
 
 
-                        $("#existingEmployeeName")
-                            .text(
-                                response.employeeName ||
-                                ""
-                            );
+                                var duplicateModal =
+                                    bootstrap.Modal
+                                        .getOrCreateInstance(
+                                            document.getElementById(
+                                                "employeeAlreadyExistsModal"
+                                            )
+                                        );
+
+                                duplicateModal.show();
 
 
-                        $("#existingEmployeeCode")
-                            .text(
-                                response.employeeCode ||
-                                ""
-                            );
+                                $("#CustomerSearchMessage")
+                                    .removeClass(
+                                        "text-success text-primary"
+                                    )
+                                    .addClass(
+                                        "text-danger"
+                                    )
+                                    .text(
+                                        "Employee already exists."
+                                    );
+
+                                return;
+                            }
 
 
-                        $("#CustomerSearchMessage")
-                            .removeClass(
-                                "text-success"
-                            )
-                            .addClass(
-                                "text-danger"
-                            )
-                            .text(
-                                "Employee already exists."
-                            );
+                            clearCustomerFields();
 
 
-                        bootstrap.Modal
-                            .getOrCreateInstance(
-                                document.getElementById(
-                                    "employeeAlreadyExistsModal"
+                            $("#CustomerSearchMessage")
+                                .removeClass(
+                                    "text-success text-primary"
                                 )
-                            )
-                            .show();
+                                .addClass(
+                                    "text-danger"
+                                )
+                                .text(
+                                    response.message ||
+                                    "Customer not found."
+                                );
+
+                            return;
+                        }
 
 
-                        return;
+                        var data =
+                            response.data;
 
 
-                    }
+                        // Customer ID
+                        $("#HiddenCustomerId")
+                            .val(
+                                data.customerId || customerId
+                            );
 
 
+                        // Employee code MUST remain blank
+                        // New code generated after save
+                        $("#EmployeeCode")
+                            .val("");
 
-                    if (!response.success) {
+
+                        // Name
+                        $("#EmployeeName")
+                            .val(
+                                data.employeeName || ""
+                            );
+
+
+                        // Addresses
+                        $("#Address1")
+                            .val(
+                                data.address1 || ""
+                            );
+
+                        $("#Address2")
+                            .val(
+                                data.address2 || ""
+                            );
+
+                        $("#CorrespondenceAddress1")
+                            .val(
+                                data.address1 || ""
+                            );
+
+                        $("#CorrespondenceAddress2")
+                            .val(
+                                data.address2 || ""
+                            );
+
+                        $("#PermanentAddress1")
+                            .val(
+                                data.address1 || ""
+                            );
+
+                        $("#PermanentAddress2")
+                            .val(
+                                data.address2 || ""
+                            );
+
+
+                        // Father
+                        $("#FatherName")
+                            .val(
+                                data.fatherName || ""
+                            );
+
+
+                        // PAN
+                        $("#PANNumber")
+                            .val(
+                                data.panNumber || ""
+                            );
+
+
+                        // Aadhaar
+                        $("#AadhaarNumber")
+                            .val(
+                                data.aadhaarNumber || ""
+                            );
+
+
+                        // Birth Date
+                        $("#BirthDate")
+                            .val(
+                                data.birthDate || ""
+                            );
+
+
+                        // Gender
+                        setGender(
+                            data.gender
+                        );
+
+
+                        // Religion
+                        setReligionValues(
+                            data.religionCode,
+                            data.religionName ||
+                            data.religion
+                        );
+
+
+                        // Caste
+                        setCasteValues(
+                            data.casteCode,
+                            data.casteName ||
+                            data.caste
+                        );
 
 
                         $("#CustomerSearchMessage")
                             .removeClass(
-                                "text-success"
+                                "text-danger text-primary"
                             )
                             .addClass(
-                                "text-danger"
+                                "text-success"
                             )
                             .text(
-                                response.message ||
-                                "Customer not found."
+                                "Customer information loaded successfully."
                             );
 
+                    },
+
+                error:
+                    function (xhr) {
 
                         clearCustomerFields();
 
 
-                        return;
-
-
-                    }
-
-
-                    var data =
-                        response.data;
-
-
-
-                    $("#EmployeeIdSearch")
-                        .val(
-                            data.customerId ||
-                            custId
-                        );
-
-
-                    $("#HiddenCustomerId")
-                        .val(
-                            data.customerId ||
-                            custId
-                        );
-
-
-                    // Employee Code only generates after Save
-                    $("#EmployeeCode")
-                        .val("");
-
-
-                    $("#EmployeeName")
-                        .val(
-                            data.employeeName ||
-                            ""
-                        );
-
-
-                    $("#Address1")
-                        .val(
-                            data.address1 ||
-                            ""
-                        );
-
-
-                    $("#Address2")
-                        .val(
-                            data.address2 ||
-                            ""
-                        );
-
-
-                    $("#CorrespondenceAddress1")
-                        .val(
-                            data.address1 ||
-                            ""
-                        );
-
-
-                    $("#CorrespondenceAddress2")
-                        .val(
-                            data.address2 ||
-                            ""
-                        );
-
-
-                    $("#PermanentAddress1")
-                        .val(
-                            data.address1 ||
-                            ""
-                        );
-
-
-                    $("#PermanentAddress2")
-                        .val(
-                            data.address2 ||
-                            ""
-                        );
-
-
-                    $("#FatherName")
-                        .val(
-                            data.fatherName ||
-                            ""
-                        );
-
-
-                    $("#PANNumber")
-                        .val(
-                            data.panNumber ||
-                            ""
-                        );
-
-
-                    $("#AadhaarNumber")
-                        .val(
-                            data.aadhaarNumber ||
-                            ""
-                        );
-
-
-                    // =================================================
-                    // GENDER
-                    // =================================================
-
-                    $("input[name='Gender']")
-                        .prop(
-                            "checked",
-                            false
-                        );
-
-
-                    if (data.gender) {
-
-
-                        var gender =
-                            data.gender
-                                .toString()
-                                .trim()
-                                .toUpperCase();
-
-
-                        if (gender === "MALE") {
-
-                            gender = "M";
-
-                        }
-
-
-                        if (gender === "FEMALE") {
-
-                            gender = "F";
-
-                        }
+                        var message =
+                            "Unable to retrieve customer information.";
 
 
                         if (
-                            gender === "M" ||
-                            gender === "F"
+                            xhr.responseJSON &&
+                            xhr.responseJSON.message
                         ) {
 
-
-                            $(
-                                "input[name='Gender'][value='" +
-                                gender +
-                                "']"
-                            )
-                                .prop(
-                                    "checked",
-                                    true
-                                );
-
+                            message =
+                                xhr.responseJSON.message;
 
                         }
 
 
-                    }
-
-
-
-                    $("#BirthDate")
-                        .val(
-                            formatDate(
-                                data.birthDate
+                        $("#CustomerSearchMessage")
+                            .removeClass(
+                                "text-success text-primary"
                             )
-                        );
-
-
-                    $("#ReligionId")
-                        .val(
-                            data.religionCode ||
-                            ""
-                        );
-
-
-                    $("#ReligionSearch")
-                        .val(
-                            data.religion ||
-                            ""
-                        );
-
-
-                    $("#CasteId")
-                        .val(
-                            data.casteCode ||
-                            ""
-                        );
-
-
-                    $("#CasteSearch")
-                        .val(
-                            data.caste ||
-                            ""
-                        );
-
-
-                    $("#MotherTongue")
-                        .val("");
-
-
-                    $("#CustomerSearchMessage")
-                        .removeClass(
-                            "text-danger"
-                        )
-                        .addClass(
-                            "text-success"
-                        )
-                        .text(
-                            "Customer information loaded successfully."
-                        );
-
-
-                },
-
-
-                error: function (xhr) {
-
-
-                    var message =
-                        "Unable to retrieve customer information.";
-
-
-                    if (
-                        xhr.responseJSON &&
-                        xhr.responseJSON.message
-                    ) {
-
-                        message =
-                            xhr.responseJSON.message;
+                            .addClass(
+                                "text-danger"
+                            )
+                            .text(
+                                message
+                            );
 
                     }
-
-
-                    $("#CustomerSearchMessage")
-                        .removeClass(
-                            "text-success"
-                        )
-                        .addClass(
-                            "text-danger"
-                        )
-                        .text(
-                            message
-                        );
-
-
-                },
-
-
-                complete: function () {
-
-
-                    $("#btnSearchCustomer")
-                        .prop(
-                            "disabled",
-                            false
-                        )
-                        .html(
-                            '<i class="bi bi-search"></i> Search'
-                        );
-
-
-                }
-
 
             });
-
 
         }
 
 
 
-        // ==========================================================
-        // INITIAL EXISTING DATA
-        // ==========================================================
+        // ============================================================
+        // LOAD LATEST EMPLOYEES
+        // ============================================================
 
-        function LoadInitialExistingEmployees() {
-
-
-            $("#ExistingSearchText")
-                .val("");
-
-
-            $("#ExistingSearchMessage")
-                .removeClass(
-                    "text-success text-danger"
-                )
-                .text(
-                    "Loading latest employees from PayMast..."
-                );
-
+        function loadLatestEmployees() {
 
             $("#ExistingEmployeeResults")
                 .html(
                     '<tr>' +
-                    '<td colspan="3" class="text-center text-muted">' +
+                    '<td colspan="3" class="text-center">' +
                     'Loading...' +
                     '</td>' +
                     '</tr>'
@@ -2916,197 +2528,79 @@
 
             $.ajax({
 
-
                 url:
-                    "/Employee/SearchExistingEmployees",
-
+                    '@Url.Action("SearchExistingEmployees", "Employee")',
 
                 type:
                     "GET",
 
-
-                dataType:
-                    "json",
-
-
                 data: {
-
                     searchBy:
-                        "",
+                        "code",
 
                     searchText:
                         ""
-
                 },
 
+                success:
+                    function (response) {
 
-                success: function (response) {
+                        renderExistingEmployees(
+                            response
+                        );
 
+                    },
 
-                    if (!response.success) {
-
-
-                        $("#ExistingSearchMessage")
-                            .removeClass(
-                                "text-success"
-                            )
-                            .addClass(
-                                "text-danger"
-                            )
-                            .text(
-                                response.message ||
-                                "Unable to load employees."
-                            );
-
-
-                        return;
-
-
-                    }
-
-
-                    var employees =
-                        response.data ||
-                        [];
-
-
-                    if (employees.length === 0) {
-
-
-                        $("#ExistingSearchMessage")
-                            .removeClass(
-                                "text-success"
-                            )
-                            .addClass(
-                                "text-danger"
-                            )
-                            .text(
-                                "No employee found in PayMast."
-                            );
-
+                error:
+                    function () {
 
                         $("#ExistingEmployeeResults")
                             .html(
                                 '<tr>' +
-                                '<td colspan="3" class="text-center">' +
-                                'No employee found.' +
+                                '<td colspan="3" class="text-center text-danger">' +
+                                'Unable to load employees.' +
                                 '</td>' +
                                 '</tr>'
                             );
 
-
-                        return;
-
-
                     }
-
-
-                    $("#ExistingSearchMessage")
-                        .removeClass(
-                            "text-danger"
-                        )
-                        .addClass(
-                            "text-success"
-                        )
-                        .text(
-                            "Latest " +
-                            employees.length +
-                            " employee(s) loaded."
-                        );
-
-
-                    RenderExistingEmployeeRows(
-                        employees
-                    );
-
-
-                },
-
-
-                error: function (xhr) {
-
-
-                    var message =
-                        "Unable to load employee data.";
-
-
-                    if (
-                        xhr.responseJSON &&
-                        xhr.responseJSON.message
-                    ) {
-
-                        message =
-                            xhr.responseJSON.message;
-
-                    }
-
-
-                    $("#ExistingSearchMessage")
-                        .removeClass(
-                            "text-success"
-                        )
-                        .addClass(
-                            "text-danger"
-                        )
-                        .text(
-                            message
-                        );
-
-
-                }
-
 
             });
-
 
         }
 
 
 
-        // ==========================================================
+        // ============================================================
         // SEARCH EXISTING EMPLOYEE
-        // ==========================================================
+        // ============================================================
 
-        function SearchExistingEmployees() {
-
+        function searchExistingEmployees() {
 
             var searchBy =
-                $("#ExistingSearchBy")
-                    .val();
-
+                $("#ExistingSearchBy").val();
 
             var searchText =
                 $.trim(
-                    $("#ExistingSearchText")
-                        .val()
+                    $("#ExistingSearchText").val()
                 );
 
 
             if (searchText === "") {
 
-
-                $("#ExistingSearchMessage")
-                    .removeClass(
-                        "text-success"
-                    )
-                    .addClass(
-                        "text-danger"
-                    )
-                    .text(
-                        "Please enter search value."
-                    );
-
+                loadLatestEmployees();
 
                 return;
-
 
             }
 
 
-            $("#btnSearchExistingEmployee")
-                .prop(
-                    "disabled",
-                    true
+            $("#ExistingSearchMessage")
+                .removeClass(
+                    "text-danger text-success"
+                )
+                .addClass(
+                    "text-primary"
                 )
                 .text(
                     "Searching..."
@@ -3115,18 +2609,11 @@
 
             $.ajax({
 
-
                 url:
-                    "/Employee/SearchExistingEmployees",
-
+                    '@Url.Action("SearchExistingEmployees", "Employee")',
 
                 type:
                     "GET",
-
-
-                dataType:
-                    "json",
-
 
                 data: {
 
@@ -3138,891 +2625,746 @@
 
                 },
 
+                success:
+                    function (response) {
 
-                success: function (response) {
+                        renderExistingEmployees(
+                            response
+                        );
+
+                    },
+
+                error:
+                    function (xhr) {
+
+                        var message =
+                            "Unable to search employee.";
 
 
-                    if (!response.success) {
+                        if (
+                            xhr.responseJSON &&
+                            xhr.responseJSON.message
+                        ) {
+
+                            message =
+                                xhr.responseJSON.message;
+
+                        }
 
 
                         $("#ExistingSearchMessage")
                             .removeClass(
-                                "text-success"
+                                "text-primary text-success"
                             )
                             .addClass(
                                 "text-danger"
                             )
                             .text(
-                                response.message ||
-                                "Search failed."
+                                message
                             );
 
-
-                        return;
-
-
                     }
-
-
-                    var employees =
-                        response.data ||
-                        [];
-
-
-                    if (employees.length === 0) {
-
-
-                        $("#ExistingSearchMessage")
-                            .removeClass(
-                                "text-success"
-                            )
-                            .addClass(
-                                "text-danger"
-                            )
-                            .text(
-                                "No employee found in PayMast."
-                            );
-
-
-                        $("#ExistingEmployeeResults")
-                            .html(
-                                '<tr>' +
-                                '<td colspan="3" class="text-center">' +
-                                'No employee found.' +
-                                '</td>' +
-                                '</tr>'
-                            );
-
-
-                        return;
-
-
-                    }
-
-
-                    $("#ExistingSearchMessage")
-                        .removeClass(
-                            "text-danger"
-                        )
-                        .addClass(
-                            "text-success"
-                        )
-                        .text(
-                            employees.length +
-                            " employee(s) found."
-                        );
-
-
-                    RenderExistingEmployeeRows(
-                        employees
-                    );
-
-
-                },
-
-
-                error: function (xhr) {
-
-
-                    var message =
-                        "Unable to search employee.";
-
-
-                    if (
-                        xhr.responseJSON &&
-                        xhr.responseJSON.message
-                    ) {
-
-                        message =
-                            xhr.responseJSON.message;
-
-                    }
-
-
-                    $("#ExistingSearchMessage")
-                        .removeClass(
-                            "text-success"
-                        )
-                        .addClass(
-                            "text-danger"
-                        )
-                        .text(
-                            message
-                        );
-
-
-                },
-
-
-                complete: function () {
-
-
-                    $("#btnSearchExistingEmployee")
-                        .prop(
-                            "disabled",
-                            false
-                        )
-                        .html(
-                            '<i class="bi bi-search"></i> Search'
-                        );
-
-
-                }
-
 
             });
-
 
         }
 
 
 
-        // ==========================================================
-        // RENDER EMPLOYEE CODE + NAME
-        // ==========================================================
+        // ============================================================
+        // RENDER EXISTING EMPLOYEE LIST
+        // ============================================================
 
-        function RenderExistingEmployeeRows(
-            employees
-        ) {
+        function renderExistingEmployees(response) {
+
+            var tbody =
+                $("#ExistingEmployeeResults");
 
 
-            var html =
-                "";
+            tbody.empty();
+
+
+            if (!response || !response.success) {
+
+                tbody.html(
+                    '<tr>' +
+                    '<td colspan="3" class="text-center text-danger">' +
+                    (
+                        response &&
+                        response.message
+                            ? escapeHtml(
+                                response.message
+                            )
+                            : "Unable to load employees."
+                    ) +
+                    '</td>' +
+                    '</tr>'
+                );
+
+                return;
+            }
+
+
+            var employees =
+                response.data || [];
+
+
+            if (employees.length === 0) {
+
+                tbody.html(
+                    '<tr>' +
+                    '<td colspan="3" class="text-center text-muted">' +
+                    'No employee found.' +
+                    '</td>' +
+                    '</tr>'
+                );
+
+
+                $("#ExistingSearchMessage")
+                    .removeClass(
+                        "text-primary text-success"
+                    )
+                    .addClass(
+                        "text-danger"
+                    )
+                    .text(
+                        "No employee found."
+                    );
+
+                return;
+            }
 
 
             $.each(
                 employees,
-                function (
-                    index,
-                    employee
-                ) {
+                function (index, employee) {
 
-
-                    var code =
+                    var employeeCode =
                         employee.employeeCode;
 
-
-                    var name =
-                        employee.employeeName ||
-                        "";
+                    var employeeName =
+                        employee.employeeName || "";
 
 
-                    html +=
-                        "<tr>" +
+                    var row =
+                        '<tr>' +
 
-                        "<td>" +
+                        '<td>' +
                         escapeHtml(
-                            code
+                            employeeCode
                         ) +
-                        "</td>" +
+                        '</td>' +
 
-                        "<td>" +
+                        '<td>' +
                         escapeHtml(
-                            name
+                            employeeName
                         ) +
-                        "</td>" +
+                        '</td>' +
 
-                        "<td>" +
+                        '<td>' +
 
                         '<button type="button" ' +
-                        'class="btn btn-success btn-sm" ' +
-                        'onclick="LoadExistingEmployee(' +
-                        code +
-                        ')">' +
+                        'class="btn btn-sm btn-success btn-select-existing" ' +
+                        'data-code="' +
+                        escapeHtml(
+                            employeeCode
+                        ) +
+                        '">' +
 
                         '<i class="bi bi-check-circle"></i> ' +
                         'Select' +
 
                         '</button>' +
 
-                        "</td>" +
+                        '</td>' +
 
-                        "</tr>";
+                        '</tr>';
 
+
+                    tbody.append(
+                        row
+                    );
 
                 }
             );
 
 
-            $("#ExistingEmployeeResults")
-                .html(
-                    html
+            $("#ExistingSearchMessage")
+                .removeClass(
+                    "text-danger text-primary"
+                )
+                .addClass(
+                    "text-success"
+                )
+                .text(
+                    employees.length +
+                    " employee(s) found."
                 );
 
+
+            // Select employee
+            $(".btn-select-existing")
+                .off("click")
+                .on(
+                    "click",
+                    function () {
+
+                        var employeeCode =
+                            $(this)
+                                .data("code");
+
+
+                        loadExistingEmployee(
+                            employeeCode
+                        );
+
+                    }
+                );
 
         }
 
 
 
-        // ==========================================================
-        // LOAD EXISTING EMPLOYEE FROM PAYMAST
-        // ==========================================================
+        // ============================================================
+        // LOAD SELECTED EXISTING EMPLOYEE
+        // ============================================================
 
-        function LoadExistingEmployee(
-            employeeCode
-        ) {
+        function loadExistingEmployee(employeeCode) {
+
+            if (!employeeCode) {
+
+                return;
+
+            }
+
+
+            $("#ExistingSearchMessage")
+                .removeClass(
+                    "text-danger text-success"
+                )
+                .addClass(
+                    "text-primary"
+                )
+                .text(
+                    "Loading employee information..."
+                );
 
 
             $.ajax({
 
-
                 url:
-                    "/Employee/GetExistingEmployee",
-
+                    '@Url.Action("GetExistingEmployee", "Employee")',
 
                 type:
                     "GET",
 
-
-                dataType:
-                    "json",
-
-
                 data: {
-
                     employeeCode:
                         employeeCode
-
                 },
 
+                success:
+                    function (response) {
 
-                success: function (response) {
+                        if (!response.success) {
+
+                            $("#ExistingSearchMessage")
+                                .removeClass(
+                                    "text-primary text-success"
+                                )
+                                .addClass(
+                                    "text-danger"
+                                )
+                                .text(
+                                    response.message ||
+                                    "Unable to load employee."
+                                );
+
+                            return;
+                        }
 
 
-                    if (!response.success) {
+                        var data =
+                            response.data;
 
 
-                        $("#ExistingSearchMessage")
-                            .removeClass(
-                                "text-success"
-                            )
-                            .addClass(
-                                "text-danger"
-                            )
-                            .text(
-                                response.message ||
-                                "Unable to load employee."
+                        // ==============================================
+                        // IMPORTANT HIDDEN CODE FOR UPDATE
+                        // ==============================================
+
+                        $("#ExistingEmployeeCode")
+                            .val(
+                                data.employeeCode || ""
                             );
 
 
-                        return;
+                        // ==============================================
+                        // GENERAL
+                        // ==============================================
+
+                        $("#EmployeeCode")
+                            .val(
+                                data.employeeCode || ""
+                            );
 
 
-                    }
+                        $("#HiddenCustomerId")
+                            .val(
+                                data.customerId || ""
+                            );
 
 
-                    var data =
-                        response.data;
+                        $("#EmployeeIdSearch")
+                            .val(
+                                data.customerId || ""
+                            );
 
 
+                        $("#EmployeeName")
+                            .val(
+                                data.employeeName || ""
+                            );
 
-                    // =================================================
-                    // BASIC
-                    // =================================================
 
-                    $("#ExistingEmployeeCode")
-                        .val(
-                            data.employeeCode ||
-                            ""
+                        $("#EmployeeType")
+                            .val(
+                                data.employeeType == null
+                                    ? ""
+                                    : data.employeeType.toString()
+                            );
+
+
+                        $("#GradeId")
+                            .val(
+                                data.gradeId == null
+                                    ? ""
+                                    : data.gradeId.toString()
+                            );
+
+
+                        $("#SectionId")
+                            .val(
+                                data.sectionId == null
+                                    ? ""
+                                    : data.sectionId.toString()
+                            );
+
+
+                        $("#BranchId")
+                            .val(
+                                data.branchId == null
+                                    ? ""
+                                    : data.branchId.toString()
+                            );
+
+
+                        $("#JoiningDate")
+                            .val(
+                                data.joiningDate || ""
+                            );
+
+
+                        $("#PermanentDate")
+                            .val(
+                                data.permanentDate || ""
+                            );
+
+
+                        $("#BasicSalary")
+                            .val(
+                                data.basicSalary == null
+                                    ? ""
+                                    : data.basicSalary
+                            );
+
+
+                        $("#LastSalaryIncrementDate")
+                            .val(
+                                data.lastSalaryIncrementDate || ""
+                            );
+
+
+                        $("#RetirementDate")
+                            .val(
+                                data.retirementDate || ""
+                            );
+
+
+                        // ==============================================
+                        // OTHER INFORMATION
+                        // ==============================================
+
+                        $("#PensionFundOpeningBalance")
+                            .val(
+                                data.pensionFundOpeningBalance == null
+                                    ? ""
+                                    : data.pensionFundOpeningBalance
+                            );
+
+
+                        $("#PFNumber")
+                            .val(
+                                data.pfNumber || ""
+                            );
+
+
+                        $("#PFOpeningBalance")
+                            .val(
+                                data.pfOpeningBalance == null
+                                    ? ""
+                                    : data.pfOpeningBalance
+                            );
+
+
+                        $("#PANNumber")
+                            .val(
+                                data.panNumber || ""
+                            );
+
+
+                        $("#ITSerialNumber")
+                            .val(
+                                data.itSerialNumber || ""
+                            );
+
+
+                        $("#PFSerialNumber")
+                            .val(
+                                data.pfSerialNumber == null
+                                    ? ""
+                                    : data.pfSerialNumber
+                            );
+
+
+                        $("#PFBalance")
+                            .val(
+                                data.pfBalance == null
+                                    ? ""
+                                    : data.pfBalance
+                            );
+
+
+                        $("#AadhaarNumber")
+                            .val(
+                                data.aadhaarNumber == null
+                                    ? ""
+                                    : data.aadhaarNumber
+                            );
+
+
+                        // ==============================================
+                        // ADDRESS
+                        // ==============================================
+
+                        $("#CorrespondenceAddress1")
+                            .val(
+                                data.correspondenceAddress1 || ""
+                            );
+
+
+                        $("#CorrespondenceAddress2")
+                            .val(
+                                data.correspondenceAddress2 || ""
+                            );
+
+
+                        $("#PermanentAddress1")
+                            .val(
+                                data.permanentAddress1 || ""
+                            );
+
+
+                        $("#PermanentAddress2")
+                            .val(
+                                data.permanentAddress2 || ""
+                            );
+
+
+                        $("#FatherName")
+                            .val(
+                                data.fatherName || ""
+                            );
+
+
+                        // ==============================================
+                        // RELIGION
+                        // ==============================================
+
+                        setReligionValues(
+                            data.religionCode,
+                            data.religionName ||
+                            data.religion
                         );
 
 
-                    $("#EmployeeCode")
-                        .val(
-                            data.employeeCode ||
-                            ""
+                        // ==============================================
+                        // CASTE
+                        // ==============================================
+
+                        setCasteValues(
+                            data.casteCode,
+                            data.casteName ||
+                            data.caste
                         );
 
 
-                    $("#HiddenCustomerId")
-                        .val(
-                            data.customerId ||
-                            ""
-                        );
-
-
-                    $("#EmployeeIdSearch")
-                        .val(
-                            data.customerId ||
-                            ""
-                        );
-
-
-                    $("#EmployeeName")
-                        .val(
-                            data.employeeName ||
-                            ""
-                        );
-
-
-                    $("#EmployeeType")
-                        .val(
-                            data.employeeType ||
-                            ""
-                        );
-
-
-
-                    // =================================================
-                    // GENERAL
-                    // =================================================
-
-                    $("#GradeId")
-                        .val(
-                            data.gradeId ||
-                            ""
-                        );
-
-
-                    $("#SectionId")
-                        .val(
-                            data.sectionId ||
-                            ""
-                        );
-
-
-                    $("#BranchId")
-                        .val(
-                            data.branchId ||
-                            ""
-                        );
-
-
-                    $("#JoiningDate")
-                        .val(
-                            formatDate(
-                                data.joiningDate
-                            )
-                        );
-
-
-                    $("#PermanentDate")
-                        .val(
-                            formatDate(
-                                data.permanentDate
-                            )
-                        );
-
-
-                    $("#BasicSalary")
-                        .val(
-                            data.basicSalary ??
-                            ""
-                        );
-
-
-                    $("#LastSalaryIncrementDate")
-                        .val(
-                            formatDate(
-                                data.lastSalaryIncrementDate
-                            )
-                        );
-
-
-                    $("#RetirementDate")
-                        .val(
-                            formatDate(
-                                data.retirementDate
-                            )
-                        );
-
-
-
-                    // =================================================
-                    // OTHER
-                    // =================================================
-
-                    $("#PensionFundOpeningBalance")
-                        .val(
-                            data.pensionFundOpeningBalance ??
-                            ""
-                        );
-
-
-                    $("#PFNumber")
-                        .val(
-                            data.pfNumber ||
-                            ""
-                        );
-
-
-                    $("#PFOpeningBalance")
-                        .val(
-                            data.pfOpeningBalance ??
-                            ""
-                        );
-
-
-                    $("#PANNumber")
-                        .val(
-                            data.panNumber ||
-                            ""
-                        );
-
-
-                    $("#ITSerialNumber")
-                        .val(
-                            data.itSerialNumber ||
-                            ""
-                        );
-
-
-                    $("#PFSerialNumber")
-                        .val(
-                            data.pfSerialNumber ??
-                            ""
-                        );
-
-
-                    $("#PFBalance")
-                        .val(
-                            data.pfBalance ??
-                            ""
-                        );
-
-
-                    $("#AadhaarNumber")
-                        .val(
-                            data.aadhaarNumber ??
-                            ""
-                        );
-
-
-
-                    // =================================================
-                    // ADDRESS
-                    // =================================================
-
-                    $("#CorrespondenceAddress1")
-                        .val(
-                            data.correspondenceAddress1 ||
-                            ""
-                        );
-
-
-                    $("#CorrespondenceAddress2")
-                        .val(
-                            data.correspondenceAddress2 ||
-                            ""
-                        );
-
-
-                    $("#PermanentAddress1")
-                        .val(
-                            data.permanentAddress1 ||
-                            ""
-                        );
-
-
-                    $("#PermanentAddress2")
-                        .val(
-                            data.permanentAddress2 ||
-                            ""
-                        );
-
-
-                    $("#Address1")
-                        .val(
-                            data.permanentAddress1 ||
-                            ""
-                        );
-
-
-                    $("#Address2")
-                        .val(
-                            data.permanentAddress2 ||
-                            ""
-                        );
-
-
-                    $("#FatherName")
-                        .val(
-                            data.fatherName ||
-                            ""
-                        );
-
-
-
-                    // =================================================
-                    // PERSONAL
-                    // =================================================
-
-                    $("#ReligionId")
-                        .val(
-                            data.religionCode ||
-                            ""
-                        );
-
-
-                    $("#ReligionSearch")
-                        .val(
-                            data.religion ||
-                            ""
-                        );
-
-
-                    $("#CasteId")
-                        .val(
-                            data.casteCode ||
-                            ""
-                        );
-
-
-                    $("#CasteSearch")
-                        .val(
-                            data.caste ||
-                            ""
-                        );
-
-
-                    $("input[name='Gender']")
-                        .prop(
-                            "checked",
-                            false
-                        );
-
-
-                    if (data.gender) {
-
-
-                        var gender =
+                        // ==============================================
+                        // PERSONAL
+                        // ==============================================
+
+                        setGender(
                             data.gender
-                                .toString()
-                                .trim()
-                                .toUpperCase();
-
-
-                        if (
-                            gender === "M" ||
-                            gender === "F"
-                        ) {
-
-
-                            $(
-                                "input[name='Gender'][value='" +
-                                gender +
-                                "']"
-                            )
-                                .prop(
-                                    "checked",
-                                    true
-                                );
-
-
-                        }
-
-
-                    }
-
-
-                    $("#BirthDate")
-                        .val(
-                            formatDate(
-                                data.birthDate
-                            )
                         );
 
 
-                    $("#BloodGroup")
-                        .val(
-                            data.bloodGroup ||
-                            ""
-                        );
-
-
-                    $("#IdentificationMark")
-                        .val(
-                            data.identificationMark ||
-                            ""
-                        );
-
-
-                    $("#Height")
-                        .val(
-                            data.height ??
-                            ""
-                        );
-
-
-                    $("#KnownLanguage")
-                        .val(
-                            data.knownLanguage ||
-                            ""
-                        );
-
-
-                    $("#MotherTongue")
-                        .val(
-                            data.motherTongue ||
-                            ""
-                        );
-
-
-                    $("#Education")
-                        .val(
-                            data.education ||
-                            ""
-                        );
-
-
-                    $("#ModeOfSign")
-                        .val(
-                            data.modeOfSign ||
-                            ""
-                        );
-
-
-
-                    // =================================================
-                    // UPDATE MODE
-                    // =================================================
-
-                    enableExistingEmployeeMode();
-
-
-
-                    $("#CustomerSearchMessage")
-                        .removeClass(
-                            "text-danger"
-                        )
-                        .addClass(
-                            "text-success"
-                        )
-                        .text(
-                            "Existing employee loaded from PayMast. Edit fields and click Update."
-                        );
-
-
-
-                    // =================================================
-                    // CLOSE MODAL PROPERLY
-                    // =================================================
-
-                    var modalElement =
-                        document.getElementById(
-                            "ExistingEmployeeModal"
-                        );
-
-
-                    if (modalElement) {
-
-
-                        var modalInstance =
-                            bootstrap.Modal.getInstance(
-                                modalElement
+                        $("#BirthDate")
+                            .val(
+                                data.birthDate || ""
                             );
 
 
-                        if (!modalInstance) {
+                        $("#BloodGroup")
+                            .val(
+                                data.bloodGroup || ""
+                            );
 
-                            modalInstance =
-                                bootstrap.Modal.getOrCreateInstance(
-                                    modalElement
-                                );
+
+                        $("#IdentificationMark")
+                            .val(
+                                data.identificationMark || ""
+                            );
+
+
+                        $("#Height")
+                            .val(
+                                data.height == null
+                                    ? ""
+                                    : data.height
+                            );
+
+
+                        $("#KnownLanguage")
+                            .val(
+                                data.knownLanguage || ""
+                            );
+
+
+                        $("#MotherTongue")
+                            .val(
+                                data.motherTongue || ""
+                            );
+
+
+                        $("#Education")
+                            .val(
+                                data.education || ""
+                            );
+
+
+                        $("#ModeOfSign")
+                            .val(
+                                data.modeOfSign || ""
+                            );
+
+
+                        // ==============================================
+                        // UPDATE MODE ENABLE
+                        // ==============================================
+
+                        enableExistingEmployeeMode();
+
+
+                        // ==============================================
+                        // CLOSE EXISTING MODAL
+                        // ==============================================
+
+                        var modalElement =
+                            document.getElementById(
+                                "ExistingEmployeeModal"
+                            );
+
+
+                        if (modalElement) {
+
+                            var modal =
+                                bootstrap.Modal
+                                    .getOrCreateInstance(
+                                        modalElement
+                                    );
+
+                            modal.hide();
 
                         }
 
 
-                        modalInstance.hide();
+                        // ==============================================
+                        // FIX GREY SCREEN
+                        // ==============================================
 
-
-                    }
-
-
-
-                    // =================================================
-                    // IMPORTANT:
-                    // FORCE REMOVE GREY BACKDROP
-                    // =================================================
-
-                    setTimeout(
-                        function () {
+                        setTimeout(function () {
 
                             cleanModalBackdrop();
+
 
                             openEmployeeTab(
                                 "general-tab"
                             );
+
 
                             window.scrollTo({
                                 top: 0,
                                 behavior: "smooth"
                             });
 
-                        },
-                        350
-                    );
+
+                            $("#CustomerSearchMessage")
+                                .removeClass(
+                                    "text-danger text-primary"
+                                )
+                                .addClass(
+                                    "text-success"
+                                )
+                                .text(
+                                    "Employee loaded successfully. Edit information and click Update Employee."
+                                );
+
+                        }, 400);
+
+                    },
+
+                error:
+                    function (xhr) {
+
+                        var message =
+                            "Unable to load employee information.";
 
 
-                },
+                        if (
+                            xhr.responseJSON &&
+                            xhr.responseJSON.message
+                        ) {
+
+                            message =
+                                xhr.responseJSON.message;
+
+                        }
 
 
-                error: function (xhr) {
-
-
-                    var message =
-                        "Unable to load employee.";
-
-
-                    if (
-                        xhr.responseJSON &&
-                        xhr.responseJSON.message
-                    ) {
-
-                        message =
-                            xhr.responseJSON.message;
+                        $("#ExistingSearchMessage")
+                            .removeClass(
+                                "text-primary text-success"
+                            )
+                            .addClass(
+                                "text-danger"
+                            )
+                            .text(
+                                message
+                            );
 
                     }
 
-
-                    $("#ExistingSearchMessage")
-                        .removeClass(
-                            "text-success"
-                        )
-                        .addClass(
-                            "text-danger"
-                        )
-                        .text(
-                            message
-                        );
-
-
-                }
-
-
             });
 
-
         }
 
 
 
-        // ==========================================================
-        // NEW EMPLOYEE MODE
-        // ==========================================================
-
-        function enableNewEmployeeMode() {
-
-
-            $("#ExistingEmployeeCode")
-                .val("");
-
-
-            $("#btnUpdateEmployee")
-                .prop(
-                    "disabled",
-                    true
-                );
-
-
-            $("#btnBottomSave")
-                .prop(
-                    "disabled",
-                    false
-                );
-
-
-            $("#btnSaveEmployee")
-                .prop(
-                    "disabled",
-                    false
-                );
-
-
-        }
-
-
-
-        // ==========================================================
-        // EXISTING EMPLOYEE UPDATE MODE
-        // ==========================================================
+        // ============================================================
+        // ENABLE UPDATE MODE AFTER EMPLOYEE SELECT
+        // ============================================================
 
         function enableExistingEmployeeMode() {
 
+            isUpdateMode = true;
+
+            $("#EmployeeFormMode")
+                .val(
+                    "update"
+                );
+
+
+            // TITLE
+            $("#registrationTitle")
+                .text(
+                    "Update Employee"
+                );
+
+
+            // TOP
+            $("#btnSearchCustomer")
+                .hide();
+
+
+            $("#btnExistingData")
+                .show();
+
+
+            $("#EmployeeIdSearch")
+                .prop(
+                    "readonly",
+                    true
+                );
+
+
+            // BOTTOM
+            // ONLY CANCEL + EXIT
+            $("#btnNewEmployee")
+                .hide();
 
             $("#btnUpdateEmployee")
+                .hide();
+
+            $("#btnDeleteEmployee")
+                .hide();
+
+            $("#btnViewEmployee")
+                .hide();
+
+            $("#btnCancelUpdate")
+                .show();
+
+            $("#btnExitEmployee")
+                .show();
+
+
+            // PERSONAL
+            $("#btnSaveEmployee")
+                .hide()
+                .prop(
+                    "disabled",
+                    true
+                );
+
+
+            $("#btnFinalUpdateEmployee")
+                .show()
                 .prop(
                     "disabled",
                     false
                 );
 
-
-            // Existing employee ला पुन्हा Save होऊ देऊ नये
-            $("#btnBottomSave")
-                .prop(
-                    "disabled",
-                    true
-                );
-
-
-            $("#btnSaveEmployee")
-                .prop(
-                    "disabled",
-                    true
-                );
-
-
         }
 
 
 
-        // ==========================================================
-        // FORMAT DATE
-        // ==========================================================
-
-        function formatDate(
-            date
-        ) {
-
-
-            if (!date) {
-
-                return "";
-
-            }
-
-
-            if (
-                typeof date === "string" &&
-                date.length >= 10
-            ) {
-
-
-                return date.substring(
-                    0,
-                    10
-                );
-
-
-            }
-
-
-            return "";
-
-
-        }
-
-
-
-        // ==========================================================
-        // RELIGION
-        // ==========================================================
+        // ============================================================
+        // RELIGION SELECT
+        // ============================================================
 
         function selectReligion(
             code,
             name
         ) {
 
-
             $("#ReligionId")
                 .val(
-                    code
+                    code || ""
                 );
 
 
             $("#ReligionSearch")
                 .val(
-                    name
+                    name || ""
                 );
 
 
@@ -4034,73 +3376,43 @@
 
             if (modalElement) {
 
-
                 bootstrap.Modal
                     .getOrCreateInstance(
                         modalElement
                     )
                     .hide();
 
-
             }
 
 
-        }
+            setTimeout(function () {
 
+                cleanModalBackdrop();
 
-
-        function searchReligion() {
-
-
-            var value =
-                $("#searchReligion")
-                    .val()
-                    .toLowerCase();
-
-
-            $("#religionTable tr")
-                .filter(function () {
-
-
-                    $(this)
-                        .toggle(
-
-                            $(this)
-                                .text()
-                                .toLowerCase()
-                                .indexOf(
-                                    value
-                                ) > -1
-
-                        );
-
-
-                });
-
+            }, 200);
 
         }
 
 
 
-        // ==========================================================
-        // CASTE
-        // ==========================================================
+        // ============================================================
+        // CASTE SELECT
+        // ============================================================
 
         function selectCaste(
             code,
             name
         ) {
 
-
             $("#CasteId")
                 .val(
-                    code
+                    code || ""
                 );
 
 
             $("#CasteSearch")
                 .val(
-                    name
+                    name || ""
                 );
 
 
@@ -4112,71 +3424,626 @@
 
             if (modalElement) {
 
-
                 bootstrap.Modal
                     .getOrCreateInstance(
                         modalElement
                     )
                     .hide();
 
+            }
+
+
+            setTimeout(function () {
+
+                cleanModalBackdrop();
+
+            }, 200);
+
+        }
+
+
+
+        // ============================================================
+        // SET RELIGION FROM PAYMAST
+        // ============================================================
+
+        function setReligionValues(
+            code,
+            name
+        ) {
+
+            $("#ReligionId")
+                .val(
+                    code == null
+                        ? ""
+                        : code
+                );
+
+
+            if (name) {
+
+                $("#ReligionSearch")
+                    .val(
+                        name
+                    );
+
+                return;
+            }
+
+
+            $("#ReligionSearch")
+                .val("");
+
+
+            if (
+                code == null ||
+                code === ""
+            ) {
+
+                return;
 
             }
 
 
+            $.ajax({
+
+                url:
+                    '@Url.Action("GetReligionName", "Employee")',
+
+                type:
+                    "GET",
+
+                data: {
+                    code:
+                        code
+                },
+
+                success:
+                    function (response) {
+
+                        if (
+                            response &&
+                            response.success
+                        ) {
+
+                            $("#ReligionSearch")
+                                .val(
+                                    response.name || ""
+                                );
+
+                        }
+
+                    }
+
+            });
+
         }
 
 
+
+        // ============================================================
+        // SET CASTE FROM PAYMAST
+        // ============================================================
+
+        function setCasteValues(
+            code,
+            name
+        ) {
+
+            $("#CasteId")
+                .val(
+                    code == null
+                        ? ""
+                        : code
+                );
+
+
+            if (name) {
+
+                $("#CasteSearch")
+                    .val(
+                        name
+                    );
+
+                return;
+            }
+
+
+            $("#CasteSearch")
+                .val("");
+
+
+            if (
+                code == null ||
+                code === ""
+            ) {
+
+                return;
+
+            }
+
+
+            $.ajax({
+
+                url:
+                    '@Url.Action("GetCasteName", "Employee")',
+
+                type:
+                    "GET",
+
+                data: {
+                    code:
+                        code
+                },
+
+                success:
+                    function (response) {
+
+                        if (
+                            response &&
+                            response.success
+                        ) {
+
+                            $("#CasteSearch")
+                                .val(
+                                    response.name || ""
+                                );
+
+                        }
+
+                    }
+
+            });
+
+        }
+
+
+
+        // ============================================================
+        // SET GENDER
+        // ============================================================
+
+        function setGender(value) {
+
+            $("input[name='Gender']")
+                .prop(
+                    "checked",
+                    false
+                );
+
+
+            if (!value) {
+
+                return;
+
+            }
+
+
+            var gender =
+                value
+                    .toString()
+                    .trim()
+                    .toUpperCase();
+
+
+            if (
+                gender === "M" ||
+                gender === "MALE"
+            ) {
+
+                $("input[name='Gender'][value='M']")
+                    .prop(
+                        "checked",
+                        true
+                    );
+
+            }
+            else if (
+                gender === "F" ||
+                gender === "FEMALE"
+            ) {
+
+                $("input[name='Gender'][value='F']")
+                    .prop(
+                        "checked",
+                        true
+                    );
+
+            }
+
+        }
+
+
+
+        // ============================================================
+        // SEARCH RELIGION TABLE
+        // ============================================================
+
+        function searchReligion() {
+
+            var input =
+                document.getElementById(
+                    "searchReligion"
+                );
+
+
+            var filter =
+                input.value
+                    .toUpperCase();
+
+
+            var table =
+                document.getElementById(
+                    "religionTable"
+                );
+
+
+            if (!table) {
+
+                return;
+
+            }
+
+
+            var rows =
+                table.getElementsByTagName(
+                    "tr"
+                );
+
+
+            for (
+                var i = 0;
+                i < rows.length;
+                i++
+            ) {
+
+                var codeCell =
+                    rows[i]
+                        .getElementsByTagName(
+                            "td"
+                        )[0];
+
+
+                var nameCell =
+                    rows[i]
+                        .getElementsByTagName(
+                            "td"
+                        )[1];
+
+
+                if (
+                    codeCell ||
+                    nameCell
+                ) {
+
+                    var text =
+                        (
+                            (codeCell
+                                ? codeCell.textContent
+                                : "")
+                            +
+                            " "
+                            +
+                            (nameCell
+                                ? nameCell.textContent
+                                : "")
+                        )
+                        .toUpperCase();
+
+
+                    rows[i].style.display =
+                        text.indexOf(filter) > -1
+                            ? ""
+                            : "none";
+
+                }
+
+            }
+
+        }
+
+
+
+        // ============================================================
+        // SEARCH CASTE TABLE
+        // ============================================================
 
         function searchCaste() {
 
-
-            var value =
-                $("#searchCaste")
-                    .val()
-                    .toLowerCase();
-
-
-            $("#casteTable tr")
-                .filter(function () {
+            var input =
+                document.getElementById(
+                    "searchCaste"
+                );
 
 
-                    $(this)
-                        .toggle(
-
-                            $(this)
-                                .text()
-                                .toLowerCase()
-                                .indexOf(
-                                    value
-                                ) > -1
-
-                        );
+            var filter =
+                input.value
+                    .toUpperCase();
 
 
-                });
+            var table =
+                document.getElementById(
+                    "casteTable"
+                );
 
+
+            if (!table) {
+
+                return;
+
+            }
+
+
+            var rows =
+                table.getElementsByTagName(
+                    "tr"
+                );
+
+
+            for (
+                var i = 0;
+                i < rows.length;
+                i++
+            ) {
+
+                var codeCell =
+                    rows[i]
+                        .getElementsByTagName(
+                            "td"
+                        )[0];
+
+
+                var nameCell =
+                    rows[i]
+                        .getElementsByTagName(
+                            "td"
+                        )[1];
+
+
+                if (
+                    codeCell ||
+                    nameCell
+                ) {
+
+                    var text =
+                        (
+                            (codeCell
+                                ? codeCell.textContent
+                                : "")
+                            +
+                            " "
+                            +
+                            (nameCell
+                                ? nameCell.textContent
+                                : "")
+                        )
+                        .toUpperCase();
+
+
+                    rows[i].style.display =
+                        text.indexOf(filter) > -1
+                            ? ""
+                            : "none";
+
+                }
+
+            }
 
         }
 
 
 
-        // ==========================================================
-        // SAFE HTML
-        // ==========================================================
+        // ============================================================
+        // OPEN TAB
+        // ============================================================
 
-        function escapeHtml(
-            value
+        function openEmployeeTab(
+            tabId
         ) {
 
+            var tabElement =
+                document.getElementById(
+                    tabId
+                );
+
+
+            if (!tabElement) {
+
+                return;
+
+            }
+
+
+            var tab =
+                bootstrap.Tab
+                    .getOrCreateInstance(
+                        tabElement
+                    );
+
+
+            tab.show();
+
+        }
+
+
+
+        // ============================================================
+        // CLEAR CUSTOMER / EMPLOYEE FIELDS
+        // ============================================================
+
+        function clearCustomerFields() {
+
+            $("#EmployeeCode").val("");
+
+            $("#EmployeeName").val("");
+
+            $("#EmployeeType").val("");
+
+            $("#GradeId").val("");
+
+            $("#SectionId").val("");
+
+            $("#BranchId").val("");
+
+            $("#JoiningDate").val("");
+
+            $("#PermanentDate").val("");
+
+            $("#LastSalaryDate").val("");
+
+            $("#BasicSalary").val("");
+
+            $("#LastSalaryIncrementDate").val("");
+
+            $("#RetirementDate").val("");
+
+
+            $("#PensionFundOpeningBalance").val("");
+
+            $("#PFNumber").val("");
+
+            $("#PFOpeningBalance").val("");
+
+            $("#PANNumber").val("");
+
+            $("#SavingGLCode").val("");
+
+            $("#SavingBranchCode").val("");
+
+            $("#SavingAccountCode").val("");
+
+            $("#ITSerialNumber").val("");
+
+            $("#PFSerialNumber").val("");
+
+            $("#PFBalance").val("");
+
+            $("#AadhaarNumber").val("");
+
+
+            $("#CorrespondenceAddress1").val("");
+
+            $("#CorrespondenceAddress2").val("");
+
+            $("#PermanentAddress1").val("");
+
+            $("#PermanentAddress2").val("");
+
+            $("#FatherName").val("");
+
+            $("#Address1").val("");
+
+            $("#Address2").val("");
+
+
+            $("#ReligionId").val("");
+
+            $("#ReligionSearch").val("");
+
+            $("#CasteId").val("");
+
+            $("#CasteSearch").val("");
+
+
+            $("input[name='Gender']")
+                .prop(
+                    "checked",
+                    false
+                );
+
+
+            $("#BirthDate").val("");
+
+            $("#BloodGroup").val("");
+
+            $("#IdentificationMark").val("");
+
+            $("#Height").val("");
+
+            $("#KnownLanguage").val("");
+
+            $("#MotherTongue").val("");
+
+            $("#Education").val("");
+
+            $("#ModeOfSign").val("");
+
+        }
+
+
+
+        // ============================================================
+        // REMOVE STUCK MODAL BACKDROP
+        // GREY SCREEN FIX
+        // ============================================================
+
+        function cleanModalBackdrop() {
+
+            // दुसरा modal अजून open असेल तर backdrop remove करू नका
+            if (
+                document.querySelector(
+                    ".modal.show"
+                )
+            ) {
+
+                return;
+
+            }
+
+
+            document
+                .querySelectorAll(
+                    ".modal-backdrop"
+                )
+                .forEach(
+                    function (backdrop) {
+
+                        backdrop.remove();
+
+                    }
+                );
+
+
+            document.body
+                .classList
+                .remove(
+                    "modal-open"
+                );
+
+
+            document.body.style
+                .removeProperty(
+                    "overflow"
+                );
+
+
+            document.body.style
+                .removeProperty(
+                    "padding-right"
+                );
+
+
+            document.documentElement.style
+                .removeProperty(
+                    "overflow"
+                );
+
+        }
+
+
+
+        // ============================================================
+        // HTML ESCAPE
+        // ============================================================
+
+        function escapeHtml(value) {
 
             if (
                 value === null ||
                 value === undefined
             ) {
 
-
                 return "";
-
 
             }
 
@@ -4187,210 +4054,10 @@
                 )
                 .html();
 
-
         }
-
-
-
-        // ==========================================================
-        // CLEAR FORM
-        // ==========================================================
-
-        function clearCustomerFields() {
-
-
-            $("#HiddenCustomerId")
-                .val("");
-
-
-            $("#ExistingEmployeeCode")
-                .val("");
-
-
-            $("#EmployeeCode")
-                .val("");
-
-
-            $("#EmployeeName")
-                .val("");
-
-
-            $("#EmployeeType")
-                .val("");
-
-
-            $("#GradeId")
-                .val("");
-
-
-            $("#SectionId")
-                .val("");
-
-
-            $("#BranchId")
-                .val("");
-
-
-            $("#JoiningDate")
-                .val("");
-
-
-            $("#PermanentDate")
-                .val("");
-
-
-            $("#LastSalaryDate")
-                .val("");
-
-
-            $("#BasicSalary")
-                .val("");
-
-
-            $("#LastSalaryIncrementDate")
-                .val("");
-
-
-            $("#RetirementDate")
-                .val("");
-
-
-            $("#PensionFundOpeningBalance")
-                .val("");
-
-
-            $("#PFNumber")
-                .val("");
-
-
-            $("#PFOpeningBalance")
-                .val("");
-
-
-            $("#PANNumber")
-                .val("");
-
-
-            $("#SavingGLCode")
-                .val("");
-
-
-            $("#SavingBranchCode")
-                .val("");
-
-
-            $("#SavingAccountCode")
-                .val("");
-
-
-            $("#ITSerialNumber")
-                .val("");
-
-
-            $("#PFSerialNumber")
-                .val("");
-
-
-            $("#PFBalance")
-                .val("");
-
-
-            $("#AadhaarNumber")
-                .val("");
-
-
-            $("#CorrespondenceAddress1")
-                .val("");
-
-
-            $("#CorrespondenceAddress2")
-                .val("");
-
-
-            $("#PermanentAddress1")
-                .val("");
-
-
-            $("#PermanentAddress2")
-                .val("");
-
-
-            $("#FatherName")
-                .val("");
-
-
-            $("#Address1")
-                .val("");
-
-
-            $("#Address2")
-                .val("");
-
-
-            $("#ReligionId")
-                .val("");
-
-
-            $("#ReligionSearch")
-                .val("");
-
-
-            $("#CasteId")
-                .val("");
-
-
-            $("#CasteSearch")
-                .val("");
-
-
-            $("input[name='Gender']")
-                .prop(
-                    "checked",
-                    false
-                );
-
-
-            $("#BirthDate")
-                .val("");
-
-
-            $("#BloodGroup")
-                .val("");
-
-
-            $("#IdentificationMark")
-                .val("");
-
-
-            $("#Height")
-                .val("");
-
-
-            $("#KnownLanguage")
-                .val("");
-
-
-            $("#MotherTongue")
-                .val("");
-
-
-            $("#Education")
-                .val("");
-
-
-            $("#ModeOfSign")
-                .val("");
-
-
-            enableNewEmployeeMode();
-
-
-        }
-
 
     </script>
 
 
 </body>
-
 </html>

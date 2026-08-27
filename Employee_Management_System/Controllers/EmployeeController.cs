@@ -30,7 +30,7 @@ namespace Employee_Management_System.Controllers
 
         // =========================================================
         // REGISTER - POST
-        // NEW EMPLOYEE SAVE
+        // NEW EMPLOYEE SAVE TO PAYMAST
         // =========================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -46,23 +46,21 @@ namespace Employee_Management_System.Controllers
                     );
                 }
 
-                var form =
-                    await Request.ReadFormAsync();
+                var form = await Request.ReadFormAsync();
 
                 // =================================================
                 // CUSTOMER ID
                 // =================================================
                 decimal? customerId = null;
 
-                string? customerIdText =
-                    GetFirstNonEmpty(
-                        form,
-                        "CustomerId",
-                        "CustomerID",
-                        "customerId",
-                        "custId",
-                        "HiddenCustomerId"
-                    );
+                string? customerIdText = GetFirstNonEmpty(
+                    form,
+                    "CustomerId",
+                    "CustomerID",
+                    "customerId",
+                    "custId",
+                    "HiddenCustomerId"
+                );
 
                 if (!string.IsNullOrWhiteSpace(customerIdText) &&
                     decimal.TryParse(
@@ -71,19 +69,16 @@ namespace Employee_Management_System.Controllers
                         CultureInfo.InvariantCulture,
                         out decimal parsedCustomerId))
                 {
-                    customerId =
-                        parsedCustomerId;
+                    customerId = parsedCustomerId;
                 }
-                else if (
-                    !string.IsNullOrWhiteSpace(employee.CustomerId) &&
-                    decimal.TryParse(
-                        employee.CustomerId,
-                        NumberStyles.Any,
-                        CultureInfo.InvariantCulture,
-                        out decimal modelCustomerId))
+                else if (!string.IsNullOrWhiteSpace(employee.CustomerId) &&
+                         decimal.TryParse(
+                             employee.CustomerId,
+                             NumberStyles.Any,
+                             CultureInfo.InvariantCulture,
+                             out decimal modelCustomerId))
                 {
-                    customerId =
-                        modelCustomerId;
+                    customerId = modelCustomerId;
                 }
 
                 if (!customerId.HasValue)
@@ -103,26 +98,18 @@ namespace Employee_Management_System.Controllers
                         await _context.PayMasts
                             .AsNoTracking()
                             .FirstOrDefaultAsync(
-                                x =>
-                                    x.CustomerId ==
-                                    customerId.Value
+                                x => x.CustomerId == customerId.Value
                             );
 
                     if (duplicateEmployee != null)
                     {
-                        TempData["DuplicateEmployee"] =
-                            "true";
-
+                        TempData["DuplicateEmployee"] = "true";
                         TempData["DuplicateEmployeeName"] =
-                            duplicateEmployee.EmployeeName
-                            ?? "";
-
+                            duplicateEmployee.EmployeeName ?? "";
                         TempData["DuplicateEmployeeCode"] =
-                            duplicateEmployee.EmployeeCode
-                                .ToString();
+                            duplicateEmployee.EmployeeCode.ToString();
 
                         await LoadDropdown();
-
                         return View(employee);
                     }
                 }
@@ -132,31 +119,24 @@ namespace Employee_Management_System.Controllers
                 // =================================================
                 int? employeeType = null;
 
-                string? employeeTypeText =
-                    GetFirstNonEmpty(
-                        form,
-                        "EmployeeType",
-                        "employeeType",
-                        "Type",
-                        "type",
-                        "HiddenEmployeeType"
-                    );
+                string? employeeTypeText = GetFirstNonEmpty(
+                    form,
+                    "EmployeeType",
+                    "employeeType",
+                    "Type",
+                    "type",
+                    "HiddenEmployeeType"
+                );
 
                 if (!string.IsNullOrWhiteSpace(employeeTypeText))
                 {
-                    if (int.TryParse(
-                        employeeTypeText,
-                        out int parsedType))
+                    if (int.TryParse(employeeTypeText, out int parsedType))
                     {
-                        employeeType =
-                            parsedType;
+                        employeeType = parsedType;
                     }
                     else
                     {
-                        switch (
-                            employeeTypeText
-                                .Trim()
-                                .ToLower())
+                        switch (employeeTypeText.Trim().ToLower())
                         {
                             case "permanent":
                                 employeeType = 1;
@@ -176,31 +156,25 @@ namespace Employee_Management_System.Controllers
                 // =================================================
                 // GRADE
                 // =================================================
-                int? gradeCode =
-                    employee.GradeId;
+                int? gradeCode = employee.GradeId;
 
-                string? gradeText =
-                    GetFirstNonEmpty(
-                        form,
-                        "GradeId",
-                        "gradeId",
-                        "Grade"
-                    );
+                string? gradeText = GetFirstNonEmpty(
+                    form,
+                    "GradeId",
+                    "gradeId",
+                    "Grade"
+                );
 
                 if (!string.IsNullOrWhiteSpace(gradeText) &&
-                    int.TryParse(
-                        gradeText,
-                        out int parsedGrade))
+                    int.TryParse(gradeText, out int parsedGrade))
                 {
-                    gradeCode =
-                        parsedGrade;
+                    gradeCode = parsedGrade;
                 }
 
                 // =================================================
                 // SECTION
                 // =================================================
-                int? sectionCode =
-                    employee.SectionId;
+                int? sectionCode = employee.SectionId;
 
                 // =================================================
                 // BRANCH
@@ -210,9 +184,7 @@ namespace Employee_Management_System.Controllers
                 if (employee.BranchId.HasValue)
                 {
                     branchCode =
-                        Convert.ToInt32(
-                            employee.BranchId.Value
-                        );
+                        Convert.ToInt32(employee.BranchId.Value);
                 }
 
                 // =================================================
@@ -220,15 +192,14 @@ namespace Employee_Management_System.Controllers
                 // =================================================
                 double? basicSalary = null;
 
-                string? basicSalaryText =
-                    GetFirstNonEmpty(
-                        form,
-                        "BasicSalary",
-                        "basicSalary",
-                        "Basic",
-                        "basic",
-                        "HiddenBasicSalary"
-                    );
+                string? basicSalaryText = GetFirstNonEmpty(
+                    form,
+                    "BasicSalary",
+                    "basicSalary",
+                    "Basic",
+                    "basic",
+                    "HiddenBasicSalary"
+                );
 
                 if (!string.IsNullOrWhiteSpace(basicSalaryText))
                 {
@@ -238,23 +209,19 @@ namespace Employee_Management_System.Controllers
                         CultureInfo.InvariantCulture,
                         out double parsedBasic))
                     {
-                        basicSalary =
-                            parsedBasic;
+                        basicSalary = parsedBasic;
                     }
                     else if (double.TryParse(
                         basicSalaryText,
                         out parsedBasic))
                     {
-                        basicSalary =
-                            parsedBasic;
+                        basicSalary = parsedBasic;
                     }
                 }
                 else if (employee.BasicSalary.HasValue)
                 {
                     basicSalary =
-                        Convert.ToDouble(
-                            employee.BasicSalary.Value
-                        );
+                        Convert.ToDouble(employee.BasicSalary.Value);
                 }
 
                 // =================================================
@@ -262,13 +229,25 @@ namespace Employee_Management_System.Controllers
                 // =================================================
                 decimal? religionCode = null;
 
-                if (!string.IsNullOrWhiteSpace(employee.Religion) &&
+                string? religionText = GetFirstNonEmpty(
+                    form,
+                    "Religion",
+                    "ReligionId"
+                );
+
+                if (string.IsNullOrWhiteSpace(religionText))
+                {
+                    religionText = employee.Religion;
+                }
+
+                if (!string.IsNullOrWhiteSpace(religionText) &&
                     decimal.TryParse(
-                        employee.Religion,
+                        religionText,
+                        NumberStyles.Any,
+                        CultureInfo.InvariantCulture,
                         out decimal parsedReligion))
                 {
-                    religionCode =
-                        parsedReligion;
+                    religionCode = parsedReligion;
                 }
 
                 // =================================================
@@ -276,13 +255,25 @@ namespace Employee_Management_System.Controllers
                 // =================================================
                 int? casteCode = null;
 
-                if (!string.IsNullOrWhiteSpace(employee.Caste) &&
+                string? casteText = GetFirstNonEmpty(
+                    form,
+                    "Caste",
+                    "CasteId"
+                );
+
+                if (string.IsNullOrWhiteSpace(casteText))
+                {
+                    casteText = employee.Caste;
+                }
+
+                if (!string.IsNullOrWhiteSpace(casteText) &&
                     int.TryParse(
-                        employee.Caste,
+                        casteText,
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
                         out int parsedCaste))
                 {
-                    casteCode =
-                        parsedCaste;
+                    casteCode = parsedCaste;
                 }
 
                 // =================================================
@@ -292,11 +283,9 @@ namespace Employee_Management_System.Controllers
 
                 if (!string.IsNullOrWhiteSpace(employee.Gender))
                 {
-                    string gender =
-                        employee.Gender.Trim();
+                    string gender = employee.Gender.Trim();
 
-                    if (
-                        gender.Equals(
+                    if (gender.Equals(
                             "Male",
                             StringComparison.OrdinalIgnoreCase) ||
                         gender.Equals(
@@ -305,13 +294,12 @@ namespace Employee_Management_System.Controllers
                     {
                         genderCode = "M";
                     }
-                    else if (
-                        gender.Equals(
-                            "Female",
-                            StringComparison.OrdinalIgnoreCase) ||
-                        gender.Equals(
-                            "F",
-                            StringComparison.OrdinalIgnoreCase))
+                    else if (gender.Equals(
+                                 "Female",
+                                 StringComparison.OrdinalIgnoreCase) ||
+                             gender.Equals(
+                                 "F",
+                                 StringComparison.OrdinalIgnoreCase))
                     {
                         genderCode = "F";
                     }
@@ -321,8 +309,7 @@ namespace Employee_Management_System.Controllers
                 // MOTHER TONGUE
                 // =================================================
                 string? motherTongue =
-                    string.IsNullOrWhiteSpace(
-                        employee.MotherTongue)
+                    string.IsNullOrWhiteSpace(employee.MotherTongue)
                         ? null
                         : employee.MotherTongue.Trim();
 
@@ -331,12 +318,10 @@ namespace Employee_Management_System.Controllers
                     "MOTHER TONGUE",
                     StringComparison.OrdinalIgnoreCase))
                 {
-                    motherTongue =
-                        null;
+                    motherTongue = null;
                 }
 
-                if (
-                    motherTongue != null &&
+                if (motherTongue != null &&
                     motherTongue.Length > 10)
                 {
                     ModelState.AddModelError(
@@ -358,10 +343,7 @@ namespace Employee_Management_System.Controllers
                 int lastEmployeeCode =
                     await _context.PayMasts
                         .AsNoTracking()
-                        .Select(
-                            x =>
-                                (int?)x.EmployeeCode
-                        )
+                        .Select(x => (int?)x.EmployeeCode)
                         .MaxAsync()
                     ?? 0;
 
@@ -369,169 +351,158 @@ namespace Employee_Management_System.Controllers
                     lastEmployeeCode + 1;
 
                 // =================================================
-                // CREATE PAYMAST RECORD
+                // CREATE PAYMAST
                 // =================================================
-                var payMast =
-                    new PayMast
-                    {
-                        EmployeeCode =
-                            newEmployeeCode,
+                var payMast = new PayMast
+                {
+                    EmployeeCode = newEmployeeCode,
+                    CustomerId = customerId,
 
-                        CustomerId =
-                            customerId,
+                    EmployeeName =
+                        employee.EmployeeName?.Trim(),
 
-                        EmployeeName =
-                            employee.EmployeeName
-                                ?.Trim(),
+                    EmployeeType = employeeType,
 
-                        EmployeeType =
-                            employeeType,
+                    JoiningDate =
+                        employee.JoiningDate,
 
-                        JoiningDate =
-                            employee.JoiningDate,
+                    PermanentDate =
+                        employee.PermanentDate,
 
-                        PermanentDate =
-                            employee.PermanentDate,
+                    GradeId =
+                        gradeCode,
 
-                        GradeId =
-                            gradeCode,
+                    BranchId =
+                        branchCode,
 
-                        BranchId =
-                            branchCode,
+                    SectionId =
+                        sectionCode,
 
-                        SectionId =
-                            sectionCode,
+                    BasicSalary =
+                        basicSalary,
 
-                        BasicSalary =
-                            basicSalary,
+                    LastIncrementDate =
+                        employee.LastSalaryIncrementDate,
 
-                        LastIncrementDate =
-                            employee.LastSalaryIncrementDate,
+                    RetirementDate =
+                        employee.RetirementDate,
 
-                        RetirementDate =
-                            employee.RetirementDate,
+                    PensionFundOpeningBalance =
+                        employee.PensionFundOpeningBalance.HasValue
+                            ? Convert.ToDouble(
+                                employee.PensionFundOpeningBalance.Value)
+                            : null,
 
-                        PensionFundOpeningBalance =
-                            employee.PensionFundOpeningBalance.HasValue
-                                ? Convert.ToDouble(
-                                    employee.PensionFundOpeningBalance.Value
-                                )
-                                : null,
+                    PFNo =
+                        employee.PFNumber,
 
-                        PFNo =
-                            employee.PFNumber,
+                    PFOpeningBalance =
+                        employee.PFOpeningBalance.HasValue
+                            ? Convert.ToDouble(
+                                employee.PFOpeningBalance.Value)
+                            : null,
 
-                        PFOpeningBalance =
-                            employee.PFOpeningBalance.HasValue
-                                ? Convert.ToDouble(
-                                    employee.PFOpeningBalance.Value
-                                )
-                                : null,
+                    PANNo =
+                        employee.PANNumber,
 
-                        PANNo =
-                            employee.PANNumber,
+                    ITSrNo =
+                        employee.ITSerialNumber,
 
-                        ITSrNo =
-                            employee.ITSerialNumber,
+                    PFSrNo =
+                        int.TryParse(
+                            employee.PFSerialNumber,
+                            out int pfSerial)
+                            ? pfSerial
+                            : null,
 
-                        PFSrNo =
-                            int.TryParse(
-                                employee.PFSerialNumber,
-                                out int pfSerial)
-                                ? pfSerial
-                                : null,
+                    PFBalance =
+                        employee.PFBalance.HasValue
+                            ? Convert.ToInt32(
+                                employee.PFBalance.Value)
+                            : null,
 
-                        PFBalance =
-                            employee.PFBalance.HasValue
-                                ? Convert.ToInt32(
-                                    employee.PFBalance.Value
-                                )
-                                : null,
+                    AadharNo =
+                        decimal.TryParse(
+                            employee.AadhaarNumber,
+                            out decimal aadhaar)
+                            ? aadhaar
+                            : null,
 
-                        AadharNo =
-                            decimal.TryParse(
-                                employee.AadhaarNumber,
-                                out decimal aadhaar)
-                                ? aadhaar
-                                : null,
+                    CorrespondenceAddress1 =
+                        employee.CorrespondenceAddress1,
 
-                        CorrespondenceAddress1 =
-                            employee.CorrespondenceAddress1,
+                    CorrespondenceAddress2 =
+                        employee.CorrespondenceAddress2,
 
-                        CorrespondenceAddress2 =
-                            employee.CorrespondenceAddress2,
+                    PermanentAddress1 =
+                        employee.PermanentAddress1,
 
-                        PermanentAddress1 =
-                            employee.PermanentAddress1,
+                    PermanentAddress2 =
+                        employee.PermanentAddress2,
 
-                        PermanentAddress2 =
-                            employee.PermanentAddress2,
+                    FatherName =
+                        employee.FatherName,
 
-                        FatherName =
-                            employee.FatherName,
+                    Religion =
+                        religionCode,
 
-                        Religion =
-                            religionCode,
+                    CasteId =
+                        casteCode,
 
-                        CasteId =
-                            casteCode,
+                    Sex =
+                        genderCode,
 
-                        Sex =
-                            genderCode,
+                    BirthDate =
+                        employee.BirthDate,
 
-                        BirthDate =
-                            employee.BirthDate,
+                    BloodGroup =
+                        employee.BloodGroup,
 
-                        BloodGroup =
-                            employee.BloodGroup,
+                    IdentificationMark =
+                        employee.IdentificationMark,
 
-                        IdentificationMark =
-                            employee.IdentificationMark,
+                    Height =
+                        employee.Height,
 
-                        Height =
-                            employee.Height,
+                    LanguagesKnown =
+                        employee.KnownLanguage,
 
-                        LanguagesKnown =
-                            employee.KnownLanguage,
+                    MotherTongue =
+                        motherTongue,
 
-                        MotherTongue =
-                            motherTongue,
+                    Qualification =
+                        employee.Education,
 
-                        Qualification =
-                            employee.Education,
+                    ModeOfSign =
+                        employee.ModeOfSign,
 
-                        ModeOfSign =
-                            employee.ModeOfSign,
+                    EntryDate =
+                        DateTime.Now
+                };
 
-                        EntryDate =
-                            DateTime.Now
-                    };
-
-                _context.PayMasts.Add(
-                    payMast
-                );
-
+                // =================================================
+                // SAVE TO PAYMAST
+                // =================================================
+                _context.PayMasts.Add(payMast);
                 await _context.SaveChangesAsync();
 
-                TempData["Success"] =
-                    "true";
+                // =================================================
+                // SUCCESS POPUP
+                // =================================================
+                TempData["Success"] = "true";
 
                 TempData["SuccessEmployeeName"] =
-                    payMast.EmployeeName
-                    ?? "";
+                    payMast.EmployeeName ?? "";
 
                 TempData["SuccessEmployeeCode"] =
                     newEmployeeCode.ToString();
 
-                return RedirectToAction(
-                    nameof(Register)
-                );
+                return RedirectToAction(nameof(Register));
             }
             catch (DbUpdateException ex)
             {
                 string errorMessage =
-                    ex.InnerException?.Message
-                    ??
+                    ex.InnerException?.Message ??
                     ex.Message;
 
                 ModelState.AddModelError(
@@ -562,19 +533,16 @@ namespace Employee_Management_System.Controllers
         // CUSTOMER SEARCH FROM prtymast
         // =========================================================
         [HttpGet]
-        public async Task<IActionResult> GetEmployee(
-            string custId)
+        public async Task<IActionResult> GetEmployee(string custId)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(
-                    custId))
+                if (string.IsNullOrWhiteSpace(custId))
                 {
                     return Json(new
                     {
                         success = false,
-                        message =
-                            "Please enter Customer ID."
+                        message = "Please enter Customer ID."
                     });
                 }
 
@@ -585,21 +553,16 @@ namespace Employee_Management_System.Controllers
                     return Json(new
                     {
                         success = false,
-                        message =
-                            "Invalid Customer ID."
+                        message = "Invalid Customer ID."
                     });
                 }
 
-                // =================================================
-                // CHECK PAYMAST DUPLICATE FIRST
-                // =================================================
+                // Check duplicate
                 var existingEmployee =
                     await _context.PayMasts
                         .AsNoTracking()
                         .FirstOrDefaultAsync(
-                            x =>
-                                x.CustomerId ==
-                                customerId
+                            x => x.CustomerId == customerId
                         );
 
                 if (existingEmployee != null)
@@ -607,28 +570,20 @@ namespace Employee_Management_System.Controllers
                     return Json(new
                     {
                         success = false,
-
-                        alreadyExists =
-                            true,
-
-                        message =
-                            "Employee already exists.",
-
+                        alreadyExists = true,
+                        message = "Employee already exists.",
                         employeeCode =
                             existingEmployee.EmployeeCode,
-
                         employeeName =
                             existingEmployee.EmployeeName
                     });
                 }
 
                 DbConnection connection =
-                    _context.Database
-                        .GetDbConnection();
+                    _context.Database.GetDbConnection();
 
                 bool shouldClose =
-                    connection.State !=
-                    ConnectionState.Open;
+                    connection.State != ConnectionState.Open;
 
                 if (shouldClose)
                 {
@@ -643,48 +598,36 @@ namespace Employee_Management_System.Controllers
                     command.CommandText =
                     @"
                         SELECT TOP 1
-
                             p.CODE,
                             p.name,
-
                             p.ADDR1,
                             p.ADDR2,
                             p.ADDR3,
                             p.ADDR4,
                             p.ADDR5,
-
                             p.PHONE,
                             p.PHONE1,
                             p.Mobile,
                             p.EMAIL_ID,
-
                             p.SEX,
                             p.birthdate,
                             p.FATHERNAME,
-
                             p.pan_no,
                             p.AdharNo,
-
                             p.NATIONALITY,
                             p.City,
                             p.State,
                             p.District,
                             p.Taluka,
-
                             p.Religion,
                             rm.Name AS ReligionName,
-
                             p.Cast,
                             cm.Name AS CasteName
-
                         FROM dbo.prtymast p
-
                         LEFT JOIN dbo.ReligionMast rm
                             ON rm.Code = p.Religion
-
                         LEFT JOIN dbo.CastMast cm
                             ON cm.Code = p.Cast
-
                         WHERE p.CODE = @custId
                     ";
 
@@ -697,9 +640,7 @@ namespace Employee_Management_System.Controllers
                     parameter.Value =
                         customerId;
 
-                    command.Parameters.Add(
-                        parameter
-                    );
+                    command.Parameters.Add(parameter);
 
                     using DbDataReader reader =
                         await command.ExecuteReaderAsync();
@@ -709,57 +650,37 @@ namespace Employee_Management_System.Controllers
                         return Json(new
                         {
                             success = false,
-
-                            message =
-                                "Customer not found."
+                            message = "Customer not found."
                         });
                     }
 
-                    string GetString(
-                        string columnName)
+                    string GetString(string columnName)
                     {
                         int ordinal =
-                            reader.GetOrdinal(
-                                columnName
-                            );
+                            reader.GetOrdinal(columnName);
 
-                        if (reader.IsDBNull(
-                            ordinal))
-                        {
+                        if (reader.IsDBNull(ordinal))
                             return "";
-                        }
 
                         return Convert.ToString(
-                            reader.GetValue(
-                                ordinal
-                            )
+                            reader.GetValue(ordinal)
                         ) ?? "";
                     }
 
-                    string GetDate(
-                        string columnName)
+                    string GetDate(string columnName)
                     {
                         int ordinal =
-                            reader.GetOrdinal(
-                                columnName
-                            );
+                            reader.GetOrdinal(columnName);
 
-                        if (reader.IsDBNull(
-                            ordinal))
-                        {
+                        if (reader.IsDBNull(ordinal))
                             return "";
-                        }
 
                         DateTime date =
                             Convert.ToDateTime(
-                                reader.GetValue(
-                                    ordinal
-                                )
+                                reader.GetValue(ordinal)
                             );
 
-                        return date.ToString(
-                            "yyyy-MM-dd"
-                        );
+                        return date.ToString("yyyy-MM-dd");
                     }
 
                     return Json(new
@@ -771,8 +692,7 @@ namespace Employee_Management_System.Controllers
                             customerId =
                                 GetString("CODE"),
 
-                            employeeCode =
-                                "",
+                            employeeCode = "",
 
                             employeeName =
                                 GetString("name"),
@@ -840,18 +760,23 @@ namespace Employee_Management_System.Controllers
                             religion =
                                 GetString("ReligionName"),
 
+                            religionName =
+                                GetString("ReligionName"),
+
                             casteCode =
                                 GetString("Cast"),
 
                             caste =
+                                GetString("CasteName"),
+
+                            casteName =
                                 GetString("CasteName")
                         }
                     });
                 }
                 finally
                 {
-                    if (
-                        shouldClose &&
+                    if (shouldClose &&
                         connection.State ==
                         ConnectionState.Open)
                     {
@@ -866,7 +791,6 @@ namespace Employee_Management_System.Controllers
                     new
                     {
                         success = false,
-
                         message =
                             "Unable to retrieve customer information: " +
                             ex.Message
@@ -874,16 +798,14 @@ namespace Employee_Management_System.Controllers
                 );
             }
         }
-
         // =========================================================
-        // SEARCH EXISTING EMPLOYEES
-        // SOURCE = PayMast
+        // SEARCH EXISTING EMPLOYEES FROM PAYMAST
         // =========================================================
         [HttpGet]
-        public async Task<IActionResult>
-            SearchExistingEmployees(
-                string? searchBy,
-                string? searchText)
+        public async Task<IActionResult> SearchExistingEmployees(
+            string? searchBy,
+            string? searchText
+        )
         {
             try
             {
@@ -896,48 +818,43 @@ namespace Employee_Management_System.Controllers
                     (searchText ?? "")
                         .Trim();
 
+
                 // =================================================
-                // INITIAL LOAD
-                // Existing Data click => latest 20 employees
+                // INITIAL LOAD - LATEST 20
                 // =================================================
-                if (string.IsNullOrWhiteSpace(
-                    searchText))
+                if (string.IsNullOrWhiteSpace(searchText))
                 {
                     var latestEmployees =
                         await _context.PayMasts
                             .AsNoTracking()
                             .OrderByDescending(
-                                x =>
-                                    x.EmployeeCode
+                                x => x.EmployeeCode
                             )
                             .Select(
-                                x =>
-                                    new
-                                    {
-                                        employeeCode =
-                                            x.EmployeeCode,
+                                x => new
+                                {
+                                    employeeCode =
+                                        x.EmployeeCode,
 
-                                        employeeName =
-                                            x.EmployeeName
-                                    }
+                                    employeeName =
+                                        x.EmployeeName
+                                }
                             )
                             .Take(20)
                             .ToListAsync();
 
+
                     return Json(new
                     {
                         success = true,
-
-                        isInitialLoad =
-                            true,
-
-                        data =
-                            latestEmployees
+                        isInitialLoad = true,
+                        data = latestEmployees
                     });
                 }
 
+
                 // =================================================
-                // SEARCH BY CODE
+                // SEARCH BY EMPLOYEE CODE
                 // =================================================
                 if (searchBy == "code")
                 {
@@ -948,11 +865,11 @@ namespace Employee_Management_System.Controllers
                         return Json(new
                         {
                             success = false,
-
                             message =
                                 "Please enter a valid Employee Code."
                         });
                     }
+
 
                     var employees =
                         await _context.PayMasts
@@ -963,32 +880,29 @@ namespace Employee_Management_System.Controllers
                                     employeeCode
                             )
                             .Select(
-                                x =>
-                                    new
-                                    {
-                                        employeeCode =
-                                            x.EmployeeCode,
+                                x => new
+                                {
+                                    employeeCode =
+                                        x.EmployeeCode,
 
-                                        employeeName =
-                                            x.EmployeeName
-                                    }
+                                    employeeName =
+                                        x.EmployeeName
+                                }
                             )
+                            .Take(50)
                             .ToListAsync();
+
 
                     return Json(new
                     {
                         success = true,
-
-                        isInitialLoad =
-                            false,
-
-                        data =
-                            employees
+                        data = employees
                     });
                 }
 
+
                 // =================================================
-                // SEARCH BY NAME
+                // SEARCH BY EMPLOYEE NAME
                 // =================================================
                 if (searchBy == "name")
                 {
@@ -1003,43 +917,36 @@ namespace Employee_Management_System.Controllers
                                     )
                             )
                             .OrderBy(
-                                x =>
-                                    x.EmployeeName
+                                x => x.EmployeeName
                             )
                             .ThenBy(
-                                x =>
-                                    x.EmployeeCode
+                                x => x.EmployeeCode
                             )
                             .Select(
-                                x =>
-                                    new
-                                    {
-                                        employeeCode =
-                                            x.EmployeeCode,
+                                x => new
+                                {
+                                    employeeCode =
+                                        x.EmployeeCode,
 
-                                        employeeName =
-                                            x.EmployeeName
-                                    }
+                                    employeeName =
+                                        x.EmployeeName
+                                }
                             )
                             .Take(50)
                             .ToListAsync();
 
+
                     return Json(new
                     {
                         success = true,
-
-                        isInitialLoad =
-                            false,
-
-                        data =
-                            employees
+                        data = employees
                     });
                 }
+
 
                 return Json(new
                 {
                     success = false,
-
                     message =
                         "Please select Employee Code or Employee Name."
                 });
@@ -1051,7 +958,6 @@ namespace Employee_Management_System.Controllers
                     new
                     {
                         success = false,
-
                         message =
                             "Unable to search employee: " +
                             ex.Message
@@ -1060,14 +966,14 @@ namespace Employee_Management_System.Controllers
             }
         }
 
+
         // =========================================================
-        // GET EXISTING EMPLOYEE
-        // SOURCE = PayMast
+        // GET EXISTING EMPLOYEE FROM PAYMAST
         // =========================================================
         [HttpGet]
-        public async Task<IActionResult>
-            GetExistingEmployee(
-                int employeeCode)
+        public async Task<IActionResult> GetExistingEmployee(
+            int employeeCode
+        )
         {
             try
             {
@@ -1080,17 +986,21 @@ namespace Employee_Management_System.Controllers
                                 employeeCode
                         );
 
+
                 if (payMast == null)
                 {
                     return Json(new
                     {
                         success = false,
-
                         message =
                             "Employee was not found in PayMast."
                     });
                 }
 
+
+                // =================================================
+                // RELIGION NAME
+                // =================================================
                 string religionName = "";
 
                 if (payMast.Religion.HasValue)
@@ -1104,13 +1014,16 @@ namespace Employee_Management_System.Controllers
                                     payMast.Religion.Value
                             )
                             .Select(
-                                x =>
-                                    x.ReligionName
+                                x => x.ReligionName
                             )
                             .FirstOrDefaultAsync()
                         ?? "";
                 }
 
+
+                // =================================================
+                // CASTE NAME
+                // =================================================
                 string casteName = "";
 
                 if (payMast.CasteId.HasValue)
@@ -1119,6 +1032,7 @@ namespace Employee_Management_System.Controllers
                         Convert.ToDecimal(
                             payMast.CasteId.Value
                         );
+
 
                     casteName =
                         await _context.Castes
@@ -1129,12 +1043,12 @@ namespace Employee_Management_System.Controllers
                                     casteCode
                             )
                             .Select(
-                                x =>
-                                    x.CastName
+                                x => x.CastName
                             )
                             .FirstOrDefaultAsync()
                         ?? "";
                 }
+
 
                 return Json(new
                 {
@@ -1235,10 +1149,16 @@ namespace Employee_Management_System.Controllers
                         religion =
                             religionName,
 
+                        religionName =
+                            religionName,
+
                         casteCode =
                             payMast.CasteId,
 
                         caste =
+                            casteName,
+
+                        casteName =
                             casteName,
 
                         gender =
@@ -1280,7 +1200,6 @@ namespace Employee_Management_System.Controllers
                     new
                     {
                         success = false,
-
                         message =
                             "Unable to load employee: " +
                             ex.Message
@@ -1288,23 +1207,24 @@ namespace Employee_Management_System.Controllers
                 );
             }
         }
-
         // =========================================================
         // UPDATE EXISTING EMPLOYEE
-        // TARGET = PayMast
+        // TARGET = PAYMAST
         // =========================================================
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult>
-            UpdateEmployee(
-                Employee employee,
-                int? existingEmployeeCode)
+        public async Task<IActionResult> UpdateEmployee(
+            Employee employee,
+            int? existingEmployeeCode
+        )
         {
             try
             {
                 // =================================================
-                // GET EMPLOYEE CODE
+                // EMPLOYEE CODE
                 // =================================================
+
                 int employeeCode = 0;
 
                 if (existingEmployeeCode.HasValue)
@@ -1314,13 +1234,16 @@ namespace Employee_Management_System.Controllers
                 }
                 else if (
                     !string.IsNullOrWhiteSpace(
-                        employee.EmployeeCode))
+                        employee.EmployeeCode
+                    )
+                )
                 {
                     int.TryParse(
                         employee.EmployeeCode,
                         out employeeCode
                     );
                 }
+
 
                 if (employeeCode <= 0)
                 {
@@ -1337,9 +1260,11 @@ namespace Employee_Management_System.Controllers
                     );
                 }
 
+
                 // =================================================
-                // FIND EXISTING PAYMAST RECORD
+                // FIND EXISTING EMPLOYEE
                 // =================================================
+
                 var existingEmployee =
                     await _context.PayMasts
                         .FirstOrDefaultAsync(
@@ -1347,6 +1272,7 @@ namespace Employee_Management_System.Controllers
                                 x.EmployeeCode ==
                                 employeeCode
                         );
+
 
                 if (existingEmployee == null)
                 {
@@ -1363,8 +1289,12 @@ namespace Employee_Management_System.Controllers
                     );
                 }
 
-                if (string.IsNullOrWhiteSpace(
-                    employee.EmployeeName))
+
+                if (
+                    string.IsNullOrWhiteSpace(
+                        employee.EmployeeName
+                    )
+                )
                 {
                     ModelState.AddModelError(
                         nameof(employee.EmployeeName),
@@ -1379,18 +1309,48 @@ namespace Employee_Management_System.Controllers
                     );
                 }
 
+
+                // =================================================
+                // READ FORM
+                // =================================================
+
+                var updateForm =
+                    await Request.ReadFormAsync();
+
+
                 // =================================================
                 // EMPLOYEE TYPE
                 // =================================================
+
                 int? employeeType =
                     existingEmployee.EmployeeType;
 
-                if (!string.IsNullOrWhiteSpace(
-                    employee.EmployeeType))
+                string? employeeTypeText =
+                    GetFirstNonEmpty(
+                        updateForm,
+                        "EmployeeType",
+                        "employeeType",
+                        "Type",
+                        "type",
+                        "HiddenEmployeeType"
+                    );
+
+
+                if (string.IsNullOrWhiteSpace(employeeTypeText))
                 {
-                    if (int.TryParse(
-                        employee.EmployeeType,
-                        out int typeValue))
+                    employeeTypeText =
+                        employee.EmployeeType;
+                }
+
+
+                if (!string.IsNullOrWhiteSpace(employeeTypeText))
+                {
+                    if (
+                        int.TryParse(
+                            employeeTypeText,
+                            out int typeValue
+                        )
+                    )
                     {
                         employeeType =
                             typeValue;
@@ -1398,129 +1358,228 @@ namespace Employee_Management_System.Controllers
                     else
                     {
                         switch (
-                            employee.EmployeeType
+                            employeeTypeText
                                 .Trim()
-                                .ToLower())
+                                .ToLower()
+                        )
                         {
                             case "permanent":
+
                                 employeeType = 1;
+
                                 break;
+
 
                             case "temporary":
+
                                 employeeType = 2;
+
                                 break;
 
+
                             case "contract":
+
                                 employeeType = 3;
+
                                 break;
                         }
                     }
                 }
 
+
                 // =================================================
                 // CUSTOMER ID
                 // =================================================
+
                 decimal? customerId =
                     existingEmployee.CustomerId;
 
+                string? customerText =
+                    GetFirstNonEmpty(
+                        updateForm,
+                        "CustomerId",
+                        "HiddenCustomerId"
+                    );
+
+
+                if (string.IsNullOrWhiteSpace(customerText))
+                {
+                    customerText =
+                        employee.CustomerId;
+                }
+
+
                 if (
-                    !string.IsNullOrWhiteSpace(
-                        employee.CustomerId) &&
+                    !string.IsNullOrWhiteSpace(customerText) &&
                     decimal.TryParse(
-                        employee.CustomerId,
-                        out decimal customerValue))
+                        customerText,
+                        NumberStyles.Any,
+                        CultureInfo.InvariantCulture,
+                        out decimal customerValue
+                    )
+                )
                 {
                     customerId =
                         customerValue;
                 }
 
+
                 // =================================================
                 // RELIGION
                 // =================================================
+
                 decimal? religionCode =
                     existingEmployee.Religion;
 
+                string? religionText =
+                    GetFirstNonEmpty(
+                        updateForm,
+                        "Religion",
+                        "ReligionId"
+                    );
+
+
+                if (string.IsNullOrWhiteSpace(religionText))
+                {
+                    religionText =
+                        employee.Religion;
+                }
+
+
                 if (
-                    !string.IsNullOrWhiteSpace(
-                        employee.Religion) &&
+                    !string.IsNullOrWhiteSpace(religionText) &&
                     decimal.TryParse(
-                        employee.Religion,
-                        out decimal religionValue))
+                        religionText,
+                        NumberStyles.Any,
+                        CultureInfo.InvariantCulture,
+                        out decimal religionValue
+                    )
+                )
                 {
                     religionCode =
                         religionValue;
                 }
 
+
                 // =================================================
                 // CASTE
                 // =================================================
+
                 int? casteCode =
                     existingEmployee.CasteId;
 
+                string? casteText =
+                    GetFirstNonEmpty(
+                        updateForm,
+                        "Caste",
+                        "CasteId"
+                    );
+
+
+                if (string.IsNullOrWhiteSpace(casteText))
+                {
+                    casteText =
+                        employee.Caste;
+                }
+
+
                 if (
-                    !string.IsNullOrWhiteSpace(
-                        employee.Caste) &&
+                    !string.IsNullOrWhiteSpace(casteText) &&
                     int.TryParse(
-                        employee.Caste,
-                        out int casteValue))
+                        casteText,
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int casteValue
+                    )
+                )
                 {
                     casteCode =
                         casteValue;
                 }
 
+
                 // =================================================
                 // GENDER
                 // =================================================
+
                 string? genderCode =
                     existingEmployee.Sex;
 
-                if (!string.IsNullOrWhiteSpace(
-                    employee.Gender))
+                if (!string.IsNullOrWhiteSpace(employee.Gender))
                 {
                     string gender =
                         employee.Gender.Trim();
 
+
                     if (
                         gender.Equals(
                             "Male",
-                            StringComparison.OrdinalIgnoreCase) ||
+                            StringComparison.OrdinalIgnoreCase
+                        ) ||
                         gender.Equals(
                             "M",
-                            StringComparison.OrdinalIgnoreCase))
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
-                        genderCode = "M";
+                        genderCode =
+                            "M";
                     }
                     else if (
                         gender.Equals(
                             "Female",
-                            StringComparison.OrdinalIgnoreCase) ||
+                            StringComparison.OrdinalIgnoreCase
+                        ) ||
                         gender.Equals(
                             "F",
-                            StringComparison.OrdinalIgnoreCase))
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
                     {
-                        genderCode = "F";
+                        genderCode =
+                            "F";
                     }
                 }
+
 
                 // =================================================
                 // MOTHER TONGUE
                 // =================================================
+
                 string? motherTongue =
                     string.IsNullOrWhiteSpace(
-                        employee.MotherTongue)
+                        employee.MotherTongue
+                    )
                         ? null
                         : employee.MotherTongue.Trim();
 
+
+                if (
+                    string.Equals(
+                        motherTongue,
+                        "MOTHER TONGUE",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    motherTongue =
+                        null;
+                }
+
+
                 if (
                     motherTongue != null &&
-                    motherTongue.Length > 10)
+                    motherTongue.Length > 10
+                )
                 {
                     ModelState.AddModelError(
                         nameof(employee.MotherTongue),
                         "Mother Tongue can contain maximum 10 characters."
                     );
 
+
                     await LoadDropdown();
+
 
                     return View(
                         "Register",
@@ -1528,10 +1587,12 @@ namespace Employee_Management_System.Controllers
                     );
                 }
 
+
                 // =================================================
-                // UPDATE EXISTING PAYMAST RECORD
-                // EmployeeCode does NOT change
+                // UPDATE PAYMAST RECORD
+                // EMPLOYEE CODE DOES NOT CHANGE
                 // =================================================
+
                 existingEmployee.CustomerId =
                     customerId;
 
@@ -1599,7 +1660,8 @@ namespace Employee_Management_System.Controllers
                 existingEmployee.PFSrNo =
                     int.TryParse(
                         employee.PFSerialNumber,
-                        out int pfSerial)
+                        out int pfSerial
+                    )
                         ? pfSerial
                         : null;
 
@@ -1613,9 +1675,15 @@ namespace Employee_Management_System.Controllers
                 existingEmployee.AadharNo =
                     decimal.TryParse(
                         employee.AadhaarNumber,
-                        out decimal aadhaar)
+                        out decimal aadhaar
+                    )
                         ? aadhaar
                         : null;
+
+
+                // =================================================
+                // ADDRESS INFORMATION
+                // =================================================
 
                 existingEmployee.CorrespondenceAddress1 =
                     employee.CorrespondenceAddress1;
@@ -1632,11 +1700,21 @@ namespace Employee_Management_System.Controllers
                 existingEmployee.FatherName =
                     employee.FatherName;
 
+
+                // =================================================
+                // RELIGION / CASTE
+                // =================================================
+
                 existingEmployee.Religion =
                     religionCode;
 
                 existingEmployee.CasteId =
                     casteCode;
+
+
+                // =================================================
+                // PERSONAL INFORMATION
+                // =================================================
 
                 existingEmployee.Sex =
                     genderCode;
@@ -1665,14 +1743,18 @@ namespace Employee_Management_System.Controllers
                 existingEmployee.ModeOfSign =
                     employee.ModeOfSign;
 
+
                 // =================================================
                 // SAVE UPDATE TO PAYMAST
                 // =================================================
+
                 await _context.SaveChangesAsync();
+
 
                 // =================================================
                 // UPDATE SUCCESS POPUP
                 // =================================================
+
                 TempData["UpdateSuccess"] =
                     "true";
 
@@ -1683,6 +1765,7 @@ namespace Employee_Management_System.Controllers
                 TempData["UpdatedEmployeeCode"] =
                     existingEmployee.EmployeeCode
                         .ToString();
+
 
                 return RedirectToAction(
                     nameof(Register)
@@ -1695,13 +1778,16 @@ namespace Employee_Management_System.Controllers
                     ??
                     ex.Message;
 
+
                 ModelState.AddModelError(
                     "",
                     "Database update error: " +
                     errorMessage
                 );
 
+
                 await LoadDropdown();
+
 
                 return View(
                     "Register",
@@ -1716,7 +1802,9 @@ namespace Employee_Management_System.Controllers
                     ex.Message
                 );
 
+
                 await LoadDropdown();
+
 
                 return View(
                     "Register",
@@ -1725,21 +1813,25 @@ namespace Employee_Management_System.Controllers
             }
         }
 
+
         // =========================================================
         // GET RELIGION NAME
         // =========================================================
+
         [HttpGet]
-        public async Task<IActionResult>
-            GetReligionName(
-                decimal? code)
+        public async Task<IActionResult> GetReligionName(
+            decimal? code
+        )
         {
             if (!code.HasValue)
             {
                 return Json(new
                 {
-                    success = false
+                    success =
+                        false
                 });
             }
+
 
             var religion =
                 await _context.Religions
@@ -1750,17 +1842,21 @@ namespace Employee_Management_System.Controllers
                             code.Value
                     );
 
+
             if (religion == null)
             {
                 return Json(new
                 {
-                    success = false
+                    success =
+                        false
                 });
             }
 
+
             return Json(new
             {
-                success = true,
+                success =
+                    true,
 
                 id =
                     religion.Code,
@@ -1770,21 +1866,25 @@ namespace Employee_Management_System.Controllers
             });
         }
 
+
         // =========================================================
         // GET CASTE NAME
         // =========================================================
+
         [HttpGet]
-        public async Task<IActionResult>
-            GetCasteName(
-                decimal? code)
+        public async Task<IActionResult> GetCasteName(
+            decimal? code
+        )
         {
             if (!code.HasValue)
             {
                 return Json(new
                 {
-                    success = false
+                    success =
+                        false
                 });
             }
+
 
             var caste =
                 await _context.Castes
@@ -1795,17 +1895,21 @@ namespace Employee_Management_System.Controllers
                             code.Value
                     );
 
+
             if (caste == null)
             {
                 return Json(new
                 {
-                    success = false
+                    success =
+                        false
                 });
             }
 
+
             return Json(new
             {
-                success = true,
+                success =
+                    true,
 
                 id =
                     caste.Code,
@@ -1815,20 +1919,22 @@ namespace Employee_Management_System.Controllers
             });
         }
 
+
         // =========================================================
         // SEARCH RELIGION
         // =========================================================
+
         [HttpGet]
-        public async Task<IActionResult>
-            SearchReligion(
-                string? term)
+        public async Task<IActionResult> SearchReligion(
+            string? term
+        )
         {
             var query =
                 _context.Religions
                     .AsNoTracking();
 
-            if (!string.IsNullOrWhiteSpace(
-                term))
+
+            if (!string.IsNullOrWhiteSpace(term))
             {
                 query =
                     query.Where(
@@ -1839,6 +1945,7 @@ namespace Employee_Management_System.Controllers
                             )
                     );
             }
+
 
             var result =
                 await query
@@ -1860,14 +1967,18 @@ namespace Employee_Management_System.Controllers
                     .Take(100)
                     .ToListAsync();
 
+
             return Json(result);
         }
+
 
         // =========================================================
         // LOAD DROPDOWNS
         // =========================================================
+
         private async Task LoadDropdown()
         {
+            // Grade
             ViewBag.Grades =
                 new SelectList(
                     await _context.Grades
@@ -1883,6 +1994,8 @@ namespace Employee_Management_System.Controllers
                     "GradeName"
                 );
 
+
+            // Section
             ViewBag.Sections =
                 new SelectList(
                     await _context.Sections
@@ -1898,6 +2011,8 @@ namespace Employee_Management_System.Controllers
                     "SectionName"
                 );
 
+
+            // Branch
             ViewBag.Branches =
                 new SelectList(
                     await _context.Branches
@@ -1913,6 +2028,8 @@ namespace Employee_Management_System.Controllers
                     "BranchName"
                 );
 
+
+            // Caste
             ViewBag.Castes =
                 await _context.Castes
                     .AsNoTracking()
@@ -1922,6 +2039,8 @@ namespace Employee_Management_System.Controllers
                     )
                     .ToListAsync();
 
+
+            // Religion
             ViewBag.Religions =
                 await _context.Religions
                     .AsNoTracking()
@@ -1932,28 +2051,34 @@ namespace Employee_Management_System.Controllers
                     .ToListAsync();
         }
 
+
         // =========================================================
         // GET FIRST NON EMPTY FORM VALUE
         // =========================================================
-        private static string?
-            GetFirstNonEmpty(
-                IFormCollection form,
-                params string[] names)
+
+        private static string? GetFirstNonEmpty(
+            IFormCollection form,
+            params string[] names
+        )
         {
             foreach (string name in names)
             {
                 if (
                     form.TryGetValue(
                         name,
-                        out var value) &&
+                        out var value
+                    ) &&
                     !string.IsNullOrWhiteSpace(
-                        value.ToString()))
+                        value.ToString()
+                    )
+                )
                 {
                     return value
                         .ToString()
                         .Trim();
                 }
             }
+
 
             return null;
         }
