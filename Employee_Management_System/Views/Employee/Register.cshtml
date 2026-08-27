@@ -6,9 +6,13 @@
 
 <!DOCTYPE html>
 <html>
+
 <head>
+
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1" />
 
     <title>Employee Registration</title>
 
@@ -18,22 +22,16 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
           rel="stylesheet" />
 
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
-          rel="stylesheet" />
-
     <style>
+
         .card-header {
-            background: #0d6efd;
+            background-color: #0d6efd;
             color: white;
         }
 
         .nav-tabs .nav-link.active {
             background-color: #0d6efd;
             color: white;
-        }
-
-        .input-group .btn {
-            width: 45px;
         }
 
         .form-label {
@@ -43,13 +41,21 @@
         .btn {
             min-width: 100px;
         }
+
+        .existing-result-table tbody tr:hover {
+            background-color: #f3f6f9;
+        }
+
     </style>
+
 </head>
+
 
 <body>
 
+
     @* ============================================================
-       SUCCESS POPUP
+       NEW EMPLOYEE SUCCESS POPUP
        ============================================================ *@
 
     @if (TempData["Success"] != null)
@@ -66,8 +72,11 @@
                     <div class="modal-header bg-success text-white">
 
                         <h5 class="modal-title">
+
                             <i class="bi bi-check-circle-fill me-2"></i>
+
                             Employee Created Successfully
+
                         </h5>
 
                         <button type="button"
@@ -77,85 +86,351 @@
 
                     </div>
 
+
                     <div class="modal-body text-center">
 
-                        <h4 class="text-success mb-4">
-                            @TempData["Success"]
+                        <i class="bi bi-check-circle-fill text-success"
+                           style="font-size:55px;">
+                        </i>
+
+                        <h4 class="text-success mt-3 mb-4">
+
+                            Employee created successfully!
+
                         </h4>
 
-                        <p>
-                            <strong>Customer Name:</strong>
-                            <br />
-                            @TempData["SuccessCustomerName"]
-                        </p>
 
                         <p>
-                            <strong>Employee Code:</strong>
+
+                            <strong>
+                                Employee Name:
+                            </strong>
+
+                            <br />
+
+                            <span class="fs-5">
+
+                                @(TempData["SuccessCustomerName"]
+                                    ?? TempData["SuccessEmployeeName"]
+                                    ?? "")
+
+                            </span>
+
+                        </p>
+
+
+                        <p>
+
+                            <strong>
+                                Employee Code:
+                            </strong>
+
                             <br />
 
                             <span class="fs-3 fw-bold text-success">
+
                                 @TempData["SuccessEmployeeCode"]
+
                             </span>
+
                         </p>
 
                     </div>
+
 
                     <div class="modal-footer justify-content-center">
 
                         <button type="button"
                                 class="btn btn-success"
                                 data-bs-dismiss="modal">
+
                             OK
+
                         </button>
 
                     </div>
 
                 </div>
+
             </div>
+
         </div>
     }
 
 
-    <div class="container mt-4">
+
+    @* ============================================================
+       UPDATE SUCCESS POPUP
+       ============================================================ *@
+
+    @if (TempData["UpdateSuccess"]?.ToString() == "true")
+    {
+        <div class="modal fade"
+             id="employeeUpdateSuccessModal"
+             tabindex="-1"
+             aria-hidden="true">
+
+            <div class="modal-dialog modal-dialog-centered">
+
+                <div class="modal-content">
+
+                    <div class="modal-header bg-success text-white">
+
+                        <h5 class="modal-title">
+
+                            <i class="bi bi-check-circle-fill me-2"></i>
+
+                            Employee Successfully Updated!
+
+                        </h5>
+
+
+                        <button type="button"
+                                class="btn-close btn-close-white"
+                                data-bs-dismiss="modal">
+                        </button>
+
+                    </div>
+
+
+                    <div class="modal-body text-center">
+
+                        <i class="bi bi-check-circle-fill text-success"
+                           style="font-size:55px;">
+                        </i>
+
+
+                        <h4 class="text-success mt-3 mb-4">
+
+                            Employee Successfully Updated!
+
+                        </h4>
+
+
+                        <p>
+
+                            <strong>
+                                Employee Name:
+                            </strong>
+
+                            <br />
+
+                            <span class="fs-5">
+
+                                @TempData["UpdatedEmployeeName"]
+
+                            </span>
+
+                        </p>
+
+
+                        <p>
+
+                            <strong>
+                                Employee Code:
+                            </strong>
+
+                            <br />
+
+                            <span class="fs-3 fw-bold text-success">
+
+                                @TempData["UpdatedEmployeeCode"]
+
+                            </span>
+
+                        </p>
+
+                    </div>
+
+
+                    <div class="modal-footer justify-content-center">
+
+                        <button type="button"
+                                class="btn btn-success"
+                                data-bs-dismiss="modal">
+
+                            OK
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    }
+
+
+
+    @* ============================================================
+       DUPLICATE EMPLOYEE POPUP
+       ============================================================ *@
+
+    <div class="modal fade"
+         id="employeeAlreadyExistsModal"
+         tabindex="-1"
+         aria-hidden="true">
+
+        <div class="modal-dialog modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <div class="modal-header bg-warning">
+
+                    <h5 class="modal-title">
+
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
+                        Employee Already Exists
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+
+                </div>
+
+
+                <div class="modal-body text-center">
+
+                    <i class="bi bi-exclamation-triangle-fill text-warning"
+                       style="font-size:55px;">
+                    </i>
+
+
+                    <h5 class="text-danger mt-3 mb-4">
+
+                        Employee already exists for this Customer ID.
+
+                    </h5>
+
+
+                    <p>
+
+                        <strong>
+                            Employee Name:
+                        </strong>
+
+                        <br />
+
+                        <span id="existingEmployeeName"
+                              class="fs-5">
+                        </span>
+
+                    </p>
+
+
+                    <p>
+
+                        <strong>
+                            Employee Code:
+                        </strong>
+
+                        <br />
+
+                        <span id="existingEmployeeCode"
+                              class="fs-3 fw-bold text-primary">
+                        </span>
+
+                    </p>
+
+                </div>
+
+
+                <div class="modal-footer justify-content-center">
+
+                    <button type="button"
+                            class="btn btn-warning"
+                            data-bs-dismiss="modal">
+
+                        OK
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    @* ============================================================
+       MAIN PAGE
+       ============================================================ *@
+
+    <div class="container mt-4 mb-5">
 
         <div class="card shadow">
 
             <div class="card-header">
 
-                <h3 class="text-center">
+                <h3 class="text-center mb-0">
+
                     Employee Registration
+
                 </h3>
 
             </div>
 
+
             <div class="card-body">
 
-                @* ==========================================
-                   DATABASE / VALIDATION ERROR
-                   ========================================== *@
 
-                <div asp-validation-summary="ModelOnly"
+                <div asp-validation-summary="All"
                      class="text-danger mb-3">
                 </div>
 
 
-                <form asp-action="Register"
-                      method="post">
+                <form asp-controller="Employee"
+                      asp-action="Register"
+                      method="post"
+                      id="employeeForm">
 
 
-                    <!-- ==========================================
-                         Customer Search
-                    ========================================== -->
+                    @Html.AntiForgeryToken()
 
-                    <div class="row mb-3">
+
+                    @* =================================================
+                       HIDDEN FIELDS
+                       ================================================= *@
+
+                    <input type="hidden"
+                           id="HiddenCustomerId"
+                           name="CustomerId"
+                           value="@Model.CustomerId" />
+
+
+                    <input type="hidden"
+                           id="ExistingEmployeeCode"
+                           name="existingEmployeeCode"
+                           value="" />
+
+
+
+                    @* =================================================
+                       CUSTOMER SEARCH
+                       ================================================= *@
+
+                    <div class="row mb-3 align-items-end">
+
 
                         <div class="col-md-2">
 
                             <label class="form-label fw-bold">
+
                                 Customer ID
+
                             </label>
 
                         </div>
+
 
                         <div class="col-md-3">
 
@@ -165,25 +440,38 @@
                                    placeholder="Enter Customer ID"
                                    autocomplete="off" />
 
-                            <!-- Hidden field - UI does not change -->
-                            <input type="hidden"
-                                   id="HiddenCustomerId"
-                                   name="CustomerId"
-                                   value="@Model.CustomerId" />
-
                         </div>
 
-                        <div class="col-md-2">
+
+                        <div class="col-md-4 d-flex gap-2">
 
                             <button type="button"
                                     id="btnSearchCustomer"
                                     class="btn btn-primary">
+
+                                <i class="bi bi-search"></i>
+
                                 Search
+
+                            </button>
+
+
+                            <button type="button"
+                                    id="btnExistingData"
+                                    class="btn btn-dark"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#ExistingEmployeeModal">
+
+                                <i class="bi bi-database"></i>
+
+                                Existing Data
+
                             </button>
 
                         </div>
 
-                        <div class="col-md-5">
+
+                        <div class="col-md-3">
 
                             <span id="CustomerSearchMessage"
                                   class="fw-bold">
@@ -191,41 +479,45 @@
 
                         </div>
 
+
                     </div>
 
 
                     <hr />
 
 
-                    <!-- ==========================================
-                         Employee Information
-                    ========================================== -->
+
+                    @* =================================================
+                       EMPLOYEE BASIC INFORMATION
+                       ================================================= *@
 
                     <div class="row">
 
-                        <!-- Employee Code -->
 
                         <div class="col-md-3 mb-3">
 
                             <label asp-for="EmployeeCode"
                                    class="form-label">
+
                                 Employee Code
+
                             </label>
 
                             <input asp-for="EmployeeCode"
                                    id="EmployeeCode"
-                                   class="form-control" />
+                                   class="form-control"
+                                   readonly />
 
                         </div>
 
-
-                        <!-- Employee Name -->
 
                         <div class="col-md-5 mb-3">
 
                             <label asp-for="EmployeeName"
                                    class="form-label">
+
                                 Employee Name
+
                             </label>
 
                             <input asp-for="EmployeeName"
@@ -239,13 +531,13 @@
                         </div>
 
 
-                        <!-- Employee Type -->
-
                         <div class="col-md-4 mb-3">
 
                             <label asp-for="EmployeeType"
                                    class="form-label">
+
                                 Employee Type
+
                             </label>
 
                             <select asp-for="EmployeeType"
@@ -272,463 +564,282 @@
 
                         </div>
 
+
                     </div>
 
 
-                    <!-- ==========================================
-                         Tabs
-                    ========================================== -->
 
-                    <ul class="nav nav-tabs">
+                    @* =================================================
+                       TABS
+                       ================================================= *@
+
+                    <ul class="nav nav-tabs"
+                        id="employeeTabs">
+
 
                         <li class="nav-item">
 
-                            <a class="nav-link active"
-                               data-bs-toggle="tab"
-                               href="#general">
+                            <button type="button"
+                                    class="nav-link active"
+                                    id="general-tab"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#general">
+
                                 General Information
-                            </a>
+
+                            </button>
 
                         </li>
 
+
                         <li class="nav-item">
 
-                            <a class="nav-link"
-                               data-bs-toggle="tab"
-                               href="#other">
+                            <button type="button"
+                                    class="nav-link"
+                                    id="other-tab"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#other">
+
                                 Other Information
-                            </a>
+
+                            </button>
 
                         </li>
 
+
                         <li class="nav-item">
 
-                            <a class="nav-link"
-                               data-bs-toggle="tab"
-                               href="#address">
+                            <button type="button"
+                                    class="nav-link"
+                                    id="address-tab"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#address">
+
                                 Address Information
-                            </a>
+
+                            </button>
 
                         </li>
+
 
                         <li class="nav-item">
 
-                            <a class="nav-link"
-                               data-bs-toggle="tab"
-                               href="#personal">
+                            <button type="button"
+                                    class="nav-link"
+                                    id="personal-tab"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#personal">
+
                                 Personal Information
-                            </a>
+
+                            </button>
 
                         </li>
+
 
                     </ul>
 
 
-                    <div class="tab-content border border-top-0 p-4">
+
+                    <div class="tab-content border border-top-0 p-4"
+                         id="employeeTabContent">
 
 
-                        <!-- =================================================
-                             GENERAL INFORMATION
-                        ================================================== -->
+
+                        @* =================================================
+                           GENERAL INFORMATION
+                           ================================================= *@
 
                         <div class="tab-pane fade show active"
                              id="general">
 
-                            <div class="container mt-3">
 
-                                <div class="row">
-
-                                    <!-- Grade -->
-
-                                    <div class="col-md-4">
-
-                                        <label asp-for="GradeId"
-                                               class="form-label fw-bold">
-                                            Grade
-                                        </label>
-
-                                        <select asp-for="GradeId"
-                                                asp-items="ViewBag.Grades"
-                                                class="form-select">
-
-                                            <option value="">
-                                                -- Select Grade --
-                                            </option>
-
-                                        </select>
-
-                                        <span asp-validation-for="GradeId"
-                                              class="text-danger">
-                                        </span>
-
-                                    </div>
+                            <div class="row">
 
 
-                                    <!-- Section -->
+                                <div class="col-md-4 mb-3">
 
-                                    <div class="col-md-4">
+                                    <label asp-for="GradeId"
+                                           class="form-label">
 
-                                        <label asp-for="SectionId"
-                                               class="form-label fw-bold">
-                                            Section
-                                        </label>
+                                        Grade
 
-                                        <select asp-for="SectionId"
-                                                asp-items="ViewBag.Sections"
-                                                class="form-select">
+                                    </label>
 
-                                            <option value="">
-                                                -- Select Section --
-                                            </option>
+                                    <select asp-for="GradeId"
+                                            id="GradeId"
+                                            asp-items="ViewBag.Grades"
+                                            class="form-select">
 
-                                        </select>
+                                        <option value="">
+                                            -- Select Grade --
+                                        </option>
 
-                                        <span asp-validation-for="SectionId"
-                                              class="text-danger">
-                                        </span>
-
-                                    </div>
-
-
-                                    <!-- Branch -->
-
-                                    <div class="col-md-4">
-
-                                        <label asp-for="BranchId"
-                                               class="form-label fw-bold">
-                                            Branch
-                                        </label>
-
-                                        <select asp-for="BranchId"
-                                                asp-items="ViewBag.Branches"
-                                                class="form-select">
-
-                                            <option value="">
-                                                -- Select Branch --
-                                            </option>
-
-                                        </select>
-
-                                        <span asp-validation-for="BranchId"
-                                              class="text-danger">
-                                        </span>
-
-                                    </div>
+                                    </select>
 
                                 </div>
 
 
-                                <div class="row mt-3">
+                                <div class="col-md-4 mb-3">
 
-                                    <div class="col-md-4">
+                                    <label asp-for="SectionId"
+                                           class="form-label">
 
-                                        <label asp-for="JoiningDate"
-                                               class="form-label fw-bold">
-                                        </label>
+                                        Section
 
-                                        <input asp-for="JoiningDate"
-                                               type="date"
-                                               class="form-control" />
+                                    </label>
 
-                                    </div>
+                                    <select asp-for="SectionId"
+                                            id="SectionId"
+                                            asp-items="ViewBag.Sections"
+                                            class="form-select">
 
-                                    <div class="col-md-4">
+                                        <option value="">
+                                            -- Select Section --
+                                        </option>
 
-                                        <label asp-for="PermanentDate"
-                                               class="form-label fw-bold">
-                                        </label>
-
-                                        <input asp-for="PermanentDate"
-                                               type="date"
-                                               class="form-control" />
-
-                                    </div>
-
-                                    <div class="col-md-4">
-
-                                        <label asp-for="LastSalaryDate"
-                                               class="form-label fw-bold">
-                                        </label>
-
-                                        <input asp-for="LastSalaryDate"
-                                               type="date"
-                                               class="form-control" />
-
-                                    </div>
+                                    </select>
 
                                 </div>
 
 
-                                <div class="row mt-3">
+                                <div class="col-md-4 mb-3">
 
-                                    <div class="col-md-4">
+                                    <label asp-for="BranchId"
+                                           class="form-label">
 
-                                        <label asp-for="LastSalaryIncrementDate"
-                                               class="form-label fw-bold">
-                                        </label>
+                                        Branch
 
-                                        <input asp-for="LastSalaryIncrementDate"
-                                               type="date"
-                                               class="form-control" />
+                                    </label>
 
-                                    </div>
+                                    <select asp-for="BranchId"
+                                            id="BranchId"
+                                            asp-items="ViewBag.Branches"
+                                            class="form-select">
 
-                                    <div class="col-md-4">
+                                        <option value="">
+                                            -- Select Branch --
+                                        </option>
 
-                                        <label asp-for="RetirementDate"
-                                               class="form-label fw-bold">
-                                        </label>
-
-                                        <input asp-for="RetirementDate"
-                                               type="date"
-                                               class="form-control" />
-
-                                    </div>
+                                    </select>
 
                                 </div>
+
 
                             </div>
 
-                        </div>
 
 
-                        <!-- =================================================
-                             OTHER INFORMATION
-                        ================================================== -->
+                            <div class="row">
 
-                        <div class="tab-pane fade"
-                             id="other">
 
-                            <div class="row mt-3">
+                                <div class="col-md-4 mb-3">
 
-                                <!-- Left Side -->
+                                    <label asp-for="JoiningDate"
+                                           class="form-label">
 
-                                <div class="col-md-6">
+                                        Joining Date
 
-                                    <div class="mb-3 row">
+                                    </label>
 
-                                        <label class="col-md-6 col-form-label fw-bold">
-                                            Pension Fund Open. Bal.
-                                        </label>
-
-                                        <div class="col-md-6">
-
-                                            <input asp-for="PensionFundOpeningBalance"
-                                                   class="form-control" />
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="mb-3 row">
-
-                                        <label class="col-md-6 col-form-label fw-bold">
-                                            P.F. No.
-                                        </label>
-
-                                        <div class="col-md-6">
-
-                                            <input asp-for="PFNumber"
-                                                   class="form-control" />
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="mb-3 row">
-
-                                        <label class="col-md-6 col-form-label fw-bold">
-                                            P.F. Opening Bal.
-                                        </label>
-
-                                        <div class="col-md-6">
-
-                                            <input asp-for="PFOpeningBalance"
-                                                   class="form-control" />
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="mb-3 row">
-
-                                        <label class="col-md-6 col-form-label fw-bold">
-                                            PAN No.
-                                        </label>
-
-                                        <div class="col-md-6">
-
-                                            <input asp-for="PANNumber"
-                                                   id="PANNumber"
-                                                   class="form-control" />
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="mb-3 row">
-
-                                        <label class="col-md-6 col-form-label fw-bold">
-                                            S/B.G.L. Code
-                                        </label>
-
-                                        <div class="col-md-6">
-
-                                            <div class="input-group">
-
-                                                <input asp-for="SavingGLCode"
-                                                       class="form-control" />
-
-                                                <button type="button"
-                                                        class="btn btn-outline-primary"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#SavingGLModal">
-
-                                                    <i class="bi bi-search"></i>
-
-                                                </button>
-
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="mb-3 row">
-
-                                        <label class="col-md-6 col-form-label fw-bold">
-                                            S/B.Br. Code
-                                        </label>
-
-                                        <div class="col-md-6">
-
-                                            <div class="input-group">
-
-                                                <input asp-for="SavingBranchCode"
-                                                       class="form-control" />
-
-                                                <button type="button"
-                                                        class="btn btn-outline-primary"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#SavingBranchModal">
-
-                                                    <i class="bi bi-search"></i>
-
-                                                </button>
-
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="mb-3 row">
-
-                                        <label class="col-md-6 col-form-label fw-bold">
-                                            S/B.Ac. Code
-                                        </label>
-
-                                        <div class="col-md-6">
-
-                                            <div class="input-group">
-
-                                                <input asp-for="SavingAccountCode"
-                                                       class="form-control" />
-
-                                                <button type="button"
-                                                        class="btn btn-outline-primary"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#SavingAccountModal">
-
-                                                    <i class="bi bi-search"></i>
-
-                                                </button>
-
-                                            </div>
-
-                                        </div>
-
-                                    </div>
+                                    <input asp-for="JoiningDate"
+                                           id="JoiningDate"
+                                           type="date"
+                                           class="form-control" />
 
                                 </div>
 
 
-                                <!-- Right Side -->
+                                <div class="col-md-4 mb-3">
 
-                                <div class="col-md-6">
+                                    <label asp-for="PermanentDate"
+                                           class="form-label">
 
-                                    <div class="mb-3 row">
+                                        Permanent Date
 
-                                        <label class="col-md-5 col-form-label fw-bold">
-                                            IT Sr. No.
-                                        </label>
+                                    </label>
 
-                                        <div class="col-md-7">
-
-                                            <input asp-for="ITSerialNumber"
-                                                   class="form-control" />
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="mb-3 row">
-
-                                        <label class="col-md-5 col-form-label fw-bold">
-                                            P.F. Sr. No.
-                                        </label>
-
-                                        <div class="col-md-7">
-
-                                            <input asp-for="PFSerialNumber"
-                                                   class="form-control" />
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="mb-3 row">
-
-                                        <label class="col-md-5 col-form-label fw-bold">
-                                            P.F. Balance
-                                        </label>
-
-                                        <div class="col-md-7">
-
-                                            <input asp-for="PFBalance"
-                                                   class="form-control" />
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="mb-3 row">
-
-                                        <label class="col-md-5 col-form-label fw-bold">
-                                            Aadhaar No.
-                                        </label>
-
-                                        <div class="col-md-7">
-
-                                            <input asp-for="AadhaarNumber"
-                                                   id="AadhaarNumber"
-                                                   class="form-control"
-                                                   maxlength="12" />
-
-                                        </div>
-
-                                    </div>
+                                    <input asp-for="PermanentDate"
+                                           id="PermanentDate"
+                                           type="date"
+                                           class="form-control" />
 
                                 </div>
+
+
+                                <div class="col-md-4 mb-3">
+
+                                    <label asp-for="LastSalaryDate"
+                                           class="form-label">
+
+                                        Last Salary Date
+
+                                    </label>
+
+                                    <input asp-for="LastSalaryDate"
+                                           id="LastSalaryDate"
+                                           type="date"
+                                           class="form-control" />
+
+                                </div>
+
+
+                            </div>
+
+
+
+                            <div class="row">
+
+
+                                <div class="col-md-4 mb-3">
+
+                                    <label asp-for="BasicSalary"
+                                           class="form-label">
+
+                                        Basic Salary
+
+                                    </label>
+
+                                    <input asp-for="BasicSalary"
+                                           id="BasicSalary"
+                                           class="form-control" />
+
+                                </div>
+
+
+                                <div class="col-md-4 mb-3">
+
+                                    <label asp-for="LastSalaryIncrementDate"
+                                           class="form-label">
+
+                                        Last Salary Increment Date
+
+                                    </label>
+
+                                    <input asp-for="LastSalaryIncrementDate"
+                                           id="LastSalaryIncrementDate"
+                                           type="date"
+                                           class="form-control" />
+
+                                </div>
+
+
+                                <div class="col-md-4 mb-3">
+
+                                    <label asp-for="RetirementDate"
+                                           class="form-label">
+
+                                        Retirement Date
+
+                                    </label>
+
+                                    <input asp-for="RetirementDate"
+                                           id="RetirementDate"
+                                           type="date"
+                                           class="form-control" />
+
+                                </div>
+
 
                             </div>
 
@@ -736,975 +847,1658 @@
                             <div class="text-end mt-4">
 
                                 <button type="button"
-                                        class="btn btn-secondary">
-                                    Previous
+                                        class="btn btn-primary"
+                                        onclick="openEmployeeTab('other-tab')">
+
+                                    Next
+
+                                    <i class="bi bi-arrow-right"></i>
+
                                 </button>
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        @* =================================================
+                           OTHER INFORMATION
+                           ================================================= *@
+
+                        <div class="tab-pane fade"
+                             id="other">
+
+
+                            <div class="row">
+
+
+                                <div class="col-md-6">
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="PensionFundOpeningBalance"
+                                               class="form-label">
+
+                                            Pension Fund Opening Balance
+
+                                        </label>
+
+                                        <input asp-for="PensionFundOpeningBalance"
+                                               id="PensionFundOpeningBalance"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="PFNumber"
+                                               class="form-label">
+
+                                            P.F. Number
+
+                                        </label>
+
+                                        <input asp-for="PFNumber"
+                                               id="PFNumber"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="PFOpeningBalance"
+                                               class="form-label">
+
+                                            P.F. Opening Balance
+
+                                        </label>
+
+                                        <input asp-for="PFOpeningBalance"
+                                               id="PFOpeningBalance"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="PANNumber"
+                                               class="form-label">
+
+                                            PAN Number
+
+                                        </label>
+
+                                        <input asp-for="PANNumber"
+                                               id="PANNumber"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="SavingGLCode"
+                                               class="form-label">
+
+                                            S/B G/L Code
+
+                                        </label>
+
+                                        <input asp-for="SavingGLCode"
+                                               id="SavingGLCode"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="SavingBranchCode"
+                                               class="form-label">
+
+                                            S/B Branch Code
+
+                                        </label>
+
+                                        <input asp-for="SavingBranchCode"
+                                               id="SavingBranchCode"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="SavingAccountCode"
+                                               class="form-label">
+
+                                            S/B Account Code
+
+                                        </label>
+
+                                        <input asp-for="SavingAccountCode"
+                                               id="SavingAccountCode"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                </div>
+
+
+
+                                <div class="col-md-6">
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="ITSerialNumber"
+                                               class="form-label">
+
+                                            IT Serial Number
+
+                                        </label>
+
+                                        <input asp-for="ITSerialNumber"
+                                               id="ITSerialNumber"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="PFSerialNumber"
+                                               class="form-label">
+
+                                            P.F. Serial Number
+
+                                        </label>
+
+                                        <input asp-for="PFSerialNumber"
+                                               id="PFSerialNumber"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="PFBalance"
+                                               class="form-label">
+
+                                            P.F. Balance
+
+                                        </label>
+
+                                        <input asp-for="PFBalance"
+                                               id="PFBalance"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="AadhaarNumber"
+                                               class="form-label">
+
+                                            Aadhaar Number
+
+                                        </label>
+
+                                        <input asp-for="AadhaarNumber"
+                                               id="AadhaarNumber"
+                                               class="form-control"
+                                               maxlength="12" />
+
+                                    </div>
+
+
+                                </div>
+
+
+                            </div>
+
+
+                            <div class="text-end mt-4">
+
 
                                 <button type="button"
-                                        class="btn btn-primary">
-                                    Next
+                                        class="btn btn-secondary me-2"
+                                        onclick="openEmployeeTab('general-tab')">
+
+                                    <i class="bi bi-arrow-left"></i>
+
+                                    Previous
+
                                 </button>
 
+
+                                <button type="button"
+                                        class="btn btn-primary"
+                                        onclick="openEmployeeTab('address-tab')">
+
+                                    Next
+
+                                    <i class="bi bi-arrow-right"></i>
+
+                                </button>
+
+
                             </div>
+
 
                         </div>
 
 
-                        <!-- =================================================
-                             SAVING GL MODAL
-                        ================================================== -->
 
-                        <div class="modal fade"
-                             id="SavingGLModal"
-                             tabindex="-1">
-
-                            <div class="modal-dialog modal-lg">
-
-                                <div class="modal-content">
-
-                                    <div class="modal-header bg-primary text-white">
-
-                                        <h5 class="modal-title">
-                                            Saving G/L Code
-                                        </h5>
-
-                                        <button type="button"
-                                                class="btn-close btn-close-white"
-                                                data-bs-dismiss="modal">
-                                        </button>
-
-                                    </div>
-
-                                    <div class="modal-body">
-
-                                        <p>
-                                            Display Saving G/L Code list here.
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-                        <!-- =================================================
-                             SAVING BRANCH MODAL
-                        ================================================== -->
-
-                        <div class="modal fade"
-                             id="SavingBranchModal"
-                             tabindex="-1">
-
-                            <div class="modal-dialog modal-lg">
-
-                                <div class="modal-content">
-
-                                    <div class="modal-header bg-primary text-white">
-
-                                        <h5 class="modal-title">
-                                            Saving Branch Code
-                                        </h5>
-
-                                        <button type="button"
-                                                class="btn-close btn-close-white"
-                                                data-bs-dismiss="modal">
-                                        </button>
-
-                                    </div>
-
-                                    <div class="modal-body">
-
-                                        <p>
-                                            Display Saving Branch list here.
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-                        <!-- =================================================
-                             SAVING ACCOUNT MODAL
-                        ================================================== -->
-
-                        <div class="modal fade"
-                             id="SavingAccountModal"
-                             tabindex="-1">
-
-                            <div class="modal-dialog modal-lg">
-
-                                <div class="modal-content">
-
-                                    <div class="modal-header bg-primary text-white">
-
-                                        <h5 class="modal-title">
-                                            Saving Account Code
-                                        </h5>
-
-                                        <button type="button"
-                                                class="btn-close btn-close-white"
-                                                data-bs-dismiss="modal">
-                                        </button>
-
-                                    </div>
-
-                                    <div class="modal-body">
-
-                                        <p>
-                                            Display Saving Account Code list here.
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-                        <!-- =================================================
-                             ADDRESS INFORMATION
-                        ================================================== -->
+                        @* =================================================
+                           ADDRESS INFORMATION
+                           ================================================= *@
 
                         <div class="tab-pane fade"
                              id="address">
 
-                            <div class="container mt-3">
 
-                                <div class="row">
-
-                                    <div class="col-md-8 offset-md-1">
+                            <div class="row">
 
 
-                                        <!-- Correspondence Address -->
-
-                                        <div class="row mb-3">
-
-                                            <label class="col-md-4 col-form-label fw-bold">
-                                                Correspondence Address
-                                            </label>
-
-                                            <div class="col-md-8">
-
-                                                <input asp-for="CorrespondenceAddress1"
-                                                       class="form-control mb-2" />
-
-                                                <input asp-for="CorrespondenceAddress2"
-                                                       class="form-control" />
-
-                                            </div>
-
-                                        </div>
+                                <div class="col-md-6">
 
 
-                                        <!-- Permanent Address -->
+                                    <div class="mb-3">
 
-                                        <div class="row mb-3">
+                                        <label asp-for="CorrespondenceAddress1"
+                                               class="form-label">
 
-                                            <label class="col-md-4 col-form-label fw-bold">
-                                                Permanent Address
-                                            </label>
+                                            Correspondence Address 1
 
-                                            <div class="col-md-8">
+                                        </label>
 
-                                                <input asp-for="PermanentAddress1"
-                                                       class="form-control mb-2" />
-
-                                                <input asp-for="PermanentAddress2"
-                                                       class="form-control" />
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <!-- Father's Name -->
-
-                                        <div class="row mb-3">
-
-                                            <label class="col-md-4 col-form-label fw-bold">
-                                                Father's Name
-                                            </label>
-
-                                            <div class="col-md-8">
-
-                                                <input asp-for="FatherName"
-                                                       id="FatherName"
-                                                       class="form-control" />
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <!-- Address -->
-
-                                        <div class="row mb-3">
-
-                                            <label class="col-md-4 col-form-label fw-bold">
-                                                Address
-                                            </label>
-
-                                            <div class="col-md-8">
-
-                                                <input asp-for="Address1"
-                                                       id="Address1"
-                                                       class="form-control mb-2" />
-
-                                                <input asp-for="Address2"
-                                                       id="Address2"
-                                                       class="form-control" />
-
-                                            </div>
-
-                                        </div>
+                                        <input asp-for="CorrespondenceAddress1"
+                                               id="CorrespondenceAddress1"
+                                               class="form-control" />
 
                                     </div>
 
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="CorrespondenceAddress2"
+                                               class="form-label">
+
+                                            Correspondence Address 2
+
+                                        </label>
+
+                                        <input asp-for="CorrespondenceAddress2"
+                                               id="CorrespondenceAddress2"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="PermanentAddress1"
+                                               class="form-label">
+
+                                            Permanent Address 1
+
+                                        </label>
+
+                                        <input asp-for="PermanentAddress1"
+                                               id="PermanentAddress1"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="PermanentAddress2"
+                                               class="form-label">
+
+                                            Permanent Address 2
+
+                                        </label>
+
+                                        <input asp-for="PermanentAddress2"
+                                               id="PermanentAddress2"
+                                               class="form-control" />
+
+                                    </div>
+
+
                                 </div>
 
 
-                                <div class="text-end mt-4">
 
-                                    <button type="button"
-                                            class="btn btn-secondary">
-                                        Previous
-                                    </button>
+                                <div class="col-md-6">
 
-                                    <button type="button"
-                                            class="btn btn-primary">
-                                        Next
-                                    </button>
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="FatherName"
+                                               class="form-label">
+
+                                            Father's Name
+
+                                        </label>
+
+                                        <input asp-for="FatherName"
+                                               id="FatherName"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="Address1"
+                                               class="form-label">
+
+                                            Address 1
+
+                                        </label>
+
+                                        <input asp-for="Address1"
+                                               id="Address1"
+                                               class="form-control" />
+
+                                    </div>
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="Address2"
+                                               class="form-label">
+
+                                            Address 2
+
+                                        </label>
+
+                                        <input asp-for="Address2"
+                                               id="Address2"
+                                               class="form-control" />
+
+                                    </div>
+
 
                                 </div>
+
 
                             </div>
+
+
+                            <div class="text-end mt-4">
+
+
+                                <button type="button"
+                                        class="btn btn-secondary me-2"
+                                        onclick="openEmployeeTab('other-tab')">
+
+                                    <i class="bi bi-arrow-left"></i>
+
+                                    Previous
+
+                                </button>
+
+
+                                <button type="button"
+                                        class="btn btn-primary"
+                                        onclick="openEmployeeTab('personal-tab')">
+
+                                    Next
+
+                                    <i class="bi bi-arrow-right"></i>
+
+                                </button>
+
+
+                            </div>
+
 
                         </div>
 
 
-                        <!-- =================================================
-                             PERSONAL INFORMATION
-                        ================================================== -->
+
+                        @* =================================================
+                           PERSONAL INFORMATION
+                           ================================================= *@
 
                         <div class="tab-pane fade"
                              id="personal">
 
-                            <div class="container mt-3">
 
-                                <div class="row">
-
-
-                                    <!-- Left Side -->
-
-                                    <div class="col-md-6">
+                            <div class="row">
 
 
-                                        <!-- Religion -->
+                                <div class="col-md-6">
 
-                                        <div class="col-md-4">
 
-                                            <label class="form-label">
-                                                Religion
-                                            </label>
+                                    @* RELIGION *@
 
-                                            <div class="input-group">
+                                    <div class="mb-3">
 
-                                                <input type="text"
-                                                       id="ReligionSearch"
-                                                       class="form-control"
-                                                       placeholder="Search Religion"
-                                                       readonly />
+                                        <label class="form-label">
 
-                                                <button type="button"
-                                                        class="btn btn-primary"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#ReligionModal">
-                                                    🔍
-                                                </button>
+                                            Religion
 
-                                            </div>
+                                        </label>
 
-                                            <input type="hidden"
-                                                   asp-for="Religion"
-                                                   id="ReligionId" />
+
+                                        <div class="input-group">
+
+                                            <input type="text"
+                                                   id="ReligionSearch"
+                                                   class="form-control"
+                                                   placeholder="Search Religion"
+                                                   readonly />
+
+
+                                            <button type="button"
+                                                    class="btn btn-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#ReligionModal">
+
+                                                <i class="bi bi-search"></i>
+
+                                            </button>
 
                                         </div>
 
 
-                                        <!-- Religion Modal -->
+                                        <input type="hidden"
+                                               asp-for="Religion"
+                                               id="ReligionId" />
 
-                                        <div class="modal fade"
-                                             id="ReligionModal">
-
-                                            <div class="modal-dialog modal-lg">
-
-                                                <div class="modal-content">
+                                    </div>
 
 
-                                                    <div class="modal-header">
 
-                                                        <h5>
-                                                            Select Religion
-                                                        </h5>
+                                    @* CASTE *@
 
-                                                        <button type="button"
-                                                                class="btn-close"
-                                                                data-bs-dismiss="modal">
-                                                        </button>
+                                    <div class="mb-3">
 
-                                                    </div>
+                                        <label class="form-label">
+
+                                            Caste
+
+                                        </label>
 
 
-                                                    <div class="modal-body">
+                                        <div class="input-group">
 
-                                                        <input type="text"
-                                                               id="searchReligion"
-                                                               class="form-control mb-3"
-                                                               placeholder="Search Religion"
-                                                               onkeyup="searchReligion()" />
-
-
-                                                        <table class="table table-bordered">
-
-                                                            <thead>
-
-                                                                <tr>
-                                                                    <th>Code</th>
-                                                                    <th>Religion</th>
-                                                                    <th></th>
-                                                                </tr>
-
-                                                            </thead>
+                                            <input type="text"
+                                                   id="CasteSearch"
+                                                   class="form-control"
+                                                   placeholder="Search Caste"
+                                                   readonly />
 
 
-                                                            <tbody id="religionTable">
+                                            <button type="button"
+                                                    class="btn btn-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#CasteModal">
 
-                                                                @foreach (var item in ViewBag.Religions)
-                                                                {
-                                                                    <tr>
+                                                <i class="bi bi-search"></i>
 
-                                                                        <td>
-                                                                            @item.Code
-                                                                        </td>
-
-                                                                        <td>
-                                                                            @item.ReligionName
-                                                                        </td>
-
-                                                                        <td>
-
-                                                                            <button type="button"
-                                                                                    class="btn btn-success btn-sm"
-                                                                                    onclick="selectReligion('@item.Code','@item.ReligionName')">
-                                                                                Select
-                                                                            </button>
-
-                                                                        </td>
-
-                                                                    </tr>
-                                                                }
-
-                                                            </tbody>
-
-                                                        </table>
-
-                                                    </div>
-
-                                                </div>
-
-                                            </div>
+                                            </button>
 
                                         </div>
 
 
-                                        <!-- Caste -->
+                                        <input type="hidden"
+                                               asp-for="Caste"
+                                               id="CasteId" />
 
-                                        <div class="col-md-4">
-
-                                            <label class="form-label">
-                                                Caste
-                                            </label>
-
-                                            <div class="input-group">
-
-                                                <input type="text"
-                                                       id="CasteSearch"
-                                                       class="form-control"
-                                                       placeholder="Search Caste"
-                                                       readonly />
-
-                                                <button type="button"
-                                                        class="btn btn-primary"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#CasteModal">
-                                                    🔍
-                                                </button>
-
-                                            </div>
-
-                                            <input type="hidden"
-                                                   asp-for="Caste"
-                                                   id="CasteId" />
-
-                                        </div>
+                                    </div>
 
 
-                                        <!-- Caste Modal -->
 
-                                        <div class="modal fade"
-                                             id="CasteModal">
+                                    @* GENDER *@
 
-                                            <div class="modal-dialog modal-lg">
+                                    <div class="mb-3">
 
-                                                <div class="modal-content">
+                                        <label class="form-label">
 
+                                            Gender
 
-                                                    <div class="modal-header">
-
-                                                        <h5 class="modal-title">
-                                                            Select Caste
-                                                        </h5>
-
-                                                        <button type="button"
-                                                                class="btn-close"
-                                                                data-bs-dismiss="modal">
-                                                        </button>
-
-                                                    </div>
+                                        </label>
 
 
-                                                    <div class="modal-body">
-
-                                                        <input type="text"
-                                                               id="searchCaste"
-                                                               class="form-control mb-3"
-                                                               placeholder="Search Caste"
-                                                               onkeyup="searchCaste()" />
+                                        <div>
 
 
-                                                        <table class="table table-bordered table-hover">
+                                            <div class="form-check form-check-inline">
 
-                                                            <thead>
+                                                <input asp-for="Gender"
+                                                       class="form-check-input"
+                                                       type="radio"
+                                                       value="M" />
 
-                                                                <tr>
-                                                                    <th>Code</th>
-                                                                    <th>Caste Name</th>
-                                                                    <th>Action</th>
-                                                                </tr>
+                                                <label class="form-check-label">
 
-                                                            </thead>
+                                                    Male
 
-
-                                                            <tbody id="casteTable">
-
-                                                                @foreach (var item in ViewBag.Castes)
-                                                                {
-                                                                    <tr>
-
-                                                                        <td>
-                                                                            @item.Code
-                                                                        </td>
-
-                                                                        <td>
-                                                                            @item.CastName
-                                                                        </td>
-
-                                                                        <td>
-
-                                                                            <button type="button"
-                                                                                    class="btn btn-success btn-sm"
-                                                                                    onclick="selectCaste('@item.Code','@item.CastName')">
-                                                                                Select
-                                                                            </button>
-
-                                                                        </td>
-
-                                                                    </tr>
-                                                                }
-
-                                                            </tbody>
-
-                                                        </table>
-
-                                                    </div>
-
-                                                </div>
+                                                </label>
 
                                             </div>
 
-                                        </div>
 
+                                            <div class="form-check form-check-inline">
 
-                                        <!-- Gender -->
+                                                <input asp-for="Gender"
+                                                       class="form-check-input"
+                                                       type="radio"
+                                                       value="F" />
 
-                                        <div class="mb-3 row">
+                                                <label class="form-check-label">
 
-                                            <label class="col-md-5 col-form-label fw-bold">
-                                                Gender
-                                            </label>
+                                                    Female
 
-                                            <div class="col-md-7">
-
-                                                <div class="form-check form-check-inline">
-
-                                                    <input asp-for="Gender"
-                                                           class="form-check-input"
-                                                           type="radio"
-                                                           value="M">
-
-                                                    <label class="form-check-label">
-                                                        Male
-                                                    </label>
-
-                                                </div>
-
-                                                <div class="form-check form-check-inline">
-
-                                                    <input asp-for="Gender"
-                                                           class="form-check-input"
-                                                           type="radio"
-                                                           value="F">
-
-                                                    <label class="form-check-label">
-                                                        Female
-                                                    </label>
-
-                                                </div>
+                                                </label>
 
                                             </div>
 
-                                        </div>
-
-
-                                        <!-- Birth Date -->
-
-                                        <div class="mb-3 row">
-
-                                            <label class="col-md-5 col-form-label fw-bold">
-                                                Birth Date
-                                            </label>
-
-                                            <div class="col-md-7">
-
-                                                <input asp-for="BirthDate"
-                                                       id="BirthDate"
-                                                       type="date"
-                                                       class="form-control" />
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <!-- Identification Mark -->
-
-                                        <div class="mb-3 row">
-
-                                            <label class="col-md-5 col-form-label fw-bold">
-                                                Identification Mark
-                                            </label>
-
-                                            <div class="col-md-7">
-
-                                                <input asp-for="IdentificationMark"
-                                                       class="form-control" />
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <!-- Known Language -->
-
-                                        <div class="mb-3 row">
-
-                                            <label class="col-md-5 col-form-label fw-bold">
-                                                Known Language
-                                            </label>
-
-                                            <div class="col-md-7">
-
-                                                <input asp-for="KnownLanguage"
-                                                       class="form-control" />
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <!-- Education -->
-
-                                        <div class="mb-3 row">
-
-                                            <label class="col-md-5 col-form-label fw-bold">
-                                                Education
-                                            </label>
-
-                                            <div class="col-md-7">
-
-                                                <input asp-for="Education"
-                                                       class="form-control" />
-
-                                            </div>
 
                                         </div>
 
                                     </div>
 
 
-                                    <!-- Right Side -->
 
-                                    <div class="col-md-6">
+                                    <div class="mb-3">
 
+                                        <label asp-for="BirthDate"
+                                               class="form-label">
 
-                                        <!-- Blood Group -->
+                                            Birth Date
 
-                                        <div class="mb-3 row">
+                                        </label>
 
-                                            <label class="col-md-5 col-form-label fw-bold">
-                                                Blood Group
-                                            </label>
-
-                                            <div class="col-md-7">
-
-                                                <select asp-for="BloodGroup"
-                                                        class="form-select">
-
-                                                    <option value="">
-                                                        Select
-                                                    </option>
-
-                                                    <option>A+</option>
-                                                    <option>A-</option>
-                                                    <option>B+</option>
-                                                    <option>B-</option>
-                                                    <option>AB+</option>
-                                                    <option>AB-</option>
-                                                    <option>O+</option>
-                                                    <option>O-</option>
-
-                                                </select>
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <!-- Height -->
-
-                                        <div class="mb-3 row">
-
-                                            <label class="col-md-5 col-form-label fw-bold">
-                                                Height
-                                            </label>
-
-                                            <div class="col-md-7">
-
-                                                <input asp-for="Height"
-                                                       class="form-control" />
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <!-- Mother Tongue -->
-
-                                        <div class="mb-3 row">
-
-                                            <label class="col-md-5 col-form-label fw-bold">
-                                                Mother Tongue
-                                            </label>
-
-                                            <div class="col-md-7">
-
-                                                <input asp-for="MotherTongue"
-                                                       class="form-control" />
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <!-- Mode of Sign -->
-
-                                        <div class="mb-3 row">
-
-                                            <label class="col-md-5 col-form-label fw-bold">
-                                                Mode of Sign
-                                            </label>
-
-                                            <div class="col-md-7">
-
-                                                <input asp-for="ModeOfSign"
-                                                       class="form-control" />
-
-                                            </div>
-
-                                        </div>
+                                        <input asp-for="BirthDate"
+                                               id="BirthDate"
+                                               type="date"
+                                               class="form-control" />
 
                                     </div>
 
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="IdentificationMark"
+                                               class="form-label">
+
+                                            Identification Mark
+
+                                        </label>
+
+                                        <input asp-for="IdentificationMark"
+                                               id="IdentificationMark"
+                                               class="form-control" />
+
+                                    </div>
+
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="KnownLanguage"
+                                               class="form-label">
+
+                                            Known Language
+
+                                        </label>
+
+                                        <input asp-for="KnownLanguage"
+                                               id="KnownLanguage"
+                                               class="form-control" />
+
+                                    </div>
+
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="Education"
+                                               class="form-label">
+
+                                            Education
+
+                                        </label>
+
+                                        <input asp-for="Education"
+                                               id="Education"
+                                               class="form-control" />
+
+                                    </div>
+
+
                                 </div>
 
 
-                                <div class="text-end mt-4">
 
-                                    <button type="button"
-                                            class="btn btn-secondary">
-                                        Previous
-                                    </button>
+                                <div class="col-md-6">
 
-                                    <button type="submit"
-                                            class="btn btn-success">
-                                        Save Employee
-                                    </button>
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="BloodGroup"
+                                               class="form-label">
+
+                                            Blood Group
+
+                                        </label>
+
+                                        <select asp-for="BloodGroup"
+                                                id="BloodGroup"
+                                                class="form-select">
+
+                                            <option value="">
+                                                Select
+                                            </option>
+
+                                            <option>A+</option>
+                                            <option>A-</option>
+                                            <option>B+</option>
+                                            <option>B-</option>
+                                            <option>AB+</option>
+                                            <option>AB-</option>
+                                            <option>O+</option>
+                                            <option>O-</option>
+
+                                        </select>
+
+                                    </div>
+
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="Height"
+                                               class="form-label">
+
+                                            Height
+
+                                        </label>
+
+                                        <input asp-for="Height"
+                                               id="Height"
+                                               class="form-control" />
+
+                                    </div>
+
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="MotherTongue"
+                                               class="form-label">
+
+                                            Mother Tongue
+
+                                        </label>
+
+                                        <input asp-for="MotherTongue"
+                                               id="MotherTongue"
+                                               class="form-control"
+                                               maxlength="10"
+                                               placeholder="Enter Mother Tongue" />
+
+                                        <span asp-validation-for="MotherTongue"
+                                              class="text-danger">
+                                        </span>
+
+                                    </div>
+
+
+
+                                    <div class="mb-3">
+
+                                        <label asp-for="ModeOfSign"
+                                               class="form-label">
+
+                                            Mode Of Sign
+
+                                        </label>
+
+                                        <input asp-for="ModeOfSign"
+                                               id="ModeOfSign"
+                                               class="form-control" />
+
+                                    </div>
+
 
                                 </div>
+
 
                             </div>
 
+
+
+                            <div class="text-end mt-4">
+
+
+                                <button type="button"
+                                        class="btn btn-secondary me-2"
+                                        onclick="openEmployeeTab('address-tab')">
+
+                                    <i class="bi bi-arrow-left"></i>
+
+                                    Previous
+
+                                </button>
+
+
+                                <button type="submit"
+                                        id="btnSaveEmployee"
+                                        class="btn btn-success">
+
+                                    <i class="bi bi-save"></i>
+
+                                    Save Employee
+
+                                </button>
+
+
+                            </div>
+
+
                         </div>
+
 
                     </div>
 
 
-                    <!-- ==========================================
-                         Existing Main Buttons
-                    ========================================== -->
+
+                    @* =================================================
+                       BOTTOM BUTTONS
+                       ================================================= *@
 
                     <div class="text-center mt-4">
 
+
                         <button type="reset"
+                                id="btnNewEmployee"
                                 class="btn btn-primary">
 
                             <i class="bi bi-plus-circle"></i>
+
                             New
 
                         </button>
 
+
                         <button type="submit"
+                                id="btnBottomSave"
                                 class="btn btn-success">
 
                             <i class="bi bi-save"></i>
+
                             Save
 
                         </button>
 
-                        <button type="button"
-                                class="btn btn-warning">
+
+                        <button type="submit"
+                                id="btnUpdateEmployee"
+                                class="btn btn-warning"
+                                formaction="@Url.Action("UpdateEmployee", "Employee")"
+                                formmethod="post"
+                                disabled>
 
                             <i class="bi bi-pencil-square"></i>
+
                             Update
 
                         </button>
+
 
                         <button type="button"
                                 class="btn btn-danger">
 
                             <i class="bi bi-trash"></i>
+
                             Delete
 
                         </button>
+
 
                         <button type="button"
                                 class="btn btn-info text-white">
 
                             <i class="bi bi-eye"></i>
+
                             View
 
                         </button>
+
 
                         <a asp-controller="Home"
                            asp-action="Index"
                            class="btn btn-secondary">
 
                             <i class="bi bi-box-arrow-right"></i>
+
                             Exit
 
                         </a>
+
 
                     </div>
 
 
                 </form>
 
+
             </div>
 
+
         </div>
+
 
     </div>
 
 
-    <!-- jQuery -->
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js">
-    </script>
+    @* ============================================================
+       EXISTING EMPLOYEE MODAL
+       ============================================================ *@
+
+    <div class="modal fade"
+         id="ExistingEmployeeModal"
+         tabindex="-1"
+         aria-hidden="true">
 
 
-    <!-- Bootstrap JavaScript -->
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-    </script>
+
+            <div class="modal-content">
+
+
+                <div class="modal-header bg-dark text-white">
+
+
+                    <h5 class="modal-title">
+
+                        <i class="bi bi-database me-2"></i>
+
+                        Existing Employee Search
+
+                    </h5>
+
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal">
+                    </button>
+
+
+                </div>
+
+
+                <div class="modal-body">
+
+
+                    <div class="row g-3 align-items-end">
+
+
+                        <div class="col-md-4">
+
+                            <label class="form-label">
+
+                                Search By
+
+                            </label>
+
+
+                            <select id="ExistingSearchBy"
+                                    class="form-select">
+
+                                <option value="code">
+
+                                    Employee Code
+
+                                </option>
+
+                                <option value="name">
+
+                                    Employee Name
+
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="col-md-5">
+
+                            <label class="form-label">
+
+                                Search Value
+
+                            </label>
+
+
+                            <input type="text"
+                                   id="ExistingSearchText"
+                                   class="form-control"
+                                   placeholder="Enter Employee Code"
+                                   autocomplete="off" />
+
+                        </div>
+
+
+                        <div class="col-md-3 d-grid">
+
+                            <button type="button"
+                                    id="btnSearchExistingEmployee"
+                                    class="btn btn-primary">
+
+                                <i class="bi bi-search"></i>
+
+                                Search
+
+                            </button>
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <div id="ExistingSearchMessage"
+                         class="fw-bold mt-3">
+                    </div>
+
+
+
+                    <div class="table-responsive mt-3">
+
+
+                        <table class="table table-bordered table-hover existing-result-table">
+
+
+                            <thead class="table-light">
+
+                                <tr>
+
+                                    <th>
+                                        Employee Code
+                                    </th>
+
+                                    <th>
+                                        Employee Name
+                                    </th>
+
+                                    <th>
+                                        Action
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody id="ExistingEmployeeResults">
+
+                                <tr>
+
+                                    <td colspan="3"
+                                        class="text-center text-muted">
+
+                                        Loading latest employees from PayMast...
+
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+
+                        </table>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    @* ============================================================
+       RELIGION MODAL
+       ============================================================ *@
+
+    <div class="modal fade"
+         id="ReligionModal"
+         tabindex="-1">
+
+
+        <div class="modal-dialog modal-lg">
+
+
+            <div class="modal-content">
+
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title">
+
+                        Select Religion
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+
+                </div>
+
+
+                <div class="modal-body">
+
+
+                    <input type="text"
+                           id="searchReligion"
+                           class="form-control mb-3"
+                           placeholder="Search Religion"
+                           onkeyup="searchReligion()" />
+
+
+                    <table class="table table-bordered table-hover">
+
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Code
+                                </th>
+
+                                <th>
+                                    Religion
+                                </th>
+
+                                <th>
+                                    Action
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="religionTable">
+
+
+                            @if (ViewBag.Religions != null)
+                            {
+                                foreach (var item in ViewBag.Religions)
+                                {
+                                    <tr>
+
+                                        <td>
+                                            @item.Code
+                                        </td>
+
+                                        <td>
+                                            @item.ReligionName
+                                        </td>
+
+                                        <td>
+
+                                            <button type="button"
+                                                    class="btn btn-success btn-sm"
+                                                    onclick="selectReligion('@item.Code','@item.ReligionName')">
+
+                                                Select
+
+                                            </button>
+
+                                        </td>
+
+                                    </tr>
+                                }
+                            }
+
+
+                        </tbody>
+
+
+                    </table>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    @* ============================================================
+       CASTE MODAL
+       ============================================================ *@
+
+    <div class="modal fade"
+         id="CasteModal"
+         tabindex="-1">
+
+
+        <div class="modal-dialog modal-lg">
+
+
+            <div class="modal-content">
+
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title">
+
+                        Select Caste
+
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+
+                </div>
+
+
+                <div class="modal-body">
+
+
+                    <input type="text"
+                           id="searchCaste"
+                           class="form-control mb-3"
+                           placeholder="Search Caste"
+                           onkeyup="searchCaste()" />
+
+
+                    <table class="table table-bordered table-hover">
+
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Code
+                                </th>
+
+                                <th>
+                                    Caste Name
+                                </th>
+
+                                <th>
+                                    Action
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="casteTable">
+
+
+                            @if (ViewBag.Castes != null)
+                            {
+                                foreach (var item in ViewBag.Castes)
+                                {
+                                    <tr>
+
+                                        <td>
+                                            @item.Code
+                                        </td>
+
+                                        <td>
+                                            @item.CastName
+                                        </td>
+
+                                        <td>
+
+                                            <button type="button"
+                                                    class="btn btn-success btn-sm"
+                                                    onclick="selectCaste('@item.Code','@item.CastName')">
+
+                                                Select
+
+                                            </button>
+
+                                        </td>
+
+                                    </tr>
+                                }
+                            }
+
+
+                        </tbody>
+
+
+                    </table>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 
 
     <script>
 
-        // ============================================================
+
+        // ==========================================================
         // DOCUMENT READY
-        // ============================================================
+        // ==========================================================
 
         $(document).ready(function () {
 
-            console.log(
-                "Register page JavaScript loaded."
-            );
 
-
-            // ========================================================
-            // SHOW SUCCESS POPUP
-            // ========================================================
+            // ======================================================
+            // NEW EMPLOYEE SUCCESS POPUP
+            // ======================================================
 
             var successModalElement =
                 document.getElementById(
                     "employeeSuccessModal"
                 );
 
+
             if (successModalElement) {
 
-                var successModal =
-                    new bootstrap.Modal(
+                bootstrap.Modal
+                    .getOrCreateInstance(
                         successModalElement
-                    );
+                    )
+                    .show();
 
-                successModal.show();
             }
 
-                  // ========================================================
-        // NEXT BUTTON
-        // ========================================================
 
-        $(".btn-next").on("click", function () {
 
-            var currentTab =
-                $(".nav-tabs .nav-link.active");
+            // ======================================================
+            // UPDATE SUCCESS POPUP
+            // ======================================================
 
-            var currentItem =
-                currentTab.closest(".nav-item");
+            var updateModalElement =
+                document.getElementById(
+                    "employeeUpdateSuccessModal"
+                );
 
-            var nextItem =
-                currentItem.next(".nav-item");
 
-            if (nextItem.length > 0) {
+            if (updateModalElement) {
 
-                var nextTabElement =
-                    nextItem.find(".nav-link")[0];
+                bootstrap.Modal
+                    .getOrCreateInstance(
+                        updateModalElement
+                    )
+                    .show();
 
-                var nextTab =
-                    new bootstrap.Tab(nextTabElement);
-
-                nextTab.show();
             }
-        });
 
 
-        // ========================================================
-        // PREVIOUS BUTTON
-        // ========================================================
 
-        $(".btn-previous").on("click", function () {
+            // ======================================================
+            // DUPLICATE POPUP
+            // ======================================================
 
-            var currentTab =
-                $(".nav-tabs .nav-link.active");
+            @if (TempData["DuplicateEmployee"] != null)
+            {
+                <text>
 
-            var currentItem =
-                currentTab.closest(".nav-item");
+                    $("#existingEmployeeName")
+                        .text(
+                            @Html.Raw(
+                                System.Text.Json.JsonSerializer.Serialize(
+                                    TempData["DuplicateEmployeeName"]?.ToString() ?? ""
+                                )
+                            )
+                        );
 
-            var previousItem =
-                currentItem.prev(".nav-item");
 
-            if (previousItem.length > 0) {
+                    $("#existingEmployeeCode")
+                        .text(
+                            @Html.Raw(
+                                System.Text.Json.JsonSerializer.Serialize(
+                                    TempData["DuplicateEmployeeCode"]?.ToString() ?? ""
+                                )
+                            )
+                        );
 
-                var previousTabElement =
-                    previousItem.find(".nav-link")[0];
 
-                var previousTab =
-                    new bootstrap.Tab(previousTabElement);
+                    var duplicateModalElement =
+                        document.getElementById(
+                            "employeeAlreadyExistsModal"
+                        );
 
-                previousTab.show();
+
+                    if (duplicateModalElement) {
+
+                        bootstrap.Modal
+                            .getOrCreateInstance(
+                                duplicateModalElement
+                            )
+                            .show();
+
+                    }
+
+                </text>
             }
-        });
 
 
 
+            // ======================================================
+            // CUSTOMER SEARCH
+            // ======================================================
 
-            // ========================================================
-            // CUSTOMER SEARCH BUTTON
-            // ========================================================
-
-            $("#btnSearchCustomer").on(
-                "click",
-                function () {
+            $("#btnSearchCustomer")
+                .click(function () {
 
                     GetEmployee();
 
-                }
-            );
+                });
 
 
-            // ========================================================
-            // CUSTOMER ID ENTER KEY
-            // ========================================================
 
-            $("#EmployeeIdSearch").on(
-                "keydown",
-                function (e) {
+            $("#EmployeeIdSearch")
+                .keydown(function (e) {
 
                     if (e.key === "Enter") {
 
                         e.preventDefault();
 
                         GetEmployee();
+
                     }
 
-                }
-            );
+                });
+
+
+
+            // ======================================================
+            // EXISTING DATA MODAL
+            // ======================================================
+
+            $("#ExistingEmployeeModal")
+                .on(
+                    "shown.bs.modal",
+                    function () {
+
+                        LoadInitialExistingEmployees();
+
+                    }
+                );
+
+
+            // ======================================================
+            // IMPORTANT GREY SCREEN FIX
+            // ======================================================
+
+            $("#ExistingEmployeeModal")
+                .on(
+                    "hidden.bs.modal",
+                    function () {
+
+                        cleanModalBackdrop();
+
+                    }
+                );
+
+
+
+            $("#ExistingSearchBy")
+                .change(function () {
+
+                    if ($(this).val() === "name") {
+
+                        $("#ExistingSearchText")
+                            .attr(
+                                "placeholder",
+                                "Enter Employee Name"
+                            );
+
+                    }
+                    else {
+
+                        $("#ExistingSearchText")
+                            .attr(
+                                "placeholder",
+                                "Enter Employee Code"
+                            );
+
+                    }
+
+
+                    $("#ExistingSearchText")
+                        .val("");
+
+
+                    $("#ExistingSearchMessage")
+                        .text("");
+
+                });
+
+
+
+            $("#btnSearchExistingEmployee")
+                .click(function () {
+
+                    SearchExistingEmployees();
+
+                });
+
+
+
+            $("#ExistingSearchText")
+                .keydown(function (e) {
+
+                    if (e.key === "Enter") {
+
+                        e.preventDefault();
+
+                        SearchExistingEmployees();
+
+                    }
+
+                });
+
+
+
+            // ======================================================
+            // NEW BUTTON
+            // ======================================================
+
+            $("#btnNewEmployee")
+                .click(function () {
+
+                    setTimeout(
+                        function () {
+
+                            clearCustomerFields();
+
+                            $("#EmployeeIdSearch")
+                                .val("");
+
+                            $("#CustomerSearchMessage")
+                                .text("");
+
+                            enableNewEmployeeMode();
+
+                            openEmployeeTab(
+                                "general-tab"
+                            );
+
+                        },
+                        50
+                    );
+
+                });
+
 
         });
 
 
-        // ============================================================
-        // GET CUSTOMER INFORMATION
-        // ============================================================
+
+        // ==========================================================
+        // GREY BACKDROP FIX
+        // ==========================================================
+
+        function cleanModalBackdrop() {
+
+
+            $(".modal-backdrop")
+                .remove();
+
+
+            $("body")
+                .removeClass(
+                    "modal-open"
+                );
+
+
+            $("body")
+                .css(
+                    {
+                        "overflow": "",
+                        "padding-right": ""
+                    }
+                );
+
+
+            $("html")
+                .css(
+                    "overflow",
+                    ""
+                );
+
+
+        }
+
+
+
+        // ==========================================================
+        // NEXT / PREVIOUS
+        // ==========================================================
+
+        function openEmployeeTab(
+            tabButtonId
+        ) {
+
+
+            var tabButton =
+                document.getElementById(
+                    tabButtonId
+                );
+
+
+            if (!tabButton) {
+
+                return;
+
+            }
+
+
+            bootstrap.Tab
+                .getOrCreateInstance(
+                    tabButton
+                )
+                .show();
+
+
+        }
+
+
+
+        // ==========================================================
+        // CUSTOMER SEARCH FROM prtymast
+        // ==========================================================
 
         function GetEmployee() {
 
+
             var custId =
                 $.trim(
-                    $("#EmployeeIdSearch").val()
+                    $("#EmployeeIdSearch")
+                        .val()
                 );
 
 
             if (custId === "") {
 
+
                 $("#CustomerSearchMessage")
-                    .removeClass("text-success")
-                    .addClass("text-danger")
+                    .removeClass(
+                        "text-success"
+                    )
+                    .addClass(
+                        "text-danger"
+                    )
                     .text(
                         "Please enter Customer ID."
                     );
 
+
                 return;
+
+
             }
+
+
+            enableNewEmployeeMode();
+
+
+            $("#HiddenCustomerId")
+                .val("");
+
+
+            $("#EmployeeCode")
+                .val("");
 
 
             $("#btnSearchCustomer")
@@ -1717,25 +2511,20 @@
                 );
 
 
-            $("#CustomerSearchMessage")
-                .removeClass(
-                    "text-success text-danger"
-                )
-                .text(
-                    "Searching customer..."
-                );
-
-
             $.ajax({
+
 
                 url:
                     "/Employee/GetEmployee",
 
+
                 type:
                     "GET",
 
+
                 dataType:
                     "json",
+
 
                 data: {
 
@@ -1747,7 +2536,67 @@
 
                 success: function (response) {
 
+
+                    // =================================================
+                    // DUPLICATE
+                    // =================================================
+
+                    if (response.alreadyExists === true) {
+
+
+                        clearCustomerFields();
+
+
+                        $("#EmployeeIdSearch")
+                            .val(
+                                custId
+                            );
+
+
+                        $("#existingEmployeeName")
+                            .text(
+                                response.employeeName ||
+                                ""
+                            );
+
+
+                        $("#existingEmployeeCode")
+                            .text(
+                                response.employeeCode ||
+                                ""
+                            );
+
+
+                        $("#CustomerSearchMessage")
+                            .removeClass(
+                                "text-success"
+                            )
+                            .addClass(
+                                "text-danger"
+                            )
+                            .text(
+                                "Employee already exists."
+                            );
+
+
+                        bootstrap.Modal
+                            .getOrCreateInstance(
+                                document.getElementById(
+                                    "employeeAlreadyExistsModal"
+                                )
+                            )
+                            .show();
+
+
+                        return;
+
+
+                    }
+
+
+
                     if (!response.success) {
+
 
                         $("#CustomerSearchMessage")
                             .removeClass(
@@ -1761,9 +2610,13 @@
                                 "Customer not found."
                             );
 
+
                         clearCustomerFields();
 
+
                         return;
+
+
                     }
 
 
@@ -1771,9 +2624,6 @@
                         response.data;
 
 
-                    // =================================================
-                    // CUSTOMER ID
-                    // =================================================
 
                     $("#EmployeeIdSearch")
                         .val(
@@ -1789,20 +2639,10 @@
                         );
 
 
-                    // =================================================
-                    // EMPLOYEE CODE
-                    // =================================================
-
+                    // Employee Code only generates after Save
                     $("#EmployeeCode")
-                        .val(
-                            data.employeeCode ||
-                            ""
-                        );
+                        .val("");
 
-
-                    // =================================================
-                    // EMPLOYEE NAME
-                    // =================================================
 
                     $("#EmployeeName")
                         .val(
@@ -1811,15 +2651,12 @@
                         );
 
 
-                    // =================================================
-                    // ADDRESS
-                    // =================================================
-
                     $("#Address1")
                         .val(
                             data.address1 ||
                             ""
                         );
+
 
                     $("#Address2")
                         .val(
@@ -1827,86 +2664,34 @@
                             ""
                         );
 
-                    $("#Address3")
-                        .val(
-                            data.address3 ||
-                            ""
-                        );
 
-                    $("#Address4")
+                    $("#CorrespondenceAddress1")
                         .val(
-                            data.address4 ||
-                            ""
-                        );
-
-                    $("#Address5")
-                        .val(
-                            data.address5 ||
+                            data.address1 ||
                             ""
                         );
 
 
-                    // =================================================
-                    // LOCATION
-                    // =================================================
-
-                    $("#City")
+                    $("#CorrespondenceAddress2")
                         .val(
-                            data.city ||
-                            ""
-                        );
-
-                    $("#State")
-                        .val(
-                            data.state ||
-                            ""
-                        );
-
-                    $("#District")
-                        .val(
-                            data.district ||
-                            ""
-                        );
-
-                    $("#Taluka")
-                        .val(
-                            data.taluka ||
+                            data.address2 ||
                             ""
                         );
 
 
-                    // =================================================
-                    // CONTACT
-                    // =================================================
-
-                    $("#Phone")
+                    $("#PermanentAddress1")
                         .val(
-                            data.phone ||
-                            ""
-                        );
-
-                    $("#Phone1")
-                        .val(
-                            data.phone1 ||
-                            ""
-                        );
-
-                    $("#Mobile")
-                        .val(
-                            data.mobile ||
-                            ""
-                        );
-
-                    $("#Email")
-                        .val(
-                            data.email ||
+                            data.address1 ||
                             ""
                         );
 
 
-                    // =================================================
-                    // FATHER NAME
-                    // =================================================
+                    $("#PermanentAddress2")
+                        .val(
+                            data.address2 ||
+                            ""
+                        );
+
 
                     $("#FatherName")
                         .val(
@@ -1914,103 +2699,6 @@
                             ""
                         );
 
-
-                    // =================================================
-                    // GENDER
-                    // prtymast may contain M/F or Male/Female
-                    // =================================================
-
-                    $("input[name='Gender']")
-                        .prop(
-                            "checked",
-                            false
-                        );
-
-
-                    if (data.gender) {
-
-                        var gender =
-                            data.gender
-                                .toString()
-                                .trim()
-                                .toUpperCase();
-
-
-                        if (gender === "MALE") {
-                            gender = "M";
-                        }
-
-
-                        if (gender === "FEMALE") {
-                            gender = "F";
-                        }
-
-
-                        if (
-                            gender === "M" ||
-                            gender === "F"
-                        ) {
-
-                            $("input[name='Gender'][value='" + gender + "']")
-                                .prop(
-                                    "checked",
-                                    true
-                                );
-                        }
-                    }
-
-
-                    // =================================================
-                    // BIRTH DATE
-                    // =================================================
-
-                    $("#BirthDate")
-                        .val(
-                            formatDate(
-                                data.birthDate
-                            )
-                        );
-
-
-                    // =================================================
-                    // RELIGION
-                    // =================================================
-
-                    $("#ReligionSearch")
-                        .val(
-                            data.religion ||
-                            ""
-                        );
-
-
-                    $("#ReligionId")
-                        .val(
-                            data.religionCode ||
-                            ""
-                        );
-
-
-                    // =================================================
-                    // CASTE
-                    // =================================================
-
-                    $("#CasteSearch")
-                        .val(
-                            data.caste ||
-                            ""
-                        );
-
-
-                    $("#CasteId")
-                        .val(
-                            data.casteCode ||
-                            ""
-                        );
-
-
-                    // =================================================
-                    // DOCUMENT
-                    // =================================================
 
                     $("#PANNumber")
                         .val(
@@ -2027,19 +2715,103 @@
 
 
                     // =================================================
-                    // NATIONALITY
+                    // GENDER
                     // =================================================
 
-                    $("#Nationality")
+                    $("input[name='Gender']")
+                        .prop(
+                            "checked",
+                            false
+                        );
+
+
+                    if (data.gender) {
+
+
+                        var gender =
+                            data.gender
+                                .toString()
+                                .trim()
+                                .toUpperCase();
+
+
+                        if (gender === "MALE") {
+
+                            gender = "M";
+
+                        }
+
+
+                        if (gender === "FEMALE") {
+
+                            gender = "F";
+
+                        }
+
+
+                        if (
+                            gender === "M" ||
+                            gender === "F"
+                        ) {
+
+
+                            $(
+                                "input[name='Gender'][value='" +
+                                gender +
+                                "']"
+                            )
+                                .prop(
+                                    "checked",
+                                    true
+                                );
+
+
+                        }
+
+
+                    }
+
+
+
+                    $("#BirthDate")
                         .val(
-                            data.nationality ||
+                            formatDate(
+                                data.birthDate
+                            )
+                        );
+
+
+                    $("#ReligionId")
+                        .val(
+                            data.religionCode ||
                             ""
                         );
 
 
-                    // =================================================
-                    // SUCCESS
-                    // =================================================
+                    $("#ReligionSearch")
+                        .val(
+                            data.religion ||
+                            ""
+                        );
+
+
+                    $("#CasteId")
+                        .val(
+                            data.casteCode ||
+                            ""
+                        );
+
+
+                    $("#CasteSearch")
+                        .val(
+                            data.caste ||
+                            ""
+                        );
+
+
+                    $("#MotherTongue")
+                        .val("");
+
 
                     $("#CustomerSearchMessage")
                         .removeClass(
@@ -2052,10 +2824,12 @@
                             "Customer information loaded successfully."
                         );
 
+
                 },
 
 
                 error: function (xhr) {
+
 
                     var message =
                         "Unable to retrieve customer information.";
@@ -2068,6 +2842,7 @@
 
                         message =
                             xhr.responseJSON.message;
+
                     }
 
 
@@ -2083,45 +2858,1127 @@
                         );
 
 
-                    clearCustomerFields();
                 },
 
 
                 complete: function () {
+
 
                     $("#btnSearchCustomer")
                         .prop(
                             "disabled",
                             false
                         )
-                        .text(
-                            "Search"
+                        .html(
+                            '<i class="bi bi-search"></i> Search'
                         );
+
 
                 }
 
+
             });
+
 
         }
 
 
-        // ============================================================
-        // FORMAT DATE
-        // ============================================================
 
-        function formatDate(date) {
+        // ==========================================================
+        // INITIAL EXISTING DATA
+        // ==========================================================
 
-            if (!date) {
-                return "";
+        function LoadInitialExistingEmployees() {
+
+
+            $("#ExistingSearchText")
+                .val("");
+
+
+            $("#ExistingSearchMessage")
+                .removeClass(
+                    "text-success text-danger"
+                )
+                .text(
+                    "Loading latest employees from PayMast..."
+                );
+
+
+            $("#ExistingEmployeeResults")
+                .html(
+                    '<tr>' +
+                    '<td colspan="3" class="text-center text-muted">' +
+                    'Loading...' +
+                    '</td>' +
+                    '</tr>'
+                );
+
+
+            $.ajax({
+
+
+                url:
+                    "/Employee/SearchExistingEmployees",
+
+
+                type:
+                    "GET",
+
+
+                dataType:
+                    "json",
+
+
+                data: {
+
+                    searchBy:
+                        "",
+
+                    searchText:
+                        ""
+
+                },
+
+
+                success: function (response) {
+
+
+                    if (!response.success) {
+
+
+                        $("#ExistingSearchMessage")
+                            .removeClass(
+                                "text-success"
+                            )
+                            .addClass(
+                                "text-danger"
+                            )
+                            .text(
+                                response.message ||
+                                "Unable to load employees."
+                            );
+
+
+                        return;
+
+
+                    }
+
+
+                    var employees =
+                        response.data ||
+                        [];
+
+
+                    if (employees.length === 0) {
+
+
+                        $("#ExistingSearchMessage")
+                            .removeClass(
+                                "text-success"
+                            )
+                            .addClass(
+                                "text-danger"
+                            )
+                            .text(
+                                "No employee found in PayMast."
+                            );
+
+
+                        $("#ExistingEmployeeResults")
+                            .html(
+                                '<tr>' +
+                                '<td colspan="3" class="text-center">' +
+                                'No employee found.' +
+                                '</td>' +
+                                '</tr>'
+                            );
+
+
+                        return;
+
+
+                    }
+
+
+                    $("#ExistingSearchMessage")
+                        .removeClass(
+                            "text-danger"
+                        )
+                        .addClass(
+                            "text-success"
+                        )
+                        .text(
+                            "Latest " +
+                            employees.length +
+                            " employee(s) loaded."
+                        );
+
+
+                    RenderExistingEmployeeRows(
+                        employees
+                    );
+
+
+                },
+
+
+                error: function (xhr) {
+
+
+                    var message =
+                        "Unable to load employee data.";
+
+
+                    if (
+                        xhr.responseJSON &&
+                        xhr.responseJSON.message
+                    ) {
+
+                        message =
+                            xhr.responseJSON.message;
+
+                    }
+
+
+                    $("#ExistingSearchMessage")
+                        .removeClass(
+                            "text-success"
+                        )
+                        .addClass(
+                            "text-danger"
+                        )
+                        .text(
+                            message
+                        );
+
+
+                }
+
+
+            });
+
+
+        }
+
+
+
+        // ==========================================================
+        // SEARCH EXISTING EMPLOYEE
+        // ==========================================================
+
+        function SearchExistingEmployees() {
+
+
+            var searchBy =
+                $("#ExistingSearchBy")
+                    .val();
+
+
+            var searchText =
+                $.trim(
+                    $("#ExistingSearchText")
+                        .val()
+                );
+
+
+            if (searchText === "") {
+
+
+                $("#ExistingSearchMessage")
+                    .removeClass(
+                        "text-success"
+                    )
+                    .addClass(
+                        "text-danger"
+                    )
+                    .text(
+                        "Please enter search value."
+                    );
+
+
+                return;
+
+
             }
 
 
-            if (
-                typeof date === "string" &&
-                /^\d{4}-\d{2}-\d{2}$/.test(date)
-            ) {
+            $("#btnSearchExistingEmployee")
+                .prop(
+                    "disabled",
+                    true
+                )
+                .text(
+                    "Searching..."
+                );
 
-                return date;
+
+            $.ajax({
+
+
+                url:
+                    "/Employee/SearchExistingEmployees",
+
+
+                type:
+                    "GET",
+
+
+                dataType:
+                    "json",
+
+
+                data: {
+
+                    searchBy:
+                        searchBy,
+
+                    searchText:
+                        searchText
+
+                },
+
+
+                success: function (response) {
+
+
+                    if (!response.success) {
+
+
+                        $("#ExistingSearchMessage")
+                            .removeClass(
+                                "text-success"
+                            )
+                            .addClass(
+                                "text-danger"
+                            )
+                            .text(
+                                response.message ||
+                                "Search failed."
+                            );
+
+
+                        return;
+
+
+                    }
+
+
+                    var employees =
+                        response.data ||
+                        [];
+
+
+                    if (employees.length === 0) {
+
+
+                        $("#ExistingSearchMessage")
+                            .removeClass(
+                                "text-success"
+                            )
+                            .addClass(
+                                "text-danger"
+                            )
+                            .text(
+                                "No employee found in PayMast."
+                            );
+
+
+                        $("#ExistingEmployeeResults")
+                            .html(
+                                '<tr>' +
+                                '<td colspan="3" class="text-center">' +
+                                'No employee found.' +
+                                '</td>' +
+                                '</tr>'
+                            );
+
+
+                        return;
+
+
+                    }
+
+
+                    $("#ExistingSearchMessage")
+                        .removeClass(
+                            "text-danger"
+                        )
+                        .addClass(
+                            "text-success"
+                        )
+                        .text(
+                            employees.length +
+                            " employee(s) found."
+                        );
+
+
+                    RenderExistingEmployeeRows(
+                        employees
+                    );
+
+
+                },
+
+
+                error: function (xhr) {
+
+
+                    var message =
+                        "Unable to search employee.";
+
+
+                    if (
+                        xhr.responseJSON &&
+                        xhr.responseJSON.message
+                    ) {
+
+                        message =
+                            xhr.responseJSON.message;
+
+                    }
+
+
+                    $("#ExistingSearchMessage")
+                        .removeClass(
+                            "text-success"
+                        )
+                        .addClass(
+                            "text-danger"
+                        )
+                        .text(
+                            message
+                        );
+
+
+                },
+
+
+                complete: function () {
+
+
+                    $("#btnSearchExistingEmployee")
+                        .prop(
+                            "disabled",
+                            false
+                        )
+                        .html(
+                            '<i class="bi bi-search"></i> Search'
+                        );
+
+
+                }
+
+
+            });
+
+
+        }
+
+
+
+        // ==========================================================
+        // RENDER EMPLOYEE CODE + NAME
+        // ==========================================================
+
+        function RenderExistingEmployeeRows(
+            employees
+        ) {
+
+
+            var html =
+                "";
+
+
+            $.each(
+                employees,
+                function (
+                    index,
+                    employee
+                ) {
+
+
+                    var code =
+                        employee.employeeCode;
+
+
+                    var name =
+                        employee.employeeName ||
+                        "";
+
+
+                    html +=
+                        "<tr>" +
+
+                        "<td>" +
+                        escapeHtml(
+                            code
+                        ) +
+                        "</td>" +
+
+                        "<td>" +
+                        escapeHtml(
+                            name
+                        ) +
+                        "</td>" +
+
+                        "<td>" +
+
+                        '<button type="button" ' +
+                        'class="btn btn-success btn-sm" ' +
+                        'onclick="LoadExistingEmployee(' +
+                        code +
+                        ')">' +
+
+                        '<i class="bi bi-check-circle"></i> ' +
+                        'Select' +
+
+                        '</button>' +
+
+                        "</td>" +
+
+                        "</tr>";
+
+
+                }
+            );
+
+
+            $("#ExistingEmployeeResults")
+                .html(
+                    html
+                );
+
+
+        }
+
+
+
+        // ==========================================================
+        // LOAD EXISTING EMPLOYEE FROM PAYMAST
+        // ==========================================================
+
+        function LoadExistingEmployee(
+            employeeCode
+        ) {
+
+
+            $.ajax({
+
+
+                url:
+                    "/Employee/GetExistingEmployee",
+
+
+                type:
+                    "GET",
+
+
+                dataType:
+                    "json",
+
+
+                data: {
+
+                    employeeCode:
+                        employeeCode
+
+                },
+
+
+                success: function (response) {
+
+
+                    if (!response.success) {
+
+
+                        $("#ExistingSearchMessage")
+                            .removeClass(
+                                "text-success"
+                            )
+                            .addClass(
+                                "text-danger"
+                            )
+                            .text(
+                                response.message ||
+                                "Unable to load employee."
+                            );
+
+
+                        return;
+
+
+                    }
+
+
+                    var data =
+                        response.data;
+
+
+
+                    // =================================================
+                    // BASIC
+                    // =================================================
+
+                    $("#ExistingEmployeeCode")
+                        .val(
+                            data.employeeCode ||
+                            ""
+                        );
+
+
+                    $("#EmployeeCode")
+                        .val(
+                            data.employeeCode ||
+                            ""
+                        );
+
+
+                    $("#HiddenCustomerId")
+                        .val(
+                            data.customerId ||
+                            ""
+                        );
+
+
+                    $("#EmployeeIdSearch")
+                        .val(
+                            data.customerId ||
+                            ""
+                        );
+
+
+                    $("#EmployeeName")
+                        .val(
+                            data.employeeName ||
+                            ""
+                        );
+
+
+                    $("#EmployeeType")
+                        .val(
+                            data.employeeType ||
+                            ""
+                        );
+
+
+
+                    // =================================================
+                    // GENERAL
+                    // =================================================
+
+                    $("#GradeId")
+                        .val(
+                            data.gradeId ||
+                            ""
+                        );
+
+
+                    $("#SectionId")
+                        .val(
+                            data.sectionId ||
+                            ""
+                        );
+
+
+                    $("#BranchId")
+                        .val(
+                            data.branchId ||
+                            ""
+                        );
+
+
+                    $("#JoiningDate")
+                        .val(
+                            formatDate(
+                                data.joiningDate
+                            )
+                        );
+
+
+                    $("#PermanentDate")
+                        .val(
+                            formatDate(
+                                data.permanentDate
+                            )
+                        );
+
+
+                    $("#BasicSalary")
+                        .val(
+                            data.basicSalary ??
+                            ""
+                        );
+
+
+                    $("#LastSalaryIncrementDate")
+                        .val(
+                            formatDate(
+                                data.lastSalaryIncrementDate
+                            )
+                        );
+
+
+                    $("#RetirementDate")
+                        .val(
+                            formatDate(
+                                data.retirementDate
+                            )
+                        );
+
+
+
+                    // =================================================
+                    // OTHER
+                    // =================================================
+
+                    $("#PensionFundOpeningBalance")
+                        .val(
+                            data.pensionFundOpeningBalance ??
+                            ""
+                        );
+
+
+                    $("#PFNumber")
+                        .val(
+                            data.pfNumber ||
+                            ""
+                        );
+
+
+                    $("#PFOpeningBalance")
+                        .val(
+                            data.pfOpeningBalance ??
+                            ""
+                        );
+
+
+                    $("#PANNumber")
+                        .val(
+                            data.panNumber ||
+                            ""
+                        );
+
+
+                    $("#ITSerialNumber")
+                        .val(
+                            data.itSerialNumber ||
+                            ""
+                        );
+
+
+                    $("#PFSerialNumber")
+                        .val(
+                            data.pfSerialNumber ??
+                            ""
+                        );
+
+
+                    $("#PFBalance")
+                        .val(
+                            data.pfBalance ??
+                            ""
+                        );
+
+
+                    $("#AadhaarNumber")
+                        .val(
+                            data.aadhaarNumber ??
+                            ""
+                        );
+
+
+
+                    // =================================================
+                    // ADDRESS
+                    // =================================================
+
+                    $("#CorrespondenceAddress1")
+                        .val(
+                            data.correspondenceAddress1 ||
+                            ""
+                        );
+
+
+                    $("#CorrespondenceAddress2")
+                        .val(
+                            data.correspondenceAddress2 ||
+                            ""
+                        );
+
+
+                    $("#PermanentAddress1")
+                        .val(
+                            data.permanentAddress1 ||
+                            ""
+                        );
+
+
+                    $("#PermanentAddress2")
+                        .val(
+                            data.permanentAddress2 ||
+                            ""
+                        );
+
+
+                    $("#Address1")
+                        .val(
+                            data.permanentAddress1 ||
+                            ""
+                        );
+
+
+                    $("#Address2")
+                        .val(
+                            data.permanentAddress2 ||
+                            ""
+                        );
+
+
+                    $("#FatherName")
+                        .val(
+                            data.fatherName ||
+                            ""
+                        );
+
+
+
+                    // =================================================
+                    // PERSONAL
+                    // =================================================
+
+                    $("#ReligionId")
+                        .val(
+                            data.religionCode ||
+                            ""
+                        );
+
+
+                    $("#ReligionSearch")
+                        .val(
+                            data.religion ||
+                            ""
+                        );
+
+
+                    $("#CasteId")
+                        .val(
+                            data.casteCode ||
+                            ""
+                        );
+
+
+                    $("#CasteSearch")
+                        .val(
+                            data.caste ||
+                            ""
+                        );
+
+
+                    $("input[name='Gender']")
+                        .prop(
+                            "checked",
+                            false
+                        );
+
+
+                    if (data.gender) {
+
+
+                        var gender =
+                            data.gender
+                                .toString()
+                                .trim()
+                                .toUpperCase();
+
+
+                        if (
+                            gender === "M" ||
+                            gender === "F"
+                        ) {
+
+
+                            $(
+                                "input[name='Gender'][value='" +
+                                gender +
+                                "']"
+                            )
+                                .prop(
+                                    "checked",
+                                    true
+                                );
+
+
+                        }
+
+
+                    }
+
+
+                    $("#BirthDate")
+                        .val(
+                            formatDate(
+                                data.birthDate
+                            )
+                        );
+
+
+                    $("#BloodGroup")
+                        .val(
+                            data.bloodGroup ||
+                            ""
+                        );
+
+
+                    $("#IdentificationMark")
+                        .val(
+                            data.identificationMark ||
+                            ""
+                        );
+
+
+                    $("#Height")
+                        .val(
+                            data.height ??
+                            ""
+                        );
+
+
+                    $("#KnownLanguage")
+                        .val(
+                            data.knownLanguage ||
+                            ""
+                        );
+
+
+                    $("#MotherTongue")
+                        .val(
+                            data.motherTongue ||
+                            ""
+                        );
+
+
+                    $("#Education")
+                        .val(
+                            data.education ||
+                            ""
+                        );
+
+
+                    $("#ModeOfSign")
+                        .val(
+                            data.modeOfSign ||
+                            ""
+                        );
+
+
+
+                    // =================================================
+                    // UPDATE MODE
+                    // =================================================
+
+                    enableExistingEmployeeMode();
+
+
+
+                    $("#CustomerSearchMessage")
+                        .removeClass(
+                            "text-danger"
+                        )
+                        .addClass(
+                            "text-success"
+                        )
+                        .text(
+                            "Existing employee loaded from PayMast. Edit fields and click Update."
+                        );
+
+
+
+                    // =================================================
+                    // CLOSE MODAL PROPERLY
+                    // =================================================
+
+                    var modalElement =
+                        document.getElementById(
+                            "ExistingEmployeeModal"
+                        );
+
+
+                    if (modalElement) {
+
+
+                        var modalInstance =
+                            bootstrap.Modal.getInstance(
+                                modalElement
+                            );
+
+
+                        if (!modalInstance) {
+
+                            modalInstance =
+                                bootstrap.Modal.getOrCreateInstance(
+                                    modalElement
+                                );
+
+                        }
+
+
+                        modalInstance.hide();
+
+
+                    }
+
+
+
+                    // =================================================
+                    // IMPORTANT:
+                    // FORCE REMOVE GREY BACKDROP
+                    // =================================================
+
+                    setTimeout(
+                        function () {
+
+                            cleanModalBackdrop();
+
+                            openEmployeeTab(
+                                "general-tab"
+                            );
+
+                            window.scrollTo({
+                                top: 0,
+                                behavior: "smooth"
+                            });
+
+                        },
+                        350
+                    );
+
+
+                },
+
+
+                error: function (xhr) {
+
+
+                    var message =
+                        "Unable to load employee.";
+
+
+                    if (
+                        xhr.responseJSON &&
+                        xhr.responseJSON.message
+                    ) {
+
+                        message =
+                            xhr.responseJSON.message;
+
+                    }
+
+
+                    $("#ExistingSearchMessage")
+                        .removeClass(
+                            "text-success"
+                        )
+                        .addClass(
+                            "text-danger"
+                        )
+                        .text(
+                            message
+                        );
+
+
+                }
+
+
+            });
+
+
+        }
+
+
+
+        // ==========================================================
+        // NEW EMPLOYEE MODE
+        // ==========================================================
+
+        function enableNewEmployeeMode() {
+
+
+            $("#ExistingEmployeeCode")
+                .val("");
+
+
+            $("#btnUpdateEmployee")
+                .prop(
+                    "disabled",
+                    true
+                );
+
+
+            $("#btnBottomSave")
+                .prop(
+                    "disabled",
+                    false
+                );
+
+
+            $("#btnSaveEmployee")
+                .prop(
+                    "disabled",
+                    false
+                );
+
+
+        }
+
+
+
+        // ==========================================================
+        // EXISTING EMPLOYEE UPDATE MODE
+        // ==========================================================
+
+        function enableExistingEmployeeMode() {
+
+
+            $("#btnUpdateEmployee")
+                .prop(
+                    "disabled",
+                    false
+                );
+
+
+            // Existing employee ला पुन्हा Save होऊ देऊ नये
+            $("#btnBottomSave")
+                .prop(
+                    "disabled",
+                    true
+                );
+
+
+            $("#btnSaveEmployee")
+                .prop(
+                    "disabled",
+                    true
+                );
+
+
+        }
+
+
+
+        // ==========================================================
+        // FORMAT DATE
+        // ==========================================================
+
+        function formatDate(
+            date
+        ) {
+
+
+            if (!date) {
+
+                return "";
+
             }
 
 
@@ -2130,25 +3987,32 @@
                 date.length >= 10
             ) {
 
+
                 return date.substring(
                     0,
                     10
                 );
+
+
             }
 
 
             return "";
+
+
         }
 
 
-        // ============================================================
-        // SELECT RELIGION
-        // ============================================================
+
+        // ==========================================================
+        // RELIGION
+        // ==========================================================
 
         function selectReligion(
             code,
             name
         ) {
+
 
             $("#ReligionId")
                 .val(
@@ -2168,24 +4032,25 @@
                 );
 
 
-            var modal =
-                bootstrap.Modal.getInstance(
-                    modalElement
-                );
+            if (modalElement) {
 
 
-            if (modal) {
-                modal.hide();
+                bootstrap.Modal
+                    .getOrCreateInstance(
+                        modalElement
+                    )
+                    .hide();
+
+
             }
+
 
         }
 
 
-        // ============================================================
-        // SEARCH RELIGION
-        // ============================================================
 
         function searchReligion() {
+
 
             var value =
                 $("#searchReligion")
@@ -2196,28 +4061,36 @@
             $("#religionTable tr")
                 .filter(function () {
 
-                    $(this).toggle(
 
-                        $(this)
-                            .text()
-                            .toLowerCase()
-                            .indexOf(value) > -1
+                    $(this)
+                        .toggle(
 
-                    );
+                            $(this)
+                                .text()
+                                .toLowerCase()
+                                .indexOf(
+                                    value
+                                ) > -1
+
+                        );
+
 
                 });
+
 
         }
 
 
-        // ============================================================
-        // SELECT CASTE
-        // ============================================================
+
+        // ==========================================================
+        // CASTE
+        // ==========================================================
 
         function selectCaste(
             code,
             name
         ) {
+
 
             $("#CasteId")
                 .val(
@@ -2237,24 +4110,25 @@
                 );
 
 
-            var modal =
-                bootstrap.Modal.getInstance(
-                    modalElement
-                );
+            if (modalElement) {
 
 
-            if (modal) {
-                modal.hide();
+                bootstrap.Modal
+                    .getOrCreateInstance(
+                        modalElement
+                    )
+                    .hide();
+
+
             }
+
 
         }
 
 
-        // ============================================================
-        // SEARCH CASTE
-        // ============================================================
 
         function searchCaste() {
+
 
             var value =
                 $("#searchCaste")
@@ -2265,59 +4139,209 @@
             $("#casteTable tr")
                 .filter(function () {
 
-                    $(this).toggle(
 
-                        $(this)
-                            .text()
-                            .toLowerCase()
-                            .indexOf(value) > -1
+                    $(this)
+                        .toggle(
 
-                    );
+                            $(this)
+                                .text()
+                                .toLowerCase()
+                                .indexOf(
+                                    value
+                                ) > -1
+
+                        );
+
 
                 });
+
 
         }
 
 
-        // ============================================================
-        // CLEAR CUSTOMER FIELDS
-        // ============================================================
+
+        // ==========================================================
+        // SAFE HTML
+        // ==========================================================
+
+        function escapeHtml(
+            value
+        ) {
+
+
+            if (
+                value === null ||
+                value === undefined
+            ) {
+
+
+                return "";
+
+
+            }
+
+
+            return $("<div>")
+                .text(
+                    value.toString()
+                )
+                .html();
+
+
+        }
+
+
+
+        // ==========================================================
+        // CLEAR FORM
+        // ==========================================================
 
         function clearCustomerFields() {
 
-            $("#HiddenCustomerId").val("");
 
-            $("#EmployeeCode").val("");
+            $("#HiddenCustomerId")
+                .val("");
 
-            $("#EmployeeName").val("");
 
-            $("#Address1").val("");
+            $("#ExistingEmployeeCode")
+                .val("");
 
-            $("#Address2").val("");
 
-            $("#Address3").val("");
+            $("#EmployeeCode")
+                .val("");
 
-            $("#Address4").val("");
 
-            $("#Address5").val("");
+            $("#EmployeeName")
+                .val("");
 
-            $("#City").val("");
 
-            $("#State").val("");
+            $("#EmployeeType")
+                .val("");
 
-            $("#District").val("");
 
-            $("#Taluka").val("");
+            $("#GradeId")
+                .val("");
 
-            $("#Phone").val("");
 
-            $("#Phone1").val("");
+            $("#SectionId")
+                .val("");
 
-            $("#Mobile").val("");
 
-            $("#Email").val("");
+            $("#BranchId")
+                .val("");
 
-            $("#FatherName").val("");
+
+            $("#JoiningDate")
+                .val("");
+
+
+            $("#PermanentDate")
+                .val("");
+
+
+            $("#LastSalaryDate")
+                .val("");
+
+
+            $("#BasicSalary")
+                .val("");
+
+
+            $("#LastSalaryIncrementDate")
+                .val("");
+
+
+            $("#RetirementDate")
+                .val("");
+
+
+            $("#PensionFundOpeningBalance")
+                .val("");
+
+
+            $("#PFNumber")
+                .val("");
+
+
+            $("#PFOpeningBalance")
+                .val("");
+
+
+            $("#PANNumber")
+                .val("");
+
+
+            $("#SavingGLCode")
+                .val("");
+
+
+            $("#SavingBranchCode")
+                .val("");
+
+
+            $("#SavingAccountCode")
+                .val("");
+
+
+            $("#ITSerialNumber")
+                .val("");
+
+
+            $("#PFSerialNumber")
+                .val("");
+
+
+            $("#PFBalance")
+                .val("");
+
+
+            $("#AadhaarNumber")
+                .val("");
+
+
+            $("#CorrespondenceAddress1")
+                .val("");
+
+
+            $("#CorrespondenceAddress2")
+                .val("");
+
+
+            $("#PermanentAddress1")
+                .val("");
+
+
+            $("#PermanentAddress2")
+                .val("");
+
+
+            $("#FatherName")
+                .val("");
+
+
+            $("#Address1")
+                .val("");
+
+
+            $("#Address2")
+                .val("");
+
+
+            $("#ReligionId")
+                .val("");
+
+
+            $("#ReligionSearch")
+                .val("");
+
+
+            $("#CasteId")
+                .val("");
+
+
+            $("#CasteSearch")
+                .val("");
+
 
             $("input[name='Gender']")
                 .prop(
@@ -2325,24 +4349,48 @@
                     false
                 );
 
-            $("#BirthDate").val("");
 
-            $("#ReligionSearch").val("");
+            $("#BirthDate")
+                .val("");
 
-            $("#ReligionId").val("");
 
-            $("#CasteSearch").val("");
+            $("#BloodGroup")
+                .val("");
 
-            $("#CasteId").val("");
 
-            $("#PANNumber").val("");
+            $("#IdentificationMark")
+                .val("");
 
-            $("#AadhaarNumber").val("");
 
-            $("#Nationality").val("");
+            $("#Height")
+                .val("");
+
+
+            $("#KnownLanguage")
+                .val("");
+
+
+            $("#MotherTongue")
+                .val("");
+
+
+            $("#Education")
+                .val("");
+
+
+            $("#ModeOfSign")
+                .val("");
+
+
+            enableNewEmployeeMode();
+
+
         }
+
 
     </script>
 
+
 </body>
+
 </html>
