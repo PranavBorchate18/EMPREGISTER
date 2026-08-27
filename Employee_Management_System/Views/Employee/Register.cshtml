@@ -40,6 +40,20 @@
         .existing-result-table tbody tr:hover {
             background-color: #f3f6f9;
         }
+
+        .required-star {
+            color: #dc3545;
+            font-size: 14px;
+            font-weight: 700;
+            margin-left: 2px;
+        }
+
+        .field-validation-error-custom {
+            color: #dc3545;
+            font-size: 12px;
+            display: block;
+            margin-top: 4px;
+        }
     </style>
 </head>
 
@@ -422,6 +436,7 @@
                                    class="form-label">
 
                                 Employee Name
+                                <span class="required-star">*</span>
 
                             </label>
 
@@ -430,7 +445,8 @@
                                    class="form-control" />
 
                             <span asp-validation-for="EmployeeName"
-                                  class="text-danger">
+                                  id="EmployeeNameError"
+                                  class="field-validation-error-custom">
                             </span>
 
                         </div>
@@ -442,6 +458,7 @@
                                    class="form-label">
 
                                 Employee Type
+                                <span class="required-star">*</span>
 
                             </label>
 
@@ -466,6 +483,10 @@
                                 </option>
 
                             </select>
+
+                            <span id="EmployeeTypeError"
+                                  class="field-validation-error-custom">
+                            </span>
 
                         </div>
 
@@ -559,6 +580,7 @@
                                            class="form-label">
 
                                         Grade
+                                        <span class="required-star">*</span>
 
                                     </label>
 
@@ -573,6 +595,10 @@
 
                                     </select>
 
+                                    <span id="GradeIdError"
+                                          class="field-validation-error-custom">
+                                    </span>
+
                                 </div>
 
 
@@ -582,6 +608,7 @@
                                            class="form-label">
 
                                         Section
+                                        <span class="required-star">*</span>
 
                                     </label>
 
@@ -596,6 +623,10 @@
 
                                     </select>
 
+                                    <span id="SectionIdError"
+                                          class="field-validation-error-custom">
+                                    </span>
+
                                 </div>
 
 
@@ -605,6 +636,7 @@
                                            class="form-label">
 
                                         Branch
+                                        <span class="required-star">*</span>
 
                                     </label>
 
@@ -619,6 +651,10 @@
 
                                     </select>
 
+                                    <span id="BranchIdError"
+                                          class="field-validation-error-custom">
+                                    </span>
+
                                 </div>
 
                             </div>
@@ -632,6 +668,7 @@
                                            class="form-label">
 
                                         Joining Date
+                                        <span class="required-star">*</span>
 
                                     </label>
 
@@ -639,6 +676,10 @@
                                            id="JoiningDate"
                                            type="date"
                                            class="form-control" />
+
+                                    <span id="JoiningDateError"
+                                          class="field-validation-error-custom">
+                                    </span>
 
                                 </div>
 
@@ -736,8 +777,8 @@
                             <div class="text-end mt-4">
 
                                 <button type="button"
-                                        class="btn btn-primary"
-                                        onclick="openEmployeeTab('other-tab')">
+                                        id="btnGeneralNext"
+                                        class="btn btn-primary">
 
                                     Next
                                     <i class="bi bi-arrow-right"></i>
@@ -1054,6 +1095,7 @@
 
                                         <label class="form-label">
                                             Religion
+                                            <span class="required-star">*</span>
                                         </label>
 
                                         <div class="input-group">
@@ -1079,6 +1121,10 @@
                                                asp-for="Religion"
                                                id="ReligionId" />
 
+                                        <span id="ReligionError"
+                                              class="field-validation-error-custom">
+                                        </span>
+
                                     </div>
 
 
@@ -1087,6 +1133,7 @@
 
                                         <label class="form-label">
                                             Caste
+                                            <span class="required-star">*</span>
                                         </label>
 
                                         <div class="input-group">
@@ -1112,6 +1159,10 @@
                                                asp-for="Caste"
                                                id="CasteId" />
 
+                                        <span id="CasteError"
+                                              class="field-validation-error-custom">
+                                        </span>
+
                                     </div>
 
 
@@ -1120,6 +1171,7 @@
 
                                         <label class="form-label">
                                             Gender
+                                            <span class="required-star">*</span>
                                         </label>
 
                                         <div>
@@ -1152,6 +1204,10 @@
 
                                         </div>
 
+                                        <span id="GenderError"
+                                              class="field-validation-error-custom">
+                                        </span>
+
                                     </div>
 
 
@@ -1160,12 +1216,17 @@
                                         <label asp-for="BirthDate"
                                                class="form-label">
                                             Birth Date
+                                            <span class="required-star">*</span>
                                         </label>
 
                                         <input asp-for="BirthDate"
                                                id="BirthDate"
                                                type="date"
                                                class="form-control" />
+
+                                        <span id="BirthDateError"
+                                              class="field-validation-error-custom">
+                                        </span>
 
                                     </div>
 
@@ -1221,6 +1282,7 @@
                                         <label asp-for="BloodGroup"
                                                class="form-label">
                                             Blood Group
+                                            <span class="required-star">*</span>
                                         </label>
 
                                         <select asp-for="BloodGroup"
@@ -1238,6 +1300,10 @@
                                             <option>O-</option>
 
                                         </select>
+
+                                        <span id="BloodGroupError"
+                                              class="field-validation-error-custom">
+                                        </span>
 
                                     </div>
 
@@ -1422,7 +1488,7 @@
     </div>
 
 
-@* ============================================================
+    @* ============================================================
        EXISTING EMPLOYEE MODAL
        ============================================================ *@
 
@@ -1557,7 +1623,7 @@
     </div>
 
 
-@* ============================================================
+    @* ============================================================
        RELIGION MODAL
        ============================================================ *@
 
@@ -1647,7 +1713,7 @@
     </div>
 
 
-@* ============================================================
+    @* ============================================================
        CASTE MODAL
        ============================================================ *@
 
@@ -1737,7 +1803,7 @@
     </div>
 
 
-@* ============================================================
+    @* ============================================================
        JAVASCRIPT LIBRARIES
        ============================================================ *@
 
@@ -1746,7 +1812,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 
-@* ============================================================
+    @* ============================================================
        PART 2 END
 
        IMPORTANT:
@@ -1820,39 +1886,39 @@
 
             @if (TempData["DuplicateEmployee"]?.ToString() == "true")
             {
-                    <text>
+                            <text>
 
-                        $("#existingEmployeeName")
-                            .text('@Html.Raw(
-                                                            System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(
-                                                                    TempData["DuplicateEmployeeName"]?.ToString() ?? ""
-                                                            )
-                                                    )');
+                                $("#existingEmployeeName")
+                                    .text('@Html.Raw(
+                                                                                                                                                                                                                                                            System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(
+                                                                                                                                                                                                                                                                                            TempData["DuplicateEmployeeName"]?.ToString() ?? ""
+                                                                                                                                                                                                                                                            )
+                                                                                                                                                                                                                            )');
 
                     $("#existingEmployeeCode")
                         .text('@Html.Raw(
-                                                        System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(
-                                                                TempData["DuplicateEmployeeCode"]?.ToString() ?? ""
-                                                        )
-                                                )');
+                                                                                                                                                                                                                                System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(
+                                                                                                                                                                                                                                                                TempData["DuplicateEmployeeCode"]?.ToString() ?? ""
+                                                                                                                                                                                                                                )
+                                                                                                                                                                                                )');
 
                     var duplicateModalElement =
                         document.getElementById(
                             "employeeAlreadyExistsModal"
                         );
 
-                        if (duplicateModalElement) {
+                                if (duplicateModalElement) {
 
-                            var duplicateModal =
-                                new bootstrap.Modal(
-                                    duplicateModalElement
-                                );
+                                    var duplicateModal =
+                                        new bootstrap.Modal(
+                                            duplicateModalElement
+                                        );
 
-                            duplicateModal.show();
-                        }
+                                    duplicateModal.show();
+                                }
 
-                    </text>
-                        }
+                            </text>
+                                                                                                }
 
 
             // ========================================================
@@ -1887,6 +1953,128 @@
 
 
             // ========================================================
+            // GENERAL INFORMATION NEXT BUTTON
+            // ========================================================
+
+            $("#btnGeneralNext").click(function () {
+
+                if (validateGeneralInformation()) {
+
+                    var otherTabElement =
+                        document.getElementById("other-tab");
+
+                    if (otherTabElement) {
+
+                        bootstrap.Tab
+                            .getOrCreateInstance(otherTabElement)
+                            .show();
+                    }
+                }
+
+            });
+
+
+            // ========================================================
+            // REMOVE VALIDATION ERROR WHEN VALUE IS ENTERED
+            // ========================================================
+
+            $("#EmployeeName").on("input", function () {
+                if ($.trim($(this).val()) !== "") {
+                    $(this).removeClass("is-invalid");
+                    $("#EmployeeNameError").text("");
+                }
+            });
+
+            $("#EmployeeType").on("change", function () {
+                if ($(this).val()) {
+                    $(this).removeClass("is-invalid");
+                    $("#EmployeeTypeError").text("");
+                }
+            });
+
+            $("#GradeId").on("change", function () {
+                if ($(this).val()) {
+                    $(this).removeClass("is-invalid");
+                    $("#GradeIdError").text("");
+                }
+            });
+
+            $("#SectionId").on("change", function () {
+                if ($(this).val()) {
+                    $(this).removeClass("is-invalid");
+                    $("#SectionIdError").text("");
+                }
+            });
+
+            $("#BranchId").on("change", function () {
+                if ($(this).val()) {
+                    $(this).removeClass("is-invalid");
+                    $("#BranchIdError").text("");
+                }
+            });
+
+            $("#JoiningDate").on("change input", function () {
+                if ($(this).val()) {
+                    $(this).removeClass("is-invalid");
+                    $("#JoiningDateError").text("");
+                }
+            });
+
+
+            // ========================================================
+            // PERSONAL INFORMATION VALIDATION BEFORE SAVE / UPDATE
+            // ========================================================
+
+            $("#employeeForm").on("submit", function (e) {
+
+                if (!validatePersonalInformation()) {
+
+                    e.preventDefault();
+
+                    openEmployeeTab("personal-tab");
+
+                    setTimeout(function () {
+
+                        var firstInvalid =
+                            $("#personal .is-invalid").first();
+
+                        if (firstInvalid.length) {
+                            firstInvalid.focus();
+                        }
+
+                    }, 200);
+
+                    return false;
+                }
+
+                return true;
+            });
+
+
+            // Remove Personal Information validation errors
+            $("#BloodGroup").on("change", function () {
+                if ($(this).val()) {
+                    $(this).removeClass("is-invalid");
+                    $("#BloodGroupError").text("");
+                }
+            });
+
+            $("#BirthDate").on("change input", function () {
+                if ($(this).val()) {
+                    $(this).removeClass("is-invalid");
+                    $("#BirthDateError").text("");
+                }
+            });
+
+            $("input[name='Gender']").on("change", function () {
+                if ($("input[name='Gender']:checked").length > 0) {
+                    $("input[name='Gender']").removeClass("is-invalid");
+                    $("#GenderError").text("");
+                }
+            });
+
+
+            // ========================================================
             // NEW BUTTON
             // ========================================================
 
@@ -1911,6 +2099,8 @@
 
 
                 clearCustomerFields();
+                clearGeneralValidation();
+                clearPersonalValidation();
 
 
                 $("#EmployeeIdSearch").val("");
@@ -2019,6 +2209,8 @@
 
                 // Clear previous employee
                 clearCustomerFields();
+                clearGeneralValidation();
+                clearPersonalValidation();
 
                 $("#HiddenCustomerId").val("");
 
@@ -2222,6 +2414,208 @@
 
         });
 
+
+
+        // ============================================================
+        // PERSONAL INFORMATION VALIDATION
+        // ============================================================
+
+        function validatePersonalInformation() {
+
+            var isValid = true;
+            var firstInvalid = null;
+
+            clearPersonalValidation();
+
+
+            // Religion
+            if (!$("#ReligionId").val()) {
+
+                $("#ReligionSearch").addClass("is-invalid");
+                $("#ReligionError").text("Religion is required.");
+
+                if (firstInvalid === null) {
+                    firstInvalid = $("#ReligionSearch");
+                }
+
+                isValid = false;
+            }
+
+
+            // Caste
+            if (!$("#CasteId").val()) {
+
+                $("#CasteSearch").addClass("is-invalid");
+                $("#CasteError").text("Caste is required.");
+
+                if (firstInvalid === null) {
+                    firstInvalid = $("#CasteSearch");
+                }
+
+                isValid = false;
+            }
+
+
+            // Blood Group
+            if (!$("#BloodGroup").val()) {
+
+                $("#BloodGroup").addClass("is-invalid");
+                $("#BloodGroupError").text("Blood Group is required.");
+
+                if (firstInvalid === null) {
+                    firstInvalid = $("#BloodGroup");
+                }
+
+                isValid = false;
+            }
+
+
+            // Gender
+            if ($("input[name='Gender']:checked").length === 0) {
+
+                $("input[name='Gender']").addClass("is-invalid");
+                $("#GenderError").text("Gender is required.");
+
+                if (firstInvalid === null) {
+                    firstInvalid = $("input[name='Gender']").first();
+                }
+
+                isValid = false;
+            }
+
+
+            // Birth Date
+            if (!$("#BirthDate").val()) {
+
+                $("#BirthDate").addClass("is-invalid");
+                $("#BirthDateError").text("Birth Date is required.");
+
+                if (firstInvalid === null) {
+                    firstInvalid = $("#BirthDate");
+                }
+
+                isValid = false;
+            }
+
+
+            if (!isValid) {
+
+                openEmployeeTab("personal-tab");
+
+                if (firstInvalid && firstInvalid.length) {
+
+                    setTimeout(function () {
+                        firstInvalid.focus();
+                    }, 200);
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+
+
+        // ============================================================
+        // CLEAR PERSONAL INFORMATION VALIDATION
+        // ============================================================
+
+        function clearPersonalValidation() {
+
+            $("#ReligionSearch, #CasteSearch, #BloodGroup, #BirthDate")
+                .removeClass("is-invalid");
+
+            $("input[name='Gender']")
+                .removeClass("is-invalid");
+
+            $("#ReligionError").text("");
+            $("#CasteError").text("");
+            $("#BloodGroupError").text("");
+            $("#GenderError").text("");
+            $("#BirthDateError").text("");
+        }
+
+
+        // ============================================================
+        // GENERAL INFORMATION VALIDATION
+        // ============================================================
+
+        function validateGeneralInformation() {
+
+            var isValid = true;
+            var firstInvalid = null;
+
+            clearGeneralValidation();
+
+            if ($.trim($("#EmployeeName").val()) === "") {
+                $("#EmployeeName").addClass("is-invalid");
+                $("#EmployeeNameError").text("Employee Name is required.");
+                firstInvalid = $("#EmployeeName");
+                isValid = false;
+            }
+
+            if (!$("#EmployeeType").val()) {
+                $("#EmployeeType").addClass("is-invalid");
+                $("#EmployeeTypeError").text("Employee Type is required.");
+                if (firstInvalid === null) firstInvalid = $("#EmployeeType");
+                isValid = false;
+            }
+
+            if (!$("#GradeId").val()) {
+                $("#GradeId").addClass("is-invalid");
+                $("#GradeIdError").text("Grade is required.");
+                if (firstInvalid === null) firstInvalid = $("#GradeId");
+                isValid = false;
+            }
+
+            if (!$("#SectionId").val()) {
+                $("#SectionId").addClass("is-invalid");
+                $("#SectionIdError").text("Section is required.");
+                if (firstInvalid === null) firstInvalid = $("#SectionId");
+                isValid = false;
+            }
+
+            if (!$("#BranchId").val()) {
+                $("#BranchId").addClass("is-invalid");
+                $("#BranchIdError").text("Branch is required.");
+                if (firstInvalid === null) firstInvalid = $("#BranchId");
+                isValid = false;
+            }
+
+            if (!$("#JoiningDate").val()) {
+                $("#JoiningDate").addClass("is-invalid");
+                $("#JoiningDateError").text("Joining Date is required.");
+                if (firstInvalid === null) firstInvalid = $("#JoiningDate");
+                isValid = false;
+            }
+
+            if (!isValid) {
+                if (firstInvalid && firstInvalid.length) {
+                    firstInvalid.focus();
+                }
+                return false;
+            }
+
+            return true;
+        }
+
+
+        // ============================================================
+        // CLEAR GENERAL INFORMATION VALIDATION
+        // ============================================================
+
+        function clearGeneralValidation() {
+
+            $("#EmployeeName, #EmployeeType, #GradeId, #SectionId, #BranchId, #JoiningDate")
+                .removeClass("is-invalid");
+
+            $("#EmployeeNameError").text("");
+            $("#EmployeeTypeError").text("");
+            $("#GradeIdError").text("");
+            $("#SectionIdError").text("");
+            $("#BranchIdError").text("");
+            $("#JoiningDateError").text("");
+        }
 
 
         // ============================================================
@@ -3365,7 +3759,10 @@
             $("#ReligionSearch")
                 .val(
                     name || ""
-                );
+                )
+                .removeClass("is-invalid");
+
+            $("#ReligionError").text("");
 
 
             var modalElement =
@@ -3413,7 +3810,10 @@
             $("#CasteSearch")
                 .val(
                     name || ""
-                );
+                )
+                .removeClass("is-invalid");
+
+            $("#CasteError").text("");
 
 
             var modalElement =
@@ -3968,6 +4368,8 @@
 
             $("#ModeOfSign").val("");
 
+            clearGeneralValidation();
+
         }
 
 
@@ -3979,7 +4381,6 @@
 
         function cleanModalBackdrop() {
 
-            // दुसरा modal अजून open असेल तर backdrop remove करू नका
             if (
                 document.querySelector(
                     ".modal.show"
