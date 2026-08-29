@@ -1,0 +1,763 @@
+﻿@model IEnumerable<Employee_Management_System.Models.AllowanceMaster>
+
+@{
+    ViewData["Title"] = "Allowance Master";
+}
+
+
+<div class="container mt-4 mb-5">
+
+    <div class="card shadow">
+
+        <div class="card-header bg-primary text-white">
+
+            <h3 class="text-center mb-0">
+
+                <i class="bi bi-cash-stack me-2"></i>
+
+                Allowance Master
+
+            </h3>
+
+        </div>
+
+
+        <div class="card-body">
+
+
+            @* =========================================
+               SUCCESS MESSAGE
+               ========================================= *@
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show">
+
+                    <i class="bi bi-check-circle-fill me-2"></i>
+
+                    @TempData["Success"]
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert">
+                    </button>
+
+                </div>
+            }
+
+
+            @* =========================================
+               ERROR MESSAGE
+               ========================================= *@
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show">
+
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
+                    @TempData["Error"]
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert">
+                    </button>
+
+                </div>
+            }
+
+
+            @* =========================================
+               BUTTON + SEARCH
+               ========================================= *@
+
+            <div class="d-flex justify-content-between mb-3">
+
+                <button type="button"
+                        class="btn btn-primary"
+                        onclick="openAddAllowance()">
+
+                    <i class="bi bi-plus-circle"></i>
+
+                    Add Allowance
+
+                </button>
+
+
+                <div style="width:300px;">
+
+                    <input type="text"
+                           id="allowanceSearch"
+                           class="form-control"
+                           placeholder="Search Allowance..." />
+
+                </div>
+
+            </div>
+
+
+            @* =========================================
+               ALLOWANCE TABLE
+               ========================================= *@
+
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-hover align-middle"
+                       id="allowanceTable">
+
+                    <thead class="table-dark">
+
+                        <tr>
+
+                            <th>Code</th>
+
+                            <th>Name</th>
+
+                            <th>Short Name</th>
+
+                            <th>G/L Code</th>
+
+                            <th>Comp</th>
+
+                            <th>Effect On Pay</th>
+
+                            <th>Effect On Trf</th>
+
+                            <th>Trf Min Days</th>
+
+                            <th style="width:130px;">
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+
+                                <td>
+                                    @item.Code
+                                </td>
+
+                                <td>
+                                    @item.Name
+                                </td>
+
+                                <td>
+                                    @item.ShortName
+                                </td>
+
+                                <td>
+                                    @item.GLC
+                                </td>
+
+                                <td>
+                                    @item.Comp
+                                </td>
+
+                                <td>
+                                    @item.EffectOnPay
+                                </td>
+
+                                <td>
+                                    @item.EffectOnTrf
+                                </td>
+
+                                <td>
+                                    @item.TrfMinDays
+                                </td>
+
+
+                                <td>
+
+                                    <button type="button"
+                                            class="btn btn-warning btn-sm"
+                                            onclick="editAllowance(@item.Code)">
+
+                                        <i class="bi bi-pencil-square"></i>
+
+                                    </button>
+
+
+                                    <button type="button"
+                                            class="btn btn-danger btn-sm"
+                                            onclick="confirmDelete(
+                                                    @item.Code,
+                                                    '@Html.Raw(
+                                                                                                System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(
+                                                                                                    item.Name ?? ""
+                                                                                                )
+                                                                                            )'
+                                            )">
+
+                                        <i class="bi bi-trash"></i>
+
+                                    </button>
+
+                                </td>
+
+                            </tr>
+                                                }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+@* =====================================================
+   ADD / EDIT MODAL
+   ===================================================== *@
+
+<div class="modal fade"
+     id="allowanceModal"
+     tabindex="-1">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content">
+
+
+            <form method="post"
+                  id="allowanceForm">
+
+                @Html.AntiForgeryToken()
+
+
+                <div class="modal-header bg-primary text-white">
+
+                    <h5 class="modal-title"
+                        id="allowanceModalTitle">
+
+                        Add Allowance
+
+                    </h5>
+
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal">
+                    </button>
+
+                </div>
+
+
+                <div class="modal-body">
+
+
+                    <div class="row">
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold">
+
+                                Allowance Code
+
+                                <span class="text-danger">*</span>
+
+                            </label>
+
+
+                            <input type="number"
+                                   id="Code"
+                                   name="Code"
+                                   class="form-control"
+                                   required />
+
+                        </div>
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold">
+
+                                Allowance Name
+
+                                <span class="text-danger">*</span>
+
+                            </label>
+
+
+                            <input type="text"
+                                   id="Name"
+                                   name="Name"
+                                   maxlength="30"
+                                   class="form-control"
+                                   required />
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="row">
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold">
+                                Short Name
+                            </label>
+
+
+                            <input type="text"
+                                   id="ShortName"
+                                   name="ShortName"
+                                   maxlength="15"
+                                   class="form-control" />
+
+                        </div>
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold">
+                                G/L Code
+                            </label>
+
+
+                            <input type="number"
+                                   id="GLC"
+                                   name="GLC"
+                                   class="form-control" />
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="row">
+
+
+                        <div class="col-md-4 mb-3">
+
+                            <label class="form-label fw-bold">
+                                Comp
+                            </label>
+
+
+                            <select id="Comp"
+                                    name="Comp"
+                                    class="form-select">
+
+                                <option value="">
+                                    -- Select --
+                                </option>
+
+                                <option value="Y">
+                                    Yes
+                                </option>
+
+                                <option value="N">
+                                    No
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="col-md-4 mb-3">
+
+                            <label class="form-label fw-bold">
+                                Effect On Pay
+                            </label>
+
+
+                            <select id="EffectOnPay"
+                                    name="EffectOnPay"
+                                    class="form-select">
+
+                                <option value="">
+                                    -- Select --
+                                </option>
+
+                                <option value="Y">
+                                    Yes
+                                </option>
+
+                                <option value="N">
+                                    No
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="col-md-4 mb-3">
+
+                            <label class="form-label fw-bold">
+                                Effect On Trf
+                            </label>
+
+
+                            <select id="EffectOnTrf"
+                                    name="EffectOnTrf"
+                                    class="form-select">
+
+                                <option value="">
+                                    -- Select --
+                                </option>
+
+                                <option value="Y">
+                                    Yes
+                                </option>
+
+                                <option value="N">
+                                    No
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="row">
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold">
+                                Trf Min Days
+                            </label>
+
+
+                            <input type="number"
+                                   step="any"
+                                   id="TrfMinDays"
+                                   name="TrfMinDays"
+                                   class="form-control" />
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+
+                        <i class="bi bi-x-circle"></i>
+
+                        Cancel
+
+                    </button>
+
+
+                    <button type="submit"
+                            id="btnAllowanceSave"
+                            class="btn btn-success">
+
+                        <i class="bi bi-save"></i>
+
+                        Save
+
+                    </button>
+
+                </div>
+
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+@* =====================================================
+   DELETE FORM
+   ===================================================== *@
+
+<form asp-controller="Allowance"
+      asp-action="Delete"
+      method="post"
+      id="deleteAllowanceForm">
+
+    @Html.AntiForgeryToken()
+
+    <input type="hidden"
+           id="deleteAllowanceCode"
+           name="code" />
+
+</form>
+
+
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script>
+
+
+    // =====================================================
+    // ADD
+    // =====================================================
+
+    function openAddAllowance() {
+
+        $("#allowanceModalTitle")
+            .text("Add Allowance");
+
+
+        $("#allowanceForm")
+            .attr(
+                "action",
+                '@Url.Action("Create", "Allowance")'
+            );
+
+
+        $("#allowanceForm")[0].reset();
+
+
+        $("#Code")
+            .prop("readonly", false);
+
+
+        $("#btnAllowanceSave")
+            .removeClass("btn-warning")
+            .addClass("btn-success")
+            .html(
+                '<i class="bi bi-save"></i> Save'
+            );
+
+
+        var modal =
+            bootstrap.Modal.getOrCreateInstance(
+                document.getElementById(
+                    "allowanceModal"
+                )
+            );
+
+
+        modal.show();
+    }
+
+
+
+    // =====================================================
+    // EDIT
+    // =====================================================
+
+    function editAllowance(code) {
+
+        $.ajax({
+
+            url:
+                '@Url.Action("GetAllowance", "Allowance")',
+
+            type:
+                "GET",
+
+            data: {
+                code: code
+            },
+
+            success: function (response) {
+
+                if (!response.success) {
+
+                    alert(
+                        response.message
+                    );
+
+                    return;
+                }
+
+
+                var data =
+                    response.data;
+
+
+                $("#allowanceModalTitle")
+                    .text("Edit Allowance");
+
+
+                $("#allowanceForm")
+                    .attr(
+                        "action",
+                        '@Url.Action("Update", "Allowance")'
+                    );
+
+
+                $("#Code")
+                    .val(data.code)
+                    .prop("readonly", true);
+
+
+                $("#Name")
+                    .val(
+                        data.name || ""
+                    );
+
+
+                $("#ShortName")
+                    .val(
+                        data.shortName || ""
+                    );
+
+
+                $("#GLC")
+                    .val(
+                        data.glc ?? ""
+                    );
+
+
+                $("#Comp")
+                    .val(
+                        data.comp || ""
+                    );
+
+
+                $("#EffectOnPay")
+                    .val(
+                        data.effectOnPay || ""
+                    );
+
+
+                $("#EffectOnTrf")
+                    .val(
+                        data.effectOnTrf || ""
+                    );
+
+
+                $("#TrfMinDays")
+                    .val(
+                        data.trfMinDays ?? ""
+                    );
+
+
+                $("#btnAllowanceSave")
+                    .removeClass(
+                        "btn-success"
+                    )
+                    .addClass(
+                        "btn-warning"
+                    )
+                    .html(
+                        '<i class="bi bi-pencil-square"></i> Update'
+                    );
+
+
+                var modal =
+                    bootstrap.Modal
+                        .getOrCreateInstance(
+                            document.getElementById(
+                                "allowanceModal"
+                            )
+                        );
+
+
+                modal.show();
+
+            },
+
+            error: function () {
+
+                alert(
+                    "Unable to load allowance."
+                );
+
+            }
+
+        });
+    }
+
+
+
+    // =====================================================
+    // DELETE
+    // =====================================================
+
+    function confirmDelete(
+        code,
+        name
+    ) {
+
+        var result =
+            confirm(
+                "Are you sure you want to delete allowance?\n\n" +
+                "Code: " + code + "\n" +
+                "Name: " + name
+            );
+
+
+        if (!result) {
+
+            return;
+
+        }
+
+
+        $("#deleteAllowanceCode")
+            .val(code);
+
+
+        $("#deleteAllowanceForm")
+            .submit();
+    }
+
+
+
+    // =====================================================
+    // SEARCH
+    // =====================================================
+
+    $("#allowanceSearch")
+        .on(
+            "keyup",
+            function () {
+
+                var value =
+                    $(this)
+                        .val()
+                        .toLowerCase();
+
+
+                $("#allowanceTable tbody tr")
+                    .filter(
+                        function () {
+
+                            $(this)
+                                .toggle(
+                                    $(this)
+                                        .text()
+                                        .toLowerCase()
+                                        .indexOf(value) > -1
+                                );
+
+                        }
+                    );
+
+            }
+        );
+
+
+</script>

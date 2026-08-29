@@ -18,6 +18,9 @@ namespace Employee_Management_System.Data
 
         public DbSet<PartyMaster> PartyMasters { get; set; }
 
+        public DbSet<AllowanceMaster> AllowanceMasters { get; set; }
+
+        public DbSet<DeductionMaster> DeductionMasters { get; set; }
         public DbSet<PayMast> PayMasts { get; set; }
         public DbSet<GradeMaster> Grades { get; set; }
         public DbSet<ReligionMaster> Religions { get; set; }
