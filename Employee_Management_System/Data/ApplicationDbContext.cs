@@ -20,18 +20,29 @@ namespace Employee_Management_System.Data
 
         public DbSet<AllowanceMaster> AllowanceMasters { get; set; }
 
+        public DbSet<AllwFoot> AllwFoots { get; set; }
+
+        public DbSet<DeduFoot> DeduFoots { get; set; }
+
         public DbSet<DeductionMaster> DeductionMasters { get; set; }
+
         public DbSet<PayMast> PayMasts { get; set; }
+
         public DbSet<GradeMaster> Grades { get; set; }
+
         public DbSet<ReligionMaster> Religions { get; set; }
 
         public DbSet<Branch> Branches { get; set; }
+
         public DbSet<CastMaster> Castes { get; set; }
+
         public DbSet<Section> Sections { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
 
             //=========================================
             // Employee
@@ -39,6 +50,7 @@ namespace Employee_Management_System.Data
 
             modelBuilder.Entity<Employee>()
                 .ToTable("Employee");
+
 
             //=========================================
             // Grade Master
@@ -64,6 +76,7 @@ namespace Employee_Management_System.Data
                       .HasPrecision(18, 2);
             });
 
+
             //=========================================
             // Branch Master
             //=========================================
@@ -80,6 +93,7 @@ namespace Employee_Management_System.Data
                 entity.Property(e => e.BranchName)
                       .HasColumnName("name");
             });
+
 
             //=========================================
             // Section Master
@@ -98,6 +112,11 @@ namespace Employee_Management_System.Data
                       .HasColumnName("name");
             });
 
+
+            //=========================================
+            // Caste Master
+            //=========================================
+
             modelBuilder.Entity<CastMaster>(entity =>
             {
                 entity.ToTable("CastMast");
@@ -114,6 +133,7 @@ namespace Employee_Management_System.Data
                 entity.Property(e => e.MarathiName)
                       .HasColumnName("MName");
             });
+
 
             //=========================================
             // Party Master / Customer
@@ -232,6 +252,7 @@ namespace Employee_Management_System.Data
                     .HasColumnName("Driving_License_ExpDate");
             });
 
+
             //=========================================
             // Religion Master
             //=========================================
@@ -253,6 +274,94 @@ namespace Employee_Management_System.Data
                       .HasColumnName("MName");
             });
 
+
+            //=========================================
+            // AllwFoot
+            // dbo.allwfoot
+            //=========================================
+
+            modelBuilder.Entity<AllwFoot>(entity =>
+            {
+                // allwfoot has no primary key
+                entity.HasNoKey();
+
+                entity.ToTable("allwfoot");
+
+                entity.Property(x => x.AllowCode)
+                    .HasColumnName("allw_code")
+                    .HasPrecision(10, 0);
+
+                entity.Property(x => x.GradeCode)
+                    .HasColumnName("grad_code")
+                    .HasPrecision(10, 0);
+
+                entity.Property(x => x.PayDiv)
+                    .HasColumnName("Pay_Div")
+                    .HasPrecision(18, 0);
+
+                entity.Property(x => x.FixAmount)
+                    .HasColumnName("Fix_Amount")
+                    .HasPrecision(18, 2);
+
+                entity.Property(x => x.CalcCode)
+                    .HasColumnName("calc_code")
+                    .HasPrecision(5, 0);
+
+                entity.Property(x => x.Percent)
+                    .HasColumnName("percent")
+                    .HasPrecision(18, 2);
+
+                entity.Property(x => x.MinLimit)
+                    .HasColumnName("min_limit")
+                    .HasPrecision(18, 0);
+
+                entity.Property(x => x.MaxLimit)
+                    .HasColumnName("max_limit")
+                    .HasPrecision(18, 0);
+
+                entity.Property(x => x.MinDays)
+                    .HasColumnName("min_days")
+                    .HasPrecision(10, 0);
+
+                
+            });
+
+            modelBuilder.Entity<DeduFoot>(entity =>
+            {
+                entity.HasNoKey();
+
+                entity.ToTable("dedufoot");
+
+                entity.Property(x => x.DeduCode)
+                    .HasColumnName("dedu_code");
+
+                entity.Property(x => x.GradeCode)
+                    .HasColumnName("grad_code");
+
+                entity.Property(x => x.FixAmount)
+                    .HasColumnName("FIX_amount")
+                    .HasPrecision(18, 2);
+
+                entity.Property(x => x.CalcCode)
+                    .HasColumnName("calc_code");
+
+                entity.Property(x => x.Percent)
+                    .HasColumnName("percent")
+                    .HasPrecision(18, 2);
+
+                entity.Property(x => x.MinLimit)
+                    .HasColumnName("min_limit")
+                    .HasPrecision(18, 2);
+
+                entity.Property(x => x.MaxLimit)
+                    .HasColumnName("max_limit")
+                    .HasPrecision(18, 2);
+
+                entity.Property(x => x.MinDays)
+                    .HasColumnName("min_days");
+            });
+
+
             //=========================================
             // Relationships
             //=========================================
@@ -264,6 +373,7 @@ namespace Employee_Management_System.Data
                 .HasPrincipalKey(g => g.Code)
                 .OnDelete(DeleteBehavior.Restrict);
 
+
             modelBuilder.Entity<Employee>()
                 .HasOne(e => e.Section)
                 .WithMany(s => s.Employees)
@@ -271,13 +381,13 @@ namespace Employee_Management_System.Data
                 .HasPrincipalKey(s => s.Code)
                 .OnDelete(DeleteBehavior.Restrict);
 
+
             modelBuilder.Entity<Employee>()
                 .HasOne(e => e.Branch)
                 .WithMany(b => b.Employees)
                 .HasForeignKey(e => e.BranchId)
                 .HasPrincipalKey(b => b.Code)
                 .OnDelete(DeleteBehavior.Restrict);
-
         }
     }
 }

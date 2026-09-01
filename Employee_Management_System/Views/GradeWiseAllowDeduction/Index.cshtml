@@ -1,0 +1,787 @@
+﻿@model Employee_Management_System.Models.GradeWiseAllowDeductionViewModel
+
+@{
+    ViewData["Title"] = "Grade Wise Allow / Deduction";
+}
+
+<div class="container mt-4 mb-5">
+
+    <div class="card shadow">
+
+        <!-- =====================================================
+             PAGE HEADER
+        ====================================================== -->
+
+        <div class="card-header bg-primary text-white text-center">
+
+            <h3 class="mb-0">
+
+                <i class="bi bi-table me-2"></i>
+
+                Grade Wise Allow / Deduction
+
+            </h3>
+
+        </div>
+
+
+        <div class="card-body">
+
+
+            <div class="row g-4">
+
+
+                <!-- =====================================================
+                     ALLOWANCE LIST
+                     dbo.allwmast
+                ====================================================== -->
+
+                <div class="col-md-6">
+
+                    <div class="card h-100 shadow-sm">
+
+
+                        <div class="card-header">
+
+                            <h5 class="text-success mb-0">
+
+                                <i class="bi bi-cash-stack me-2"></i>
+
+                                Allowance List
+
+                            </h5>
+
+                        </div>
+
+
+                        <div class="card-body">
+
+
+                            <div class="table-responsive">
+
+
+                                <table class="table table-bordered table-hover align-middle">
+
+
+                                    <thead class="table-success">
+
+                                        <tr>
+
+                                            <th style="width:100px;">
+                                                Code
+                                            </th>
+
+                                            <th>
+                                                Name
+                                            </th>
+
+                                        </tr>
+
+                                    </thead>
+
+
+                                    <tbody>
+
+
+                                        @if (Model.Allowances != null &&
+                                                                                Model.Allowances.Any())
+                                        {
+
+                                            foreach (var item in Model.Allowances)
+                                            {
+
+                                                bool isSelected =
+                                                Model.SelectedAllowanceCode.HasValue &&
+                                                Model.SelectedAllowanceCode.Value == item.Code;
+
+
+                                                <tr style="cursor:pointer;"
+                                                    class="@(isSelected ? "table-warning fw-bold" : "")"
+                                                    onclick="window.location.href='@Url.Action(
+                                                                                                            "Index",
+                                                                                                            "GradeWiseAllowDeduction",
+                                                                                                            new { allowanceCode = item.Code })'">
+
+
+                                            <td>
+
+                                                        @item.Code
+
+                                                    </td>
+
+
+                                                    <td>
+
+                                                        @item.Name
+
+                                                    </td>
+
+
+                                                </tr>
+
+                                                                                }
+
+                                        }
+
+                                        else
+
+                                        {
+
+                                            <tr>
+
+                                                <td colspan="2"
+                                                    class="text-center text-muted">
+
+                                                    No Allowance records found.
+
+                                                </td>
+
+                                            </tr>
+
+                                        }
+
+
+                                    </tbody>
+
+
+                                </table>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =====================================================
+                     DEDUCTION LIST
+                     dbo.dedumast
+                ====================================================== -->
+
+                <div class="col-md-6">
+
+
+                    <div class="card h-100 shadow-sm">
+
+
+                        <div class="card-header">
+
+
+                            <h5 class="text-danger mb-0">
+
+                                <i class="bi bi-dash-circle me-2"></i>
+
+                                Deduction List
+
+                            </h5>
+
+
+                        </div>
+
+
+                        <div class="card-body">
+
+
+                            <div class="table-responsive">
+
+
+                                <table class="table table-bordered table-hover align-middle">
+
+
+                                    <thead class="table-danger">
+
+
+                                        <tr>
+
+                                            <th style="width:100px;">
+                                                Code
+                                            </th>
+
+                                            <th>
+                                                Name
+                                            </th>
+
+                                        </tr>
+
+
+                                    </thead>
+
+
+                                    <tbody>
+
+
+                                        @if (Model.Deductions != null &&
+                                                                                Model.Deductions.Any())
+                                        {
+
+                                            foreach (var item in Model.Deductions)
+                                            {
+
+                                                bool isSelectedDeduction =
+                                                Model.SelectedDeductionCode.HasValue &&
+                                                Model.SelectedDeductionCode.Value == item.Code;
+
+
+                                                <tr style="cursor:pointer;"
+                                                    class="@(isSelectedDeduction ? "table-warning fw-bold" : "")"
+                                                    onclick="window.location.href='@Url.Action(
+                                                                                                            "Index",
+                                                                                                            "GradeWiseAllowDeduction",
+                                                                                                            new { deductionCode = item.Code })'">
+
+
+                                            <td>
+
+                                                        @item.Code
+
+                                                    </td>
+
+
+                                                    <td>
+
+                                                        @item.Name
+
+                                                    </td>
+
+
+                                                </tr>
+
+                                                                                }
+
+                                        }
+
+                                        else
+
+                                        {
+
+                                            <tr>
+
+
+                                                <td colspan="2"
+                                                    class="text-center text-muted">
+
+                                                    No Deduction records found.
+
+                                                </td>
+
+
+                                            </tr>
+
+                                        }
+
+
+                                    </tbody>
+
+
+                                </table>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- =====================================================
+                 SELECTED ALLOWANCE DETAILS
+                 dbo.allwfoot
+
+                 Matching:
+                 allwmast.code = allwfoot.allw_code
+            ====================================================== -->
+            @if (Model.SelectedAllowanceCode.HasValue)
+            {
+
+                <div class="card mt-4 shadow-sm">
+
+
+                    <div class="card-header bg-primary text-white">
+
+
+                        <h5 class="mb-0">
+
+
+                            <i class="bi bi-list-check me-2"></i>
+
+
+                            Allowance Details for :
+
+
+                            [ @Model.SelectedAllowanceCode ]
+
+
+                            -
+
+
+                            @Model.SelectedAllowanceName
+
+
+                        </h5>
+
+
+                    </div>
+
+
+                    <div class="card-body">
+
+
+                        @if (Model.AllowanceDetails != null &&
+                                            Model.AllowanceDetails.Any())
+                        {
+
+
+                            <div class="table-responsive">
+
+
+                                <table class="table table-bordered table-striped table-hover align-middle">
+
+
+                                    <thead class="table-primary">
+
+
+                                        <tr>
+
+
+                                            <th class="text-center">
+                                                Grade Code
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Fix Amount
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Calc Code
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Percentage
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Min Limit
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Max Limit
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Min Days
+                                            </th>
+
+
+                                        </tr>
+
+
+                                    </thead>
+
+
+                                    <tbody>
+
+
+                                        @foreach (var item in Model.AllowanceDetails)
+                                        {
+
+                                            <tr>
+
+
+                                                <td class="text-center">
+
+                                                    @item.GradeCode.ToString("0")
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.FixAmount.HasValue
+                                                                                            ? item.FixAmount.Value.ToString("0.00")
+                                                                                            : "")
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.CalcCode.HasValue
+                                                                                            ? item.CalcCode.Value.ToString("0")
+                                                                                            : "")
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.Percent.HasValue
+                                                                                            ? item.Percent.Value.ToString("0.00")
+                                                                                            : "")
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.MinLimit.HasValue
+                                                                                            ? item.MinLimit.Value.ToString("0")
+                                                                                            : "")
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.MaxLimit.HasValue
+                                                                                            ? item.MaxLimit.Value.ToString("0")
+                                                                                            : "")
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.MinDays.HasValue
+                                                                                            ? item.MinDays.Value.ToString("0")
+                                                                                            : "")
+
+                                    </td>
+
+
+                                            </tr>
+
+                                                                }
+
+
+                                    </tbody>
+
+
+                                </table>
+
+
+                            </div>
+
+
+                            <div class="mt-2">
+
+
+                                <strong>
+
+                                    Total Records :
+
+                                </strong>
+
+
+                                @Model.AllowanceDetails.Count
+
+
+                            </div>
+
+
+                        }
+
+                        else
+
+                        {
+
+
+                            <div class="alert alert-warning mb-0">
+
+
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+
+
+                                No allowance details found for
+
+
+                                <strong>
+
+                                    @Model.SelectedAllowanceName
+
+                                </strong>.
+
+
+                            </div>
+
+
+                        }
+
+
+                    </div>
+
+
+                </div>
+
+
+            }
+
+
+
+            <!-- =====================================================
+                 SELECTED DEDUCTION DETAILS
+                 dbo.dedufoot
+
+                 Matching:
+                 dedumast.code = dedufoot.dedu_code
+            ====================================================== -->
+            @if (Model.SelectedDeductionCode.HasValue)
+            {
+
+                <div class="card mt-4 shadow-sm">
+
+
+                    <div class="card-header bg-danger text-white">
+
+
+                        <h5 class="mb-0">
+
+
+                            <i class="bi bi-dash-circle me-2"></i>
+
+
+                            Deduction Details for :
+
+
+                            [ @Model.SelectedDeductionCode ]
+
+
+                            -
+
+
+                            @Model.SelectedDeductionName
+
+
+                        </h5>
+
+
+                    </div>
+
+
+                    <div class="card-body">
+
+
+                        @if (Model.DeductionDetails != null &&
+                                            Model.DeductionDetails.Any())
+                        {
+
+
+                            <div class="table-responsive">
+
+
+                                <table class="table table-bordered table-striped table-hover align-middle">
+
+
+                                    <thead class="table-danger">
+
+
+                                        <tr>
+
+
+                                            <th class="text-center">
+                                                Grade Code
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Fix Amount
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Calc Code
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Percentage
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Min Limit
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Max Limit
+                                            </th>
+
+
+                                            <th class="text-center">
+                                                Min Days
+                                            </th>
+
+
+                                        </tr>
+
+
+                                    </thead>
+
+
+                                    <tbody>
+
+
+                                        @foreach (var item in Model.DeductionDetails)
+                                        {
+
+                                            <tr>
+
+
+                                                <td class="text-center">
+
+                                                    @item.GradeCode
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.FixAmount.HasValue
+                                                                                            ? item.FixAmount.Value.ToString("0.00")
+                                                                                            : "")
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.CalcCode.HasValue
+                                                                                            ? item.CalcCode.Value.ToString()
+                                                                                            : "")
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.Percent.HasValue
+                                                                                            ? item.Percent.Value.ToString("0.00")
+                                                                                            : "")
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.MinLimit.HasValue
+                                                                                            ? item.MinLimit.Value.ToString("0.00")
+                                                                                            : "")
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.MaxLimit.HasValue
+                                                                                            ? item.MaxLimit.Value.ToString("0.00")
+                                                                                            : "")
+
+                                                </td>
+
+
+                                                <td class="text-center">
+
+                                                    @(item.MinDays.HasValue
+                                                                                            ? item.MinDays.Value.ToString()
+                                                                                            : "")
+
+                                    </td>
+
+
+                                            </tr>
+
+                                                                }
+
+
+                                    </tbody>
+
+
+                                </table>
+
+
+                            </div>
+
+
+                            <div class="mt-2">
+
+
+                                <strong>
+
+                                    Total Records :
+
+                                </strong>
+
+
+                                @Model.DeductionDetails.Count
+
+
+                            </div>
+
+
+                        }
+
+                        else
+
+                        {
+
+
+                            <div class="alert alert-warning mb-0">
+
+
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+
+
+                                No deduction details found for
+
+
+                                <strong>
+
+                                    @Model.SelectedDeductionName
+
+                                </strong>.
+
+
+                            </div>
+
+
+                        }
+
+
+                    </div>
+
+
+                </div>
+
+
+            }
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
