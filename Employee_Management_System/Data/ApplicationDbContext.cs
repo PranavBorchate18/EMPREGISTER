@@ -5,14 +5,16 @@ namespace Employee_Management_System.Data
 {
     public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        public ApplicationDbContext(
+            DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
         }
 
-        //=========================================
-        // DbSets
-        //=========================================
+
+        // =========================================================
+        // DBSETS
+        // =========================================================
 
         public DbSet<Employee> Employees { get; set; }
 
@@ -39,22 +41,24 @@ namespace Employee_Management_System.Data
         public DbSet<Section> Sections { get; set; }
 
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+
+        protected override void OnModelCreating(
+            ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
 
-            //=========================================
-            // Employee
-            //=========================================
+            // =====================================================
+            // EMPLOYEE
+            // =====================================================
 
             modelBuilder.Entity<Employee>()
                 .ToTable("Employee");
 
 
-            //=========================================
-            // Grade Master
-            //=========================================
+            // =====================================================
+            // GRADE MASTER
+            // =====================================================
 
             modelBuilder.Entity<GradeMaster>(entity =>
             {
@@ -62,24 +66,28 @@ namespace Employee_Management_System.Data
 
                 entity.HasKey(e => e.Code);
 
+
                 entity.Property(e => e.Code)
-                      .HasColumnName("code");
+                    .HasColumnName("code");
+
 
                 entity.Property(e => e.GradeName)
-                      .HasColumnName("name");
+                    .HasColumnName("name");
+
 
                 entity.Property(e => e.MarathiName)
-                      .HasColumnName("mname");
+                    .HasColumnName("mname");
+
 
                 entity.Property(e => e.NewCode)
-                      .HasColumnName("New_Code")
-                      .HasPrecision(18, 2);
+                    .HasColumnName("New_Code")
+                    .HasPrecision(18, 2);
             });
 
 
-            //=========================================
-            // Branch Master
-            //=========================================
+            // =====================================================
+            // BRANCH MASTER
+            // =====================================================
 
             modelBuilder.Entity<Branch>(entity =>
             {
@@ -87,17 +95,19 @@ namespace Employee_Management_System.Data
 
                 entity.HasKey(e => e.Code);
 
+
                 entity.Property(e => e.Code)
-                      .HasColumnName("code");
+                    .HasColumnName("code");
+
 
                 entity.Property(e => e.BranchName)
-                      .HasColumnName("name");
+                    .HasColumnName("name");
             });
 
 
-            //=========================================
-            // Section Master
-            //=========================================
+            // =====================================================
+            // SECTION MASTER
+            // =====================================================
 
             modelBuilder.Entity<Section>(entity =>
             {
@@ -105,17 +115,19 @@ namespace Employee_Management_System.Data
 
                 entity.HasKey(e => e.Code);
 
+
                 entity.Property(e => e.Code)
-                      .HasColumnName("code");
+                    .HasColumnName("code");
+
 
                 entity.Property(e => e.SectionName)
-                      .HasColumnName("name");
+                    .HasColumnName("name");
             });
 
 
-            //=========================================
-            // Caste Master
-            //=========================================
+            // =====================================================
+            // CAST MASTER
+            // =====================================================
 
             modelBuilder.Entity<CastMaster>(entity =>
             {
@@ -123,21 +135,24 @@ namespace Employee_Management_System.Data
 
                 entity.HasKey(e => e.Code);
 
+
                 entity.Property(e => e.Code)
-                      .HasColumnName("Code")
-                      .HasPrecision(18, 0);
+                    .HasColumnName("Code")
+                    .HasPrecision(18, 0);
+
 
                 entity.Property(e => e.CastName)
-                      .HasColumnName("Name");
+                    .HasColumnName("Name");
+
 
                 entity.Property(e => e.MarathiName)
-                      .HasColumnName("MName");
+                    .HasColumnName("MName");
             });
 
 
-            //=========================================
-            // Party Master / Customer
-            //=========================================
+            // =====================================================
+            // PARTY MASTER
+            // =====================================================
 
             modelBuilder.Entity<PartyMaster>(entity =>
             {
@@ -145,117 +160,158 @@ namespace Employee_Management_System.Data
 
                 entity.HasKey(e => e.Code);
 
+
                 entity.Property(e => e.Code)
                     .HasColumnName("CODE")
                     .HasPrecision(18, 0);
 
+
                 entity.Property(e => e.Name)
                     .HasColumnName("name");
+
 
                 entity.Property(e => e.EnglishName)
                     .HasColumnName("ename");
 
+
                 entity.Property(e => e.Address1)
                     .HasColumnName("ADDR1");
+
 
                 entity.Property(e => e.Address2)
                     .HasColumnName("ADDR2");
 
+
                 entity.Property(e => e.Address3)
                     .HasColumnName("ADDR3");
+
 
                 entity.Property(e => e.Address4)
                     .HasColumnName("ADDR4");
 
+
                 entity.Property(e => e.Address5)
                     .HasColumnName("ADDR5");
+
 
                 entity.Property(e => e.Pin)
                     .HasColumnName("PIN");
 
-                entity.Property(e => e.CorrespondenceAddress1)
+
+                entity.Property(e =>
+                        e.CorrespondenceAddress1)
                     .HasColumnName("CorAddr1");
 
-                entity.Property(e => e.CorrespondenceAddress2)
+
+                entity.Property(e =>
+                        e.CorrespondenceAddress2)
                     .HasColumnName("CorAddr2");
 
-                entity.Property(e => e.CorrespondenceAddress3)
+
+                entity.Property(e =>
+                        e.CorrespondenceAddress3)
                     .HasColumnName("CorAddr3");
 
-                entity.Property(e => e.CorrespondencePinCode)
+
+                entity.Property(e =>
+                        e.CorrespondencePinCode)
                     .HasColumnName("CorPincCode");
+
 
                 entity.Property(e => e.Phone)
                     .HasColumnName("PHONE");
 
+
                 entity.Property(e => e.Phone1)
                     .HasColumnName("PHONE1");
+
 
                 entity.Property(e => e.Mobile)
                     .HasColumnName("Mobile");
 
+
                 entity.Property(e => e.EmailId)
                     .HasColumnName("EMAIL_ID");
+
 
                 entity.Property(e => e.Sex)
                     .HasColumnName("SEX");
 
+
                 entity.Property(e => e.BirthDate)
                     .HasColumnName("birthdate");
+
 
                 entity.Property(e => e.FatherName)
                     .HasColumnName("FATHERNAME");
 
+
                 entity.Property(e => e.PanNumber)
                     .HasColumnName("pan_no");
+
 
                 entity.Property(e => e.AadhaarNumber)
                     .HasColumnName("AdharNo");
 
+
                 entity.Property(e => e.Nationality)
                     .HasColumnName("NATIONALITY");
+
 
                 entity.Property(e => e.Religion)
                     .HasColumnName("Religion");
 
+
                 entity.Property(e => e.Caste)
                     .HasColumnName("Cast");
+
 
                 entity.Property(e => e.Area)
                     .HasColumnName("Area");
 
+
                 entity.Property(e => e.City)
                     .HasColumnName("City");
+
 
                 entity.Property(e => e.Taluka)
                     .HasColumnName("Taluka");
 
+
                 entity.Property(e => e.District)
                     .HasColumnName("District");
+
 
                 entity.Property(e => e.State)
                     .HasColumnName("State");
 
+
                 entity.Property(e => e.VoterIdNumber)
                     .HasColumnName("VOTERIDNO");
+
 
                 entity.Property(e => e.PassportNumber)
                     .HasColumnName("PASSPORTNO");
 
+
                 entity.Property(e => e.GstNumber)
                     .HasColumnName("GST_No");
+
 
                 entity.Property(e => e.DrivingLicense)
                     .HasColumnName("Driving_License");
 
-                entity.Property(e => e.DrivingLicenseExpiryDate)
-                    .HasColumnName("Driving_License_ExpDate");
+
+                entity.Property(e =>
+                        e.DrivingLicenseExpiryDate)
+                    .HasColumnName(
+                        "Driving_License_ExpDate");
             });
 
 
-            //=========================================
-            // Religion Master
-            //=========================================
+            // =====================================================
+            // RELIGION MASTER
+            // =====================================================
 
             modelBuilder.Entity<ReligionMaster>(entity =>
             {
@@ -263,108 +319,147 @@ namespace Employee_Management_System.Data
 
                 entity.HasKey(e => e.Code);
 
+
                 entity.Property(e => e.Code)
-                      .HasColumnName("Code")
-                      .HasPrecision(18, 0);
+                    .HasColumnName("Code")
+                    .HasPrecision(18, 0);
+
 
                 entity.Property(e => e.ReligionName)
-                      .HasColumnName("Name");
+                    .HasColumnName("Name");
+
 
                 entity.Property(e => e.MarathiName)
-                      .HasColumnName("MName");
+                    .HasColumnName("MName");
             });
 
 
-            //=========================================
-            // AllwFoot
-            // dbo.allwfoot
-            //=========================================
+            // =====================================================
+            // ALLWFOOT
+            // =====================================================
 
             modelBuilder.Entity<AllwFoot>(entity =>
             {
-                // allwfoot has no primary key
-                entity.HasNoKey();
-
                 entity.ToTable("allwfoot");
+
+
+                entity.HasKey(x => new
+                {
+                    x.AllowCode,
+                    x.GradeCode
+                });
+
 
                 entity.Property(x => x.AllowCode)
                     .HasColumnName("allw_code")
                     .HasPrecision(10, 0);
 
+
                 entity.Property(x => x.GradeCode)
                     .HasColumnName("grad_code")
                     .HasPrecision(10, 0);
+
 
                 entity.Property(x => x.PayDiv)
                     .HasColumnName("Pay_Div")
                     .HasPrecision(18, 0);
 
+
                 entity.Property(x => x.FixAmount)
                     .HasColumnName("Fix_Amount")
                     .HasPrecision(18, 2);
+
 
                 entity.Property(x => x.CalcCode)
                     .HasColumnName("calc_code")
                     .HasPrecision(5, 0);
 
+
                 entity.Property(x => x.Percent)
                     .HasColumnName("percent")
                     .HasPrecision(18, 2);
+
 
                 entity.Property(x => x.MinLimit)
                     .HasColumnName("min_limit")
                     .HasPrecision(18, 0);
 
+
                 entity.Property(x => x.MaxLimit)
                     .HasColumnName("max_limit")
                     .HasPrecision(18, 0);
+
 
                 entity.Property(x => x.MinDays)
                     .HasColumnName("min_days")
                     .HasPrecision(10, 0);
 
-                
+
+                entity.Property(x => x.Apply)
+                    .HasColumnName("Apply");
             });
+
+
+            // =====================================================
+            // DEDUFOOT
+            // =====================================================
 
             modelBuilder.Entity<DeduFoot>(entity =>
             {
-                entity.HasNoKey();
-
                 entity.ToTable("dedufoot");
+
+
+                entity.HasKey(x => new
+                {
+                    x.DeduCode,
+                    x.GradeCode
+                });
+
 
                 entity.Property(x => x.DeduCode)
                     .HasColumnName("dedu_code");
 
+
                 entity.Property(x => x.GradeCode)
                     .HasColumnName("grad_code");
+
 
                 entity.Property(x => x.FixAmount)
                     .HasColumnName("FIX_amount")
                     .HasPrecision(18, 2);
 
+
                 entity.Property(x => x.CalcCode)
                     .HasColumnName("calc_code");
+
 
                 entity.Property(x => x.Percent)
                     .HasColumnName("percent")
                     .HasPrecision(18, 2);
 
+
                 entity.Property(x => x.MinLimit)
                     .HasColumnName("min_limit")
                     .HasPrecision(18, 2);
+
 
                 entity.Property(x => x.MaxLimit)
                     .HasColumnName("max_limit")
                     .HasPrecision(18, 2);
 
+
                 entity.Property(x => x.MinDays)
                     .HasColumnName("min_days");
+
+
+                entity.Property(x => x.Apply)
+                    .HasColumnName("Apply");
             });
 
 
-            //=========================================
-            // Relationships
-            //=========================================
+            // =====================================================
+            // RELATIONSHIPS
+            // =====================================================
 
             modelBuilder.Entity<Employee>()
                 .HasOne(e => e.Grade)

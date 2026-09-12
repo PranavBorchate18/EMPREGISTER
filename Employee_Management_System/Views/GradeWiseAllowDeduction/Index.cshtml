@@ -1,7 +1,14 @@
 ﻿@model Employee_Management_System.Models.GradeWiseAllowDeductionViewModel
 
 @{
-    ViewData["Title"] = "Grade Wise Allow / Deduction";
+    var selectedSection =
+        (ViewBag.SelectedSection as string ?? "allowance")
+            .ToLowerInvariant();
+
+    ViewData["Title"] =
+        selectedSection == "deduction"
+            ? "Grade Wise Deduction"
+            : "Grade Wise Allowance";
 }
 
 <div class="container mt-4 mb-5">
@@ -15,11 +22,10 @@
         <div class="card-header bg-primary text-white text-center">
 
             <h3 class="mb-0">
-
-                <i class="bi bi-table me-2"></i>
-
-                Grade Wise Allow / Deduction
-
+                <i class="bi bi-diagram-3 me-2"></i>
+                @(selectedSection == "deduction"
+                                ? "Grade Wise Deduction"
+                                : "Grade Wise Allowance")
             </h3>
 
         </div>
@@ -28,760 +34,2997 @@
         <div class="card-body">
 
 
-            <div class="row g-4">
+            <!-- =====================================================
+                 SUCCESS / ERROR MESSAGE
+            ====================================================== -->
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show"
+                     role="alert">
+
+                    <i class="bi bi-check-circle-fill me-2"></i>
+
+                    <strong>
+                        @TempData["Success"]
+                    </strong>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert">
+                    </button>
+
+                </div>
+            }
 
 
-                <!-- =====================================================
-                     ALLOWANCE LIST
-                     dbo.allwmast
-                ====================================================== -->
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show"
+                     role="alert">
 
-                <div class="col-md-6">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
 
-                    <div class="card h-100 shadow-sm">
+                    <strong>
+                        @TempData["Error"]
+                    </strong>
 
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert">
+                    </button>
 
-                        <div class="card-header">
-
-                            <h5 class="text-success mb-0">
-
-                                <i class="bi bi-cash-stack me-2"></i>
-
-                                Allowance List
-
-                            </h5>
-
-                        </div>
+                </div>
+            }
 
 
-                        <div class="card-body">
 
+            <!-- =====================================================
+                 ALLOWANCE TREE LIST
+                 dbo.allwmast
 
-                            <div class="table-responsive">
+                 Selected allowance detail is displayed
+                 immediately BELOW that allowance row.
+            ====================================================== -->
 
+            <div id="gradeWiseAllowanceSection"
+                 class="card shadow-sm"
+                 style="@(selectedSection == "allowance" ? "" : "display:none;")">
 
-                                <table class="table table-bordered table-hover align-middle">
+                <div class="card-header bg-success text-white">
 
-
-                                    <thead class="table-success">
-
-                                        <tr>
-
-                                            <th style="width:100px;">
-                                                Code
-                                            </th>
-
-                                            <th>
-                                                Name
-                                            </th>
-
-                                        </tr>
-
-                                    </thead>
-
-
-                                    <tbody>
-
-
-                                        @if (Model.Allowances != null &&
-                                                                                Model.Allowances.Any())
-                                        {
-
-                                            foreach (var item in Model.Allowances)
-                                            {
-
-                                                bool isSelected =
-                                                Model.SelectedAllowanceCode.HasValue &&
-                                                Model.SelectedAllowanceCode.Value == item.Code;
-
-
-                                                <tr style="cursor:pointer;"
-                                                    class="@(isSelected ? "table-warning fw-bold" : "")"
-                                                    onclick="window.location.href='@Url.Action(
-                                                                                                            "Index",
-                                                                                                            "GradeWiseAllowDeduction",
-                                                                                                            new { allowanceCode = item.Code })'">
-
-
-                                            <td>
-
-                                                        @item.Code
-
-                                                    </td>
-
-
-                                                    <td>
-
-                                                        @item.Name
-
-                                                    </td>
-
-
-                                                </tr>
-
-                                                                                }
-
-                                        }
-
-                                        else
-
-                                        {
-
-                                            <tr>
-
-                                                <td colspan="2"
-                                                    class="text-center text-muted">
-
-                                                    No Allowance records found.
-
-                                                </td>
-
-                                            </tr>
-
-                                        }
-
-
-                                    </tbody>
-
-
-                                </table>
-
-
-                            </div>
-
-
-                        </div>
-
-
-                    </div>
-
+                    <h5 class="mb-0">
+                        <i class="bi bi-cash-stack me-2"></i>
+                        Allowance List
+                    </h5>
 
                 </div>
 
 
+                <div class="card-body p-0">
 
-                <!-- =====================================================
-                     DEDUCTION LIST
-                     dbo.dedumast
-                ====================================================== -->
+                    <div class="table-responsive">
 
-                <div class="col-md-6">
+                        <table class="table table-bordered table-hover align-middle mb-0">
 
+                            <thead class="table-success">
 
-                    <div class="card h-100 shadow-sm">
+                                <tr>
 
+                                    <th style="width:110px;">
+                                        Code
+                                    </th>
 
-                        <div class="card-header">
+                                    <th>
+                                        Name
+                                    </th>
 
+                                    <th class="text-center"
+                                        style="width:170px;">
+                                        Selected / Total Grades
+                                    </th>
 
-                            <h5 class="text-danger mb-0">
+                                </tr>
 
-                                <i class="bi bi-dash-circle me-2"></i>
-
-                                Deduction List
-
-                            </h5>
-
-
-                        </div>
-
-
-                        <div class="card-body">
+                            </thead>
 
 
-                            <div class="table-responsive">
+                            <tbody>
+
+                                @if (Model.Allowances != null &&
+                                                                Model.Allowances.Any())
+                                {
+                                    foreach (var item in Model.Allowances)
+                                    {
+                                        bool isSelected =
+                                        Model.SelectedAllowanceCode.HasValue &&
+                                        Model.SelectedAllowanceCode.Value == item.Code;
 
 
-                                <table class="table table-bordered table-hover align-middle">
+                                        int allowanceAppliedCount =
+                                        Model.AllowanceSelectedGradeCounts != null &&
+                                        Model.AllowanceSelectedGradeCounts.ContainsKey(item.Code)
+                                        ? Model.AllowanceSelectedGradeCounts[item.Code]
+                                        : 0;
 
 
-                                    <thead class="table-danger">
+                                        <!-- =========================================
+                                             PARENT ALLOWANCE ROW
+                                        ========================================== -->
+                                        var allowanceToggleUrl =
+                                        isSelected
+                                        ? Url.Action(
+                                        "Index",
+                                        "GradeWiseAllowDeduction",
+                                        new
+                                        {
+                                            section = "allowance"
+                                        })
+                                        : Url.Action(
+                                        "Index",
+                                        "GradeWiseAllowDeduction",
+                                        new
+                                        {
+                                            allowanceCode = item.Code,
+                                            section = "allowance"
+                                        });
 
 
-                                        <tr>
+                                        <tr class="@(isSelected ? "table-warning fw-bold" : "")"
+                                            style="cursor:pointer;"
+                                            onclick="window.location.href='@allowanceToggleUrl'">
 
-                                            <th style="width:100px;">
-                                                Code
-                                            </th>
 
-                                            <th>
-                                                Name
-                                            </th>
+                                            <!-- CODE -->
+
+                                            <td>
+
+                                                @if (isSelected)
+                                                {
+                                                    <i class="bi bi-caret-down-fill text-success me-2"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-caret-right-fill text-secondary me-2"></i>
+                                                }
+
+                                                @item.Code
+
+                                            </td>
+
+
+                                            <!-- NAME -->
+
+                                            <td>
+                                                @item.Name
+                                            </td>
+
+                                            <td class="text-center">
+
+                                                <span class="badge bg-primary allowance-count-badge"
+                                                      data-allowance-code="@item.Code">
+                                                    @allowanceAppliedCount / @(Model.Grades?.Count ?? 0)
+                                                </span>
+
+                                            </td>
 
                                         </tr>
 
 
-                                    </thead>
-
-
-                                    <tbody>
-
-
-                                        @if (Model.Deductions != null &&
-                                                                                Model.Deductions.Any())
+                                        <!-- =========================================
+                                             CHILD ROW
+                                             Selected Allowance Details
+                                        ========================================== -->
+                                        @if (isSelected)
                                         {
-
-                                            foreach (var item in Model.Deductions)
-                                            {
-
-                                                bool isSelectedDeduction =
-                                                Model.SelectedDeductionCode.HasValue &&
-                                                Model.SelectedDeductionCode.Value == item.Code;
-
-
-                                                <tr style="cursor:pointer;"
-                                                    class="@(isSelectedDeduction ? "table-warning fw-bold" : "")"
-                                                    onclick="window.location.href='@Url.Action(
-                                                                                                            "Index",
-                                                                                                            "GradeWiseAllowDeduction",
-                                                                                                            new { deductionCode = item.Code })'">
-
-
-                                            <td>
-
-                                                        @item.Code
-
-                                                    </td>
-
-
-                                                    <td>
-
-                                                        @item.Name
-
-                                                    </td>
-
-
-                                                </tr>
-
-                                                                                }
-
-                                        }
-
-                                        else
-
-                                        {
-
                                             <tr>
 
+                                                <td colspan="3"
+                                                    class="p-0 bg-light">
 
-                                                <td colspan="2"
-                                                    class="text-center text-muted">
+                                                    <div class="p-3 ps-md-5">
 
-                                                    No Deduction records found.
+                                                        <div class="card border-primary shadow-sm mb-0">
+
+
+                                                            <!-- =============================
+                                                                 CHILD HEADER
+                                                            ============================== -->
+
+                                                            <div class="card-header bg-primary text-white">
+
+                                                                <div class="d-flex justify-content-between
+                                                                                                                                                                                                                            align-items-center
+                                                                                                                                                                                                                            flex-wrap gap-2">
+
+                                                                    <h6 class="mb-0">
+
+                                                                        <i class="bi bi-arrow-return-right me-2"></i>
+
+                                                                        Grade Details for :
+
+                                                                        [ @Model.SelectedAllowanceCode ]
+
+                                                                        -
+
+                                                                        @Model.SelectedAllowanceName
+
+                                                                    </h6>
+
+                                                                    <span class="badge bg-light text-primary border allowance-selected-summary"
+                                                                          data-allowance-code="@Model.SelectedAllowanceCode">
+                                                                        Selected Grades : @Model.AllowanceDetails.Count(x => x.IsSelected) / @(Model.Grades?.Count ?? 0)
+                                                                    </span>
+
+
+
+
+                                                                </div>
+
+                                                            </div>
+
+
+
+                                                            <!-- =============================
+                                                                 CHILD BODY
+                                                            ============================== -->
+
+                                                            <div class="card-body">
+
+
+                                                                @if (Model.AllowanceDetails != null &&
+                                                                                                                    Model.AllowanceDetails.Any())
+                                                                {
+                                                                    <div class="table-responsive">
+
+                                                                        <table class="table
+                                                                                                                                                                                                                                                                                      table-bordered
+                                                                                                                                                                                                                                                                                      table-striped
+                                                                                                                                                                                                                                                                                      table-hover
+                                                                                                                                                                                                                                                                                      align-middle
+                                                                                                                                                                                                                                                                                      mb-0">
+
+                                                                            <thead class="table-primary">
+
+                                                                                <tr>
+
+                                                                                    <th class="text-center"
+                                                                                        style="width:95px;">
+
+                                                                                        <div class="d-flex flex-column align-items-center justify-content-center">
+
+                                                                                            <label for="selectAllGrades"
+                                                                                                   class="mb-1 fw-bold"
+                                                                                                   style="cursor:pointer;">
+                                                                                                Select All
+                                                                                            </label>
+
+                                                                                            <input type="checkbox"
+                                                                                                   id="selectAllGrades"
+                                                                                                   class="form-check-input"
+                                                                                                   title="Select / Unselect All Grades" />
+
+                                                                                        </div>
+
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Code
+                                                                                    </th>
+
+                                                                                    <th>
+                                                                                        Name
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Fix Amount
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Calc Code
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Percentage
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Min Limit
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Max Limit
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Min Days
+                                                                                    </th>
+
+                                                                                    <th class="text-center"
+                                                                                        style="min-width:120px;">
+                                                                                        Action
+                                                                                    </th>
+
+                                                                                </tr>
+
+                                                                            </thead>
+
+
+                                                                            <tbody>
+
+                                                                                @foreach (var detail in Model.AllowanceDetails)
+                                                                                {
+                                                                                    <tr>
+
+                                                                                        <!-- SELECT / APPLY CHECKBOX -->
+
+                                                                                        <td class="text-center">
+
+                                                                                            <input type="checkbox"
+                                                                                                   class="form-check-input grade-apply-checkbox"
+                                                                                                   value="@detail.Code"
+                                                                                                   id="gradeApply_@Model.SelectedAllowanceCode@("_")@detail.Code"
+                                                                                                   data-allowance-code="@Model.SelectedAllowanceCode"
+                                                                                                   data-allowance-name="@Model.SelectedAllowanceName"
+                                                                                                   data-grade-code="@detail.Code"
+                                                                                                   data-grade-name="@detail.Name"
+                                                                                                   data-db-selected="@(detail.IsSelected ? "true" : "false")"
+                                                                                                   checked="@detail.IsSelected"
+                                                                                                   title="Selected = Apply 1, Unselected = Apply 0" />
+
+                                                                                        </td>
+
+
+                                                                                        <td class="text-center">
+                                                                                            @detail.Code
+                                                                                        </td>
+
+                                                                                        <td>
+                                                                                            @detail.Name
+                                                                                        </td>
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.FixAmount.HasValue
+                                                                                                                                                                    ? detail.FixAmount.Value.ToString("0.00")
+                                                                                                                                                                    : "")
+                                                                                                                                                                     </td>
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.CalcCode.HasValue
+                                                                                                                                                                    ? detail.CalcCode.Value.ToString("0")
+                                                                                                                                                                    : "")
+                                                                                                                                                                     </td>
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.Percent.HasValue
+                                                                                                                                                                    ? detail.Percent.Value.ToString("0.00")
+                                                                                                                                                                    : "")
+                                                                                                                                                                     </td>
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.MinLimit.HasValue
+                                                                                                                                                                    ? detail.MinLimit.Value.ToString("0")
+                                                                                                                                                                    : "")
+                                                                                                                                                                     </td>
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.MaxLimit.HasValue
+                                                                                                                                                                    ? detail.MaxLimit.Value.ToString("0")
+                                                                                                                                                                    : "")
+                                                                                                                                                                     </td>
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.MinDays.HasValue
+                                                                                                                                                                    ? detail.MinDays.Value.ToString("0")
+                                                                                                                                                                    : "")
+                                                                    </td>
+
+
+                                                                                        <!-- =================
+                                                                                             ACTION
+                                                                                        ================== -->
+
+                                                                                        <td class="text-center">
+
+
+                                                                                            <!-- INSERT -->
+                                                                                            <!-- UPDATE -->
+
+                                                                                            <button type="button"
+                                                                                                    class="btn btn-primary btn-sm btnUpdateAllowance btnEditAllowance @(detail.IsSelected ? "" : "d-none")"
+                                                                                                    data-bs-toggle="modal"
+                                                                                                    data-bs-target="#updateAllowanceModal"
+                                                                                                    data-code="@detail.Code"
+                                                                                                    data-name="@detail.Name"
+                                                                                                    data-paydiv="@(detail.IsSelected? detail.PayDiv.ToString() : "")"
+                                                                                                    data-fix="@detail.FixAmount"
+                                                                                                    data-calc="@detail.CalcCode"
+                                                                                                    data-percent="@detail.Percent"
+                                                                                                    data-min="@detail.MinLimit"
+                                                                                                    data-max="@detail.MaxLimit"
+                                                                                                    data-days="@detail.MinDays">
+
+                                                                                                <i class="bi bi-pencil-square"></i>
+                                                                                                Edit
+
+                                                                                            </button>
+
+
+                                                                                        </td>
+
+                                                                                    </tr>
+                                                                                                                                }
+
+                                                                            </tbody>
+
+                                                                        </table>
+
+                                                                    </div>
+
+
+                                                                    <div class="mt-2">
+
+                                                                        <strong>
+                                                                            Total Records :
+                                                                        </strong>
+
+                                                                        @Model.AllowanceDetails.Count
+
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <div class="alert alert-warning mb-0">
+
+                                                                        <i class="bi bi-exclamation-triangle me-2"></i>
+
+                                                                        No allowance details found for
+
+                                                                        <strong>
+                                                                            @Model.SelectedAllowanceName
+                                                                        </strong>.
+
+
+
+
+                                                                    </div>
+                                                                }
+
+                                                            </div>
+
+                                                        </div>
+
+                                                    </div>
 
                                                 </td>
 
-
                                             </tr>
-
                                         }
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
 
+                                        <td colspan="3"
+                                            class="text-center text-muted p-4">
 
-                                    </tbody>
+                                            No Allowance records found.
 
+                                        </td>
 
-                                </table>
+                                    </tr>
+                                }
 
+                            </tbody>
 
-                            </div>
-
-
-                        </div>
-
+                        </table>
 
                     </div>
 
+                </div>
+
+            </div>
+            <!-- =====================================================
+                 DEDUCTION TREE LIST
+                 dbo.dedumast
+
+                 Selected deduction detail is displayed
+                 immediately BELOW that deduction row.
+            ====================================================== -->
+
+            <div id="gradeWiseDeductionSection"
+                 class="card shadow-sm mt-4"
+                 style="@(selectedSection == "deduction" ? "" : "display:none;")">
+
+                <div class="card-header bg-danger text-white">
+
+                    <h5 class="mb-0">
+
+                        <i class="bi bi-dash-circle me-2"></i>
+
+                        Deduction List
+
+                    </h5>
 
                 </div>
 
+
+                <div class="card-body p-0">
+
+                    <div class="table-responsive">
+
+                        <table class="table table-bordered table-hover align-middle mb-0">
+
+                            <thead class="table-danger">
+
+                                <tr>
+
+                                    <th style="width:110px;">
+                                        Code
+                                    </th>
+
+                                    <th>
+                                        Name
+                                    </th>
+
+                                    <th class="text-center"
+                                        style="width:170px;">
+                                        Selected / Total Grades
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                @if (Model.Deductions != null &&
+                                                                Model.Deductions.Any())
+                                {
+                                    foreach (var item in Model.Deductions)
+                                    {
+                                        bool isSelectedDeduction =
+                                        Model.SelectedDeductionCode.HasValue &&
+                                        Model.SelectedDeductionCode.Value == item.Code;
+
+                                        int deductionAppliedCount =
+                                        Model.DeductionSelectedGradeCounts != null &&
+                                        Model.DeductionSelectedGradeCounts.ContainsKey(item.Code)
+                                        ? Model.DeductionSelectedGradeCounts[item.Code]
+                                        : 0;
+
+
+                                        var deductionToggleUrl =
+                                        isSelectedDeduction
+                                        ? Url.Action(
+                                        "Index",
+                                        "GradeWiseAllowDeduction",
+                                        new
+                                        {
+                                            section = "deduction"
+                                        })
+                                        : Url.Action(
+                                        "Index",
+                                        "GradeWiseAllowDeduction",
+                                        new
+                                        {
+                                            deductionCode = item.Code,
+                                            section = "deduction"
+                                        });
+
+
+                                        <!-- =========================================
+                                             PARENT DEDUCTION ROW
+                                        ========================================== -->
+
+                                        <tr class="@(isSelectedDeduction ? "table-warning fw-bold" : "")"
+                                            style="cursor:pointer;"
+                                            onclick="window.location.href='@deductionToggleUrl'">
+
+                                            <td>
+
+                                                @if (isSelectedDeduction)
+                                                {
+                                                    <i class="bi bi-caret-down-fill text-danger me-2"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-caret-right-fill text-secondary me-2"></i>
+                                                }
+
+                                                @item.Code
+
+                                            </td>
+
+                                            <td>
+                                                @item.Name
+                                            </td>
+
+                                            <td class="text-center">
+
+                                                <span class="badge bg-danger deduction-count-badge"
+                                                      data-deduction-code="@item.Code"
+                                                      data-db-count="@deductionAppliedCount">
+                                                    @deductionAppliedCount / @(Model.Grades?.Count ?? 0)
+                                                </span>
+
+                                            </td>
+
+                                        </tr>
+
+
+                                        <!-- =========================================
+                                             CHILD DEDUCTION GRADE DETAILS
+                                        ========================================== -->
+                                        @if (isSelectedDeduction)
+                                        {
+                                            <tr>
+
+                                                <td colspan="3"
+                                                    class="p-0 bg-light">
+
+                                                    <div class="p-3 ps-md-5">
+
+                                                        <div class="card border-danger shadow-sm mb-0">
+
+
+                                                            <!-- CHILD HEADER -->
+
+                                                            <div class="card-header bg-danger text-white">
+
+                                                                <div class="d-flex justify-content-between
+                                                                                                                                                                                                                align-items-center
+                                                                                                                                                                                                                flex-wrap gap-2">
+
+                                                                    <h6 class="mb-0">
+
+                                                                        <i class="bi bi-arrow-return-right me-2"></i>
+
+                                                                        Deduction Grade Details for :
+
+                                                                        [ @Model.SelectedDeductionCode ]
+
+                                                                        -
+
+                                                                        @Model.SelectedDeductionName
+
+                                                                    </h6>
+
+                                                                    <span class="badge bg-light text-danger border deduction-selected-summary"
+                                                                          data-deduction-code="@Model.SelectedDeductionCode"
+                                                                          data-db-count="@Model.DeductionDetails.Count(x => x.IsSelected)">
+                                                                        Selected Grades : @Model.DeductionDetails.Count(x => x.IsSelected) / @(Model.Grades?.Count ?? 0)
+                                                                    </span>
+
+
+
+
+                                                                </div>
+
+                                                            </div>
+
+
+                                                            <!-- CHILD BODY -->
+
+                                                            <div class="card-body">
+
+
+                                                                @if (Model.DeductionDetails != null &&
+                                                                                                                    Model.DeductionDetails.Any())
+                                                                {
+                                                                    <div class="table-responsive">
+
+                                                                        <table class="table
+                                                                                                                                                                                                                                                                      table-bordered
+                                                                                                                                                                                                                                                                      table-striped
+                                                                                                                                                                                                                                                                      table-hover
+                                                                                                                                                                                                                                                                      align-middle
+                                                                                                                                                                                                                                                                      mb-0">
+
+                                                                            <thead class="table-danger">
+
+                                                                                <tr>
+
+                                                                                    <th class="text-center"
+                                                                                        style="width:95px;">
+
+                                                                                        <div class="d-flex flex-column align-items-center justify-content-center">
+
+                                                                                            <label for="selectAllDeductionGrades"
+                                                                                                   class="mb-1 fw-bold"
+                                                                                                   style="cursor:pointer;">
+                                                                                                Select All
+                                                                                            </label>
+
+                                                                                            <input type="checkbox"
+                                                                                                   id="selectAllDeductionGrades"
+                                                                                                   class="form-check-input"
+                                                                                                   title="Select / Unselect All Deduction Grades" />
+
+                                                                                        </div>
+
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Code
+                                                                                    </th>
+
+                                                                                    <th>
+                                                                                        Name
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Fix Amount
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Calc Code
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Percentage
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Min Limit
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Max Limit
+                                                                                    </th>
+
+                                                                                    <th class="text-center">
+                                                                                        Min Days
+                                                                                    </th>
+
+                                                                                    <th class="text-center"
+                                                                                        style="min-width:120px;">
+                                                                                        Action
+                                                                                    </th>
+
+                                                                                </tr>
+
+                                                                            </thead>
+
+
+                                                                            <tbody>
+
+                                                                                @foreach (var detail in Model.DeductionDetails)
+                                                                                {
+                                                                                    <tr>
+
+                                                                                        <!-- SELECT -->
+
+                                                                                        <td class="text-center">
+
+                                                                                            <input type="checkbox"
+                                                                                                   class="form-check-input deduction-grade-apply-checkbox"
+                                                                                                   value="@detail.Code"
+                                                                                                   id="deductionGradeApply_@Model.SelectedDeductionCode@("_")@detail.Code"
+                                                                                                   data-deduction-code="@Model.SelectedDeductionCode"
+                                                                                                   data-deduction-name="@Model.SelectedDeductionName"
+                                                                                                   data-grade-code="@detail.Code"
+                                                                                                   data-grade-name="@detail.Name"
+                                                                                                   data-db-selected="@(detail.IsSelected ? "true" : "false")"
+                                                                                                   checked="@detail.IsSelected"
+                                                                                                   title="Selected = Apply 1, Unselected = Apply 0" />
+
+                                                                                        </td>
+
+
+                                                                                        <!-- CODE FROM dbo.gradmast -->
+
+                                                                                        <td class="text-center">
+                                                                                            @detail.Code
+                                                                                        </td>
+
+
+                                                                                        <!-- NAME FROM dbo.gradmast -->
+
+                                                                                        <td>
+                                                                                            @detail.Name
+                                                                                        </td>
+
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.FixAmount.HasValue
+                                                                                                                                                                    ? detail.FixAmount.Value.ToString("0.00")
+                                                                                                                                                                    : "")
+                                                                                                                                                                     </td>
+
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.CalcCode.HasValue
+                                                                                                                                                                    ? detail.CalcCode.Value.ToString()
+                                                                                                                                                                    : "")
+                                                                                                                                                                     </td>
+
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.Percent.HasValue
+                                                                                                                                                                    ? detail.Percent.Value.ToString("0.00")
+                                                                                                                                                                    : "")
+                                                                                                                                                                     </td>
+
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.MinLimit.HasValue
+                                                                                                                                                                    ? detail.MinLimit.Value.ToString("0.00")
+                                                                                                                                                                    : "")
+                                                                                                                                                                     </td>
+
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.MaxLimit.HasValue
+                                                                                                                                                                    ? detail.MaxLimit.Value.ToString("0.00")
+                                                                                                                                                                    : "")
+                                                                                                                                                                     </td>
+
+
+                                                                                        <td class="text-center">
+                                                                                            @(detail.MinDays.HasValue
+                                                                                                                                                                    ? detail.MinDays.Value.ToString()
+                                                                                                                                                                    : "")
+                                                                    </td>
+
+
+                                                                                        <!-- ACTION -->
+
+                                                                                        <td class="text-center">
+
+
+                                                                                            <!-- INSERT -->
+                                                                                            <!-- UPDATE -->
+
+                                                                                            <button type="button"
+                                                                                                    class="btn btn-primary btn-sm btnUpdateDeduction btnEditDeduction @(detail.IsSelected ? "" : "d-none")"
+                                                                                                    data-bs-toggle="modal"
+                                                                                                    data-bs-target="#updateDeductionModal"
+                                                                                                    data-code="@detail.Code"
+                                                                                                    data-name="@detail.Name"
+                                                                                                    data-fix="@detail.FixAmount"
+                                                                                                    data-calc="@detail.CalcCode"
+                                                                                                    data-percent="@detail.Percent"
+                                                                                                    data-min="@detail.MinLimit"
+                                                                                                    data-max="@detail.MaxLimit"
+                                                                                                    data-days="@detail.MinDays">
+
+                                                                                                <i class="bi bi-pencil-square"></i>
+                                                                                                Edit
+
+                                                                                            </button>
+
+
+                                                                                        </td>
+
+                                                                                    </tr>
+                                                                                                                                }
+
+                                                                            </tbody>
+
+                                                                        </table>
+
+                                                                    </div>
+
+
+                                                                    <div class="mt-2">
+
+                                                                        <strong>
+                                                                            Total Records :
+                                                                        </strong>
+
+                                                                        @Model.DeductionDetails.Count
+
+                                                                    </div>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <div class="alert alert-warning mb-0">
+
+                                                                        <i class="bi bi-exclamation-triangle me-2"></i>
+
+                                                                        No deduction details found for
+
+                                                                        <strong>
+                                                                            @Model.SelectedDeductionName
+                                                                        </strong>.
+
+
+
+
+                                                                    </div>
+                                                                }
+
+                                                            </div>
+
+                                                        </div>
+
+                                                    </div>
+
+                                                </td>
+
+                                            </tr>
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+
+                                        <td colspan="3"
+                                            class="text-center text-muted p-4">
+
+                                            No Deduction records found.
+
+                                        </td>
+
+                                    </tr>
+                                }
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
 
             </div>
 
 
 
-            <!-- =====================================================
-                 SELECTED ALLOWANCE DETAILS
-                 dbo.allwfoot
-
-                 Matching:
-                 allwmast.code = allwfoot.allw_code
-            ====================================================== -->
-            @if (Model.SelectedAllowanceCode.HasValue)
+            <!-- =================================================
+                 INSERT / UPDATE DEDUCTION DETAIL MODALS
+            ================================================== -->
+            @if (Model.SelectedDeductionCode.HasValue)
             {
+                <!-- INSERT DEDUCTION MODAL -->
 
-                <div class="card mt-4 shadow-sm">
+                <div class="modal fade"
+                     id="insertDeductionModal"
+                     tabindex="-1"
+                     aria-hidden="true">
 
+                    <div class="modal-dialog modal-lg">
 
-                    <div class="card-header bg-primary text-white">
+                        <div class="modal-content">
 
+                            <form asp-controller="GradeWiseAllowDeduction"
+                                  asp-action="InsertDeductionDetail"
+                                  method="post">
 
-                        <h5 class="mb-0">
-
-
-                            <i class="bi bi-list-check me-2"></i>
-
-
-                            Allowance Details for :
-
-
-                            [ @Model.SelectedAllowanceCode ]
-
-
-                            -
+                                @Html.AntiForgeryToken()
 
 
-                            @Model.SelectedAllowanceName
+                                <div class="modal-header bg-danger text-white">
+
+                                    <h5 class="modal-title">
+
+                                        <i class="bi bi-plus-circle me-2"></i>
+
+                                        Insert Deduction Detail
+
+                                    </h5>
 
 
-                        </h5>
+                                    <button type="button"
+                                            class="btn-close btn-close-white"
+                                            data-bs-dismiss="modal">
+                                    </button>
+
+                                </div>
 
 
-                    </div>
+                                <div class="modal-body">
 
 
-                    <div class="card-body">
+                                    <input type="hidden"
+                                           name="deductionCode"
+                                           value="@Model.SelectedDeductionCode" />
+
+                                    <input type="hidden"
+                                           name="section"
+                                           value="deduction" />
 
 
-                        @if (Model.AllowanceDetails != null &&
-                                            Model.AllowanceDetails.Any())
-                        {
+                                    <div class="row g-3">
 
 
-                            <div class="table-responsive">
+                                        <div class="col-md-6">
+
+                                            <label class="form-label">
+
+                                                Grade
+
+                                                <span class="text-danger">*</span>
+
+                                            </label>
 
 
-                                <table class="table table-bordered table-striped table-hover align-middle">
+                                            <select name="gradeCode"
+                                                    class="form-select"
+                                                    required>
+
+                                                <option value="">
+                                                    Select Grade
+                                                </option>
 
 
-                                    <thead class="table-primary">
+                                                @if (Model.Grades != null)
+                                                {
+                                                    foreach (var grade in Model.Grades)
+                                                    {
+                                                        <option value="@grade.Code">
+
+                                                            @grade.Code - @grade.GradeName
+
+                                                        </option>
+                                                    }
+                                                }
+
+                                            </select>
+
+                                        </div>
 
 
-                                        <tr>
+                                        <div class="col-md-6">
 
-
-                                            <th class="text-center">
-                                                Grade Code
-                                            </th>
-
-
-                                            <th class="text-center">
+                                            <label class="form-label">
                                                 Fix Amount
-                                            </th>
+                                            </label>
+
+                                            <input type="number"
+                                                   name="fixAmount"
+                                                   class="form-control"
+                                                   step="0.01" />
+
+                                        </div>
 
 
-                                            <th class="text-center">
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
                                                 Calc Code
-                                            </th>
+                                            </label>
+
+                                            <input type="number"
+                                                   name="calcCode"
+                                                   class="form-control"
+                                                   step="1" />
+
+                                        </div>
 
 
-                                            <th class="text-center">
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
                                                 Percentage
-                                            </th>
+                                            </label>
+
+                                            <input type="number"
+                                                   name="percent"
+                                                   class="form-control"
+                                                   step="0.01" />
+
+                                        </div>
 
 
-                                            <th class="text-center">
-                                                Min Limit
-                                            </th>
+                                        <div class="col-md-4">
 
-
-                                            <th class="text-center">
-                                                Max Limit
-                                            </th>
-
-
-                                            <th class="text-center">
+                                            <label class="form-label">
                                                 Min Days
-                                            </th>
+                                            </label>
 
+                                            <input type="number"
+                                                   name="minDays"
+                                                   class="form-control"
+                                                   step="1" />
 
-                                        </tr>
+                                        </div>
 
 
-                                    </thead>
+                                        <div class="col-md-6">
 
+                                            <label class="form-label">
+                                                Min Limit
+                                            </label>
 
-                                    <tbody>
+                                            <input type="number"
+                                                   name="minLimit"
+                                                   class="form-control"
+                                                   step="0.01" />
 
+                                        </div>
 
-                                        @foreach (var item in Model.AllowanceDetails)
-                                        {
 
-                                            <tr>
+                                        <div class="col-md-6">
 
+                                            <label class="form-label">
+                                                Max Limit
+                                            </label>
 
-                                                <td class="text-center">
+                                            <input type="number"
+                                                   name="maxLimit"
+                                                   class="form-control"
+                                                   step="0.01" />
 
-                                                    @item.GradeCode.ToString("0")
+                                        </div>
 
-                                                </td>
+                                    </div>
 
+                                </div>
 
-                                                <td class="text-center">
 
-                                                    @(item.FixAmount.HasValue
-                                                                                            ? item.FixAmount.Value.ToString("0.00")
-                                                                                            : "")
+                                <div class="modal-footer">
 
-                                                </td>
+                                    <button type="button"
+                                            class="btn btn-secondary"
+                                            data-bs-dismiss="modal">
 
+                                        <i class="bi bi-x-circle me-1"></i>
 
-                                                <td class="text-center">
+                                        Cancel
 
-                                                    @(item.CalcCode.HasValue
-                                                                                            ? item.CalcCode.Value.ToString("0")
-                                                                                            : "")
+                                    </button>
 
-                                                </td>
 
+                                    <button type="submit"
+                                            class="btn btn-success">
 
-                                                <td class="text-center">
+                                        <i class="bi bi-save me-1"></i>
 
-                                                    @(item.Percent.HasValue
-                                                                                            ? item.Percent.Value.ToString("0.00")
-                                                                                            : "")
+                                        Insert
 
-                                                </td>
+                                    </button>
 
+                                </div>
 
-                                                <td class="text-center">
+                            </form>
 
-                                                    @(item.MinLimit.HasValue
-                                                                                            ? item.MinLimit.Value.ToString("0")
-                                                                                            : "")
-
-                                                </td>
-
-
-                                                <td class="text-center">
-
-                                                    @(item.MaxLimit.HasValue
-                                                                                            ? item.MaxLimit.Value.ToString("0")
-                                                                                            : "")
-
-                                                </td>
-
-
-                                                <td class="text-center">
-
-                                                    @(item.MinDays.HasValue
-                                                                                            ? item.MinDays.Value.ToString("0")
-                                                                                            : "")
-
-                                    </td>
-
-
-                                            </tr>
-
-                                                                }
-
-
-                                    </tbody>
-
-
-                                </table>
-
-
-                            </div>
-
-
-                            <div class="mt-2">
-
-
-                                <strong>
-
-                                    Total Records :
-
-                                </strong>
-
-
-                                @Model.AllowanceDetails.Count
-
-
-                            </div>
-
-
-                        }
-
-                        else
-
-                        {
-
-
-                            <div class="alert alert-warning mb-0">
-
-
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-
-
-                                No allowance details found for
-
-
-                                <strong>
-
-                                    @Model.SelectedAllowanceName
-
-                                </strong>.
-
-
-                            </div>
-
-
-                        }
-
+                        </div>
 
                     </div>
-
 
                 </div>
 
 
+
+                <!-- UPDATE DEDUCTION MODAL -->
+
+                <div class="modal fade"
+                     id="updateDeductionModal"
+                     tabindex="-1"
+                     aria-hidden="true">
+
+                    <div class="modal-dialog modal-lg">
+
+                        <div class="modal-content">
+
+                            <form asp-controller="GradeWiseAllowDeduction"
+                                  asp-action="UpdateDeductionDetail"
+                                  method="post">
+
+                                @Html.AntiForgeryToken()
+
+
+                                <div class="modal-header bg-primary text-white">
+
+                                    <h5 class="modal-title">
+
+                                        <i class="bi bi-pencil-square me-2"></i>
+
+                                        Edit Deduction Detail
+
+                                    </h5>
+
+
+                                    <button type="button"
+                                            class="btn-close btn-close-white"
+                                            data-bs-dismiss="modal">
+                                    </button>
+
+                                </div>
+
+
+                                <div class="modal-body">
+
+
+                                    <input type="hidden"
+                                           name="deductionCode"
+                                           value="@Model.SelectedDeductionCode" />
+
+
+                                    <input type="hidden"
+                                           id="UpdateDeductionGradeCode"
+                                           name="gradeCode" />
+
+
+                                    <div class="row g-3">
+
+
+                                        <div class="col-md-6">
+
+                                            <label class="form-label">
+                                                Code
+                                            </label>
+
+
+                                            <input type="text"
+                                                   id="UpdateDeductionGradeCodeDisplay"
+                                                   class="form-control"
+                                                   readonly />
+
+                                        </div>
+
+
+                                        <div class="col-md-6">
+
+                                            <label class="form-label">
+                                                Name
+                                            </label>
+
+
+                                            <input type="text"
+                                                   id="UpdateDeductionGradeName"
+                                                   class="form-control"
+                                                   readonly />
+
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-bold">Amount Type</label>
+
+                                            <div class="d-flex gap-4 flex-wrap">
+                                                <div class="form-check">
+                                                    <input class="form-check-input"
+                                                           type="radio"
+                                                           name="deductionAmountType"
+                                                           id="DeductionTypeFix"
+                                                           value="fix" />
+                                                    <label class="form-check-label"
+                                                           for="DeductionTypeFix">
+                                                        Fix Amount
+                                                    </label>
+                                                </div>
+
+                                                <div class="form-check">
+                                                    <input class="form-check-input"
+                                                           type="radio"
+                                                           name="deductionAmountType"
+                                                           id="DeductionTypePercent"
+                                                           value="percent" />
+                                                    <label class="form-check-label"
+                                                           for="DeductionTypePercent">
+                                                        Percentage
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4"
+                                             id="DeductionFixAmountBox">
+                                            <label class="form-label">
+                                                Fix Amount
+                                            </label>
+
+                                            <input type="number"
+                                                   id="UpdateDeductionFixAmount"
+                                                   name="fixAmount"
+                                                   class="form-control"
+                                                   step="0.01" />
+                                        </div>
+
+                                        <div class="col-md-4"
+                                             id="DeductionCalcCodeBox">
+                                            <label class="form-label">
+                                                Calc Code
+                                            </label>
+
+                                            <select id="UpdateDeductionCalcCode"
+                                                    name="calcCode"
+                                                    class="form-select">
+                                                <option value="">-- Select Calc Code --</option>
+                                                <option value="1">On Basic</option>
+                                                <option value="2">B+DA</option>
+                                                <option value="3">B+DA+HRA</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-4"
+                                             id="DeductionPercentBox">
+                                            <label class="form-label">
+                                                Percentage
+                                            </label>
+
+                                            <input type="number"
+                                                   id="UpdateDeductionPercent"
+                                                   name="percent"
+                                                   class="form-control"
+                                                   step="0.01" />
+                                        </div>
+
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
+                                                Min Limit
+                                            </label>
+
+
+                                            <input type="number"
+                                                   id="UpdateDeductionMinLimit"
+                                                   name="minLimit"
+                                                   class="form-control"
+                                                   step="0.01" />
+
+                                        </div>
+
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
+                                                Max Limit
+                                            </label>
+
+
+                                            <input type="number"
+                                                   id="UpdateDeductionMaxLimit"
+                                                   name="maxLimit"
+                                                   class="form-control"
+                                                   step="0.01" />
+
+                                        </div>
+
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
+                                                Min Days
+                                            </label>
+
+
+                                            <input type="number"
+                                                   id="UpdateDeductionMinDays"
+                                                   name="minDays"
+                                                   class="form-control"
+                                                   step="1" />
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="modal-footer">
+
+                                    <button type="button"
+                                            class="btn btn-secondary"
+                                            data-bs-dismiss="modal">
+
+                                        <i class="bi bi-x-circle me-1"></i>
+
+                                        Cancel
+
+                                    </button>
+
+
+                                    <button type="submit"
+                                            class="btn btn-primary">
+
+                                        <i class="bi bi-save me-1"></i>
+
+                                        Save Changes
+
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- UPDATE DEDUCTION MODAL JAVASCRIPT -->
+
+                <script>
+
+                    document.addEventListener(
+                        "DOMContentLoaded",
+                        function () {
+
+                            const updateButtons =
+                                document.querySelectorAll(
+                                    ".btnUpdateDeduction"
+                                );
+
+
+                            updateButtons.forEach(
+                                function (button) {
+
+                                    button.addEventListener(
+                                        "click",
+                                        function () {
+
+                                            document.getElementById(
+                                                "UpdateDeductionGradeCode"
+                                            ).value =
+                                                this.dataset.code || "";
+
+
+                                            document.getElementById(
+                                                "UpdateDeductionGradeCodeDisplay"
+                                            ).value =
+                                                this.dataset.code || "";
+
+
+                                            document.getElementById(
+                                                "UpdateDeductionGradeName"
+                                            ).value =
+                                                this.dataset.name || "";
+
+
+                                            document.getElementById(
+                                                "UpdateDeductionFixAmount"
+                                            ).value =
+                                                this.dataset.fix || "";
+
+
+                                            document.getElementById(
+                                                "UpdateDeductionCalcCode"
+                                            ).value =
+                                                this.dataset.calc || "";
+
+
+                                            document.getElementById(
+                                                "UpdateDeductionPercent"
+                                            ).value =
+                                                this.dataset.percent || "";
+
+
+                                            document.getElementById(
+                                                "UpdateDeductionMinLimit"
+                                            ).value =
+                                                this.dataset.min || "";
+
+
+                                            document.getElementById(
+                                                "UpdateDeductionMaxLimit"
+                                            ).value =
+                                                this.dataset.max || "";
+
+
+                                            document.getElementById(
+                                                "UpdateDeductionMinDays"
+                                            ).value =
+                                                this.dataset.days || "";
+
+                                            const fixValue =
+                                                this.dataset.fix || "";
+
+                                            const calcValue =
+                                                this.dataset.calc || "";
+
+                                            const percentValue =
+                                                this.dataset.percent || "";
+
+                                            const fixRadio =
+                                                document.getElementById("DeductionTypeFix");
+
+                                            const percentRadio =
+                                                document.getElementById("DeductionTypePercent");
+
+                                            const fixBox =
+                                                document.getElementById("DeductionFixAmountBox");
+
+                                            const calcBox =
+                                                document.getElementById("DeductionCalcCodeBox");
+
+                                            const percentBox =
+                                                document.getElementById("DeductionPercentBox");
+
+                                            const fixInput =
+                                                document.getElementById("UpdateDeductionFixAmount");
+
+                                            const calcInput =
+                                                document.getElementById("UpdateDeductionCalcCode");
+
+                                            const percentInput =
+                                                document.getElementById("UpdateDeductionPercent");
+
+                                            const usePercentage =
+                                                (
+                                                    String(calcValue).trim() !== "" &&
+                                                    Number(calcValue) !== 0
+                                                )
+                                                ||
+                                                (
+                                                    String(percentValue).trim() !== "" &&
+                                                    Number(percentValue) !== 0
+                                                );
+
+                                            function setDeductionMode(mode) {
+
+                                                if (mode === "fix") {
+
+                                                    if (fixRadio) fixRadio.checked = true;
+                                                    if (percentRadio) percentRadio.checked = false;
+
+                                                    if (fixBox) fixBox.style.display = "";
+                                                    if (calcBox) calcBox.style.display = "none";
+                                                    if (percentBox) percentBox.style.display = "none";
+
+                                                    if (fixInput) {
+                                                        fixInput.disabled = false;
+                                                    }
+
+                                                    if (calcInput) {
+                                                        calcInput.disabled = true;
+                                                        calcInput.value = "";
+                                                    }
+
+                                                    if (percentInput) {
+                                                        percentInput.disabled = true;
+                                                        percentInput.value = "";
+                                                    }
+                                                }
+                                                else {
+
+                                                    if (fixRadio) fixRadio.checked = false;
+                                                    if (percentRadio) percentRadio.checked = true;
+
+                                                    if (fixBox) fixBox.style.display = "none";
+                                                    if (calcBox) calcBox.style.display = "";
+                                                    if (percentBox) percentBox.style.display = "";
+
+                                                    if (fixInput) {
+                                                        fixInput.disabled = true;
+                                                    }
+
+                                                    if (calcInput) {
+                                                        calcInput.disabled = false;
+                                                        calcInput.value = calcValue;
+                                                    }
+
+                                                    if (percentInput) {
+                                                        percentInput.disabled = false;
+                                                        percentInput.value = percentValue;
+                                                    }
+                                                }
+                                            }
+
+                                            setDeductionMode(
+                                                usePercentage ? "percent" : "fix"
+                                            );
+
+                                            if (fixRadio) {
+                                                fixRadio.onchange = function () {
+                                                    if (this.checked) {
+                                                        setDeductionMode("fix");
+                                                    }
+                                                };
+                                            }
+
+                                            if (percentRadio) {
+                                                percentRadio.onchange = function () {
+                                                    if (this.checked) {
+                                                        setDeductionMode("percent");
+                                                    }
+                                                };
+                                            }
+
+                                        }
+                                    );
+
+                                }
+                            );
+
+                        }
+                    );
+
+                </script>
             }
 
 
 
-            <!-- =====================================================
-                 SELECTED DEDUCTION DETAILS
-                 dbo.dedufoot
-
-                 Matching:
-                 dedumast.code = dedufoot.dedu_code
-            ====================================================== -->
-            @if (Model.SelectedDeductionCode.HasValue)
+            <!-- =================================================
+                 INSERT ALLOWANCE DETAIL MODAL
+            ================================================== -->
+            @if (Model.SelectedAllowanceCode.HasValue)
             {
+                <div class="modal fade"
+                     id="insertAllowanceModal"
+                     tabindex="-1"
+                     aria-hidden="true">
 
-                <div class="card mt-4 shadow-sm">
+                    <div class="modal-dialog modal-lg">
 
+                        <div class="modal-content">
 
-                    <div class="card-header bg-danger text-white">
+                            <form asp-controller="GradeWiseAllowDeduction"
+                                  asp-action="InsertAllowanceDetail"
+                                  method="post">
 
-
-                        <h5 class="mb-0">
-
-
-                            <i class="bi bi-dash-circle me-2"></i>
-
-
-                            Deduction Details for :
-
-
-                            [ @Model.SelectedDeductionCode ]
+                                @Html.AntiForgeryToken()
 
 
-                            -
+                                <div class="modal-header bg-success text-white">
+
+                                    <h5 class="modal-title">
+
+                                        <i class="bi bi-plus-circle me-2"></i>
+
+                                        Insert Allowance Detail
+
+                                    </h5>
 
 
-                            @Model.SelectedDeductionName
+                                    <button type="button"
+                                            class="btn-close btn-close-white"
+                                            data-bs-dismiss="modal">
+                                    </button>
+
+                                </div>
 
 
-                        </h5>
+
+                                <div class="modal-body">
 
 
-                    </div>
+                                    <input type="hidden"
+                                           name="allowanceCode"
+                                           value="@Model.SelectedAllowanceCode" />
+
+                                    <input type="hidden"
+                                           name="section"
+                                           value="allowance" />
 
 
-                    <div class="card-body">
+                                    <div class="row g-3">
 
 
-                        @if (Model.DeductionDetails != null &&
-                                            Model.DeductionDetails.Any())
-                        {
+                                        <div class="col-md-6">
+
+                                            <label class="form-label">
+
+                                                Grade
+
+                                                <span class="text-danger">*</span>
+
+                                            </label>
 
 
-                            <div class="table-responsive">
+                                            <select name="gradeCode"
+                                                    class="form-select"
+                                                    required>
+
+                                                <option value="">
+                                                    Select Grade
+                                                </option>
 
 
-                                <table class="table table-bordered table-striped table-hover align-middle">
+                                                @if (Model.Grades != null)
+                                                {
+                                                    foreach (var grade in Model.Grades)
+                                                    {
+                                                        <option value="@grade.Code">
+
+                                                            @grade.Code - @grade.GradeName
+
+                                                        </option>
+                                                    }
+                                                }
+
+                                            </select>
+
+                                        </div>
 
 
-                                    <thead class="table-danger">
+
+                                        <div class="col-md-6">
+
+                                            <label class="form-label">
+
+                                                Pay Div
+
+                                                <span class="text-danger">*</span>
+
+                                            </label>
 
 
-                                        <tr>
+                                            <input type="number"
+                                                   name="payDiv"
+                                                   class="form-control"
+                                                   step="1"
+                                                   required />
+
+                                        </div>
 
 
-                                            <th class="text-center">
-                                                Grade Code
-                                            </th>
 
+                                        <div class="col-md-4">
 
-                                            <th class="text-center">
+                                            <label class="form-label">
                                                 Fix Amount
-                                            </th>
+                                            </label>
+
+                                            <input type="number"
+                                                   name="fixAmount"
+                                                   class="form-control"
+                                                   step="0.01" />
+
+                                        </div>
 
 
-                                            <th class="text-center">
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
                                                 Calc Code
-                                            </th>
+                                            </label>
+
+                                            <input type="number"
+                                                   name="calcCode"
+                                                   class="form-control"
+                                                   step="1" />
+
+                                        </div>
 
 
-                                            <th class="text-center">
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
                                                 Percentage
-                                            </th>
+                                            </label>
+
+                                            <input type="number"
+                                                   name="percent"
+                                                   class="form-control"
+                                                   step="0.01" />
+
+                                        </div>
 
 
-                                            <th class="text-center">
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
                                                 Min Limit
-                                            </th>
+                                            </label>
+
+                                            <input type="number"
+                                                   name="minLimit"
+                                                   class="form-control"
+                                                   step="1" />
+
+                                        </div>
 
 
-                                            <th class="text-center">
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
                                                 Max Limit
-                                            </th>
+                                            </label>
+
+                                            <input type="number"
+                                                   name="maxLimit"
+                                                   class="form-control"
+                                                   step="1" />
+
+                                        </div>
 
 
-                                            <th class="text-center">
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
                                                 Min Days
-                                            </th>
+                                            </label>
 
+                                            <input type="number"
+                                                   name="minDays"
+                                                   class="form-control"
+                                                   step="1" />
 
-                                        </tr>
+                                        </div>
 
+                                    </div>
 
-                                    </thead>
+                                </div>
 
 
-                                    <tbody>
 
+                                <div class="modal-footer">
 
-                                        @foreach (var item in Model.DeductionDetails)
-                                        {
+                                    <button type="button"
+                                            class="btn btn-secondary"
+                                            data-bs-dismiss="modal">
 
-                                            <tr>
+                                        <i class="bi bi-x-circle me-1"></i>
 
+                                        Cancel
 
-                                                <td class="text-center">
+                                    </button>
 
-                                                    @item.GradeCode
 
-                                                </td>
+                                    <button type="submit"
+                                            class="btn btn-success">
 
+                                        <i class="bi bi-save me-1"></i>
 
-                                                <td class="text-center">
+                                        Insert
 
-                                                    @(item.FixAmount.HasValue
-                                                                                            ? item.FixAmount.Value.ToString("0.00")
-                                                                                            : "")
+                                    </button>
 
-                                                </td>
+                                </div>
 
+                            </form>
 
-                                                <td class="text-center">
-
-                                                    @(item.CalcCode.HasValue
-                                                                                            ? item.CalcCode.Value.ToString()
-                                                                                            : "")
-
-                                                </td>
-
-
-                                                <td class="text-center">
-
-                                                    @(item.Percent.HasValue
-                                                                                            ? item.Percent.Value.ToString("0.00")
-                                                                                            : "")
-
-                                                </td>
-
-
-                                                <td class="text-center">
-
-                                                    @(item.MinLimit.HasValue
-                                                                                            ? item.MinLimit.Value.ToString("0.00")
-                                                                                            : "")
-
-                                                </td>
-
-
-                                                <td class="text-center">
-
-                                                    @(item.MaxLimit.HasValue
-                                                                                            ? item.MaxLimit.Value.ToString("0.00")
-                                                                                            : "")
-
-                                                </td>
-
-
-                                                <td class="text-center">
-
-                                                    @(item.MinDays.HasValue
-                                                                                            ? item.MinDays.Value.ToString()
-                                                                                            : "")
-
-                                    </td>
-
-
-                                            </tr>
-
-                                                                }
-
-
-                                    </tbody>
-
-
-                                </table>
-
-
-                            </div>
-
-
-                            <div class="mt-2">
-
-
-                                <strong>
-
-                                    Total Records :
-
-                                </strong>
-
-
-                                @Model.DeductionDetails.Count
-
-
-                            </div>
-
-
-                        }
-
-                        else
-
-                        {
-
-
-                            <div class="alert alert-warning mb-0">
-
-
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-
-
-                                No deduction details found for
-
-
-                                <strong>
-
-                                    @Model.SelectedDeductionName
-
-                                </strong>.
-
-
-                            </div>
-
-
-                        }
-
+                        </div>
 
                     </div>
-
 
                 </div>
 
 
+
+                <!-- =================================================
+                     UPDATE ALLOWANCE DETAIL MODAL
+                ================================================== -->
+
+                <div class="modal fade"
+                     id="updateAllowanceModal"
+                     tabindex="-1"
+                     aria-hidden="true">
+
+                    <div class="modal-dialog modal-lg">
+
+                        <div class="modal-content">
+
+                            <form asp-controller="GradeWiseAllowDeduction"
+                                  asp-action="UpdateAllowanceDetail"
+                                  method="post">
+
+                                @Html.AntiForgeryToken()
+
+
+                                <div class="modal-header bg-primary text-white">
+
+                                    <h5 class="modal-title">
+
+                                        <i class="bi bi-pencil-square me-2"></i>
+
+                                        Edit Allowance Detail
+
+                                    </h5>
+
+
+                                    <button type="button"
+                                            class="btn-close btn-close-white"
+                                            data-bs-dismiss="modal">
+                                    </button>
+
+                                </div>
+
+
+
+                                <div class="modal-body">
+
+
+                                    <input type="hidden"
+                                           name="allowanceCode"
+                                           value="@Model.SelectedAllowanceCode" />
+
+
+                                    <input type="hidden"
+                                           id="UpdateGradeCode"
+                                           name="gradeCode" />
+
+
+                                    <div class="row g-3">
+
+
+                                        <div class="col-md-6">
+
+                                            <label class="form-label">
+                                                Code
+                                            </label>
+
+
+                                            <input type="text"
+                                                   id="UpdateGradeCodeDisplay"
+                                                   class="form-control"
+                                                   readonly />
+
+                                        </div>
+
+
+
+                                        <div class="col-md-6">
+
+                                            <label class="form-label">
+                                                Name
+                                            </label>
+
+
+                                            <input type="text"
+                                                   id="UpdateGradeName"
+                                                   class="form-control"
+                                                   readonly />
+
+                                        </div>
+
+                                        <div class="col-md-6">
+
+                                            <label class="form-label">
+                                                Pay Div
+                                                <span class="text-danger">*</span>
+                                            </label>
+
+                                            <input type="number"
+                                                   id="UpdatePayDiv"
+                                                   name="payDiv"
+                                                   class="form-control"
+                                                   step="1"
+                                                   required />
+
+                                        </div>
+
+                                        <div class="col-12">
+                                            <label class="form-label fw-bold">Amount Type</label>
+
+                                            <div class="d-flex gap-4 flex-wrap">
+                                                <div class="form-check">
+                                                    <input class="form-check-input"
+                                                           type="radio"
+                                                           name="allowanceAmountType"
+                                                           id="AllowanceTypeFix"
+                                                           value="fix" />
+                                                    <label class="form-check-label"
+                                                           for="AllowanceTypeFix">
+                                                        Fix Amount
+                                                    </label>
+                                                </div>
+
+                                                <div class="form-check">
+                                                    <input class="form-check-input"
+                                                           type="radio"
+                                                           name="allowanceAmountType"
+                                                           id="AllowanceTypePercent"
+                                                           value="percent" />
+                                                    <label class="form-check-label"
+                                                           for="AllowanceTypePercent">
+                                                        Percentage
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4"
+                                             id="AllowanceFixAmountBox">
+                                            <label class="form-label">
+                                                Fix Amount
+                                            </label>
+
+                                            <input type="number"
+                                                   id="UpdateFixAmount"
+                                                   name="fixAmount"
+                                                   class="form-control"
+                                                   step="0.01" />
+                                        </div>
+
+                                        <div class="col-md-4"
+                                             id="AllowanceCalcCodeBox">
+                                            <label class="form-label">
+                                                Calc Code
+                                            </label>
+
+                                            <select id="UpdateCalcCode"
+                                                    name="calcCode"
+                                                    class="form-select">
+                                                <option value="">-- Select Calc Code --</option>
+                                                <option value="1">On Basic</option>
+                                                <option value="2">B+DA</option>
+                                                <option value="3">B+DA+HRA</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-4"
+                                             id="AllowancePercentBox">
+                                            <label class="form-label">
+                                                Percentage
+                                            </label>
+
+                                            <input type="number"
+                                                   id="UpdatePercent"
+                                                   name="percent"
+                                                   class="form-control"
+                                                   step="0.01" />
+                                        </div>
+
+
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
+                                                Min Limit
+                                            </label>
+
+
+                                            <input type="number"
+                                                   id="UpdateMinLimit"
+                                                   name="minLimit"
+                                                   class="form-control"
+                                                   step="1" />
+
+                                        </div>
+
+
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
+                                                Max Limit
+                                            </label>
+
+
+                                            <input type="number"
+                                                   id="UpdateMaxLimit"
+                                                   name="maxLimit"
+                                                   class="form-control"
+                                                   step="1" />
+
+                                        </div>
+
+
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label">
+                                                Min Days
+                                            </label>
+
+
+                                            <input type="number"
+                                                   id="UpdateMinDays"
+                                                   name="minDays"
+                                                   class="form-control"
+                                                   step="1" />
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div class="modal-footer">
+
+                                    <button type="button"
+                                            class="btn btn-secondary"
+                                            data-bs-dismiss="modal">
+
+                                        <i class="bi bi-x-circle me-1"></i>
+
+                                        Cancel
+
+                                    </button>
+
+
+                                    <button type="submit"
+                                            class="btn btn-primary">
+
+                                        <i class="bi bi-save me-1"></i>
+
+                                        Save Changes
+
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- =================================================
+                     UPDATE MODAL JAVASCRIPT
+                ================================================== -->
+
+                <script>
+
+                    document.addEventListener(
+                        "DOMContentLoaded",
+                        function () {
+
+
+                            const updateButtons =
+                                document.querySelectorAll(
+                                    ".btnUpdateAllowance"
+                                );
+
+
+                            updateButtons.forEach(
+                                function (button) {
+
+
+                                    button.addEventListener(
+                                        "click",
+                                        function () {
+
+
+                                            document.getElementById(
+                                                "UpdateGradeCode"
+                                            ).value =
+                                                this.dataset.code || "";
+
+
+                                            document.getElementById(
+                                                "UpdateGradeCodeDisplay"
+                                            ).value =
+                                                this.dataset.code || "";
+
+
+                                            document.getElementById(
+                                                "UpdateGradeName"
+                                            ).value =
+                                                this.dataset.name || "";
+
+
+                                            document.getElementById(
+                                                "UpdatePayDiv"
+                                            ).value =
+                                                this.dataset.paydiv || "";
+
+
+                                            document.getElementById(
+                                                "UpdateFixAmount"
+                                            ).value =
+                                                this.dataset.fix || "";
+
+
+                                            document.getElementById(
+                                                "UpdateCalcCode"
+                                            ).value =
+                                                this.dataset.calc || "";
+
+
+                                            document.getElementById(
+                                                "UpdatePercent"
+                                            ).value =
+                                                this.dataset.percent || "";
+
+
+                                            document.getElementById(
+                                                "UpdateMinLimit"
+                                            ).value =
+                                                this.dataset.min || "";
+
+
+                                            document.getElementById(
+                                                "UpdateMaxLimit"
+                                            ).value =
+                                                this.dataset.max || "";
+
+
+                                            document.getElementById(
+                                                "UpdateMinDays"
+                                            ).value =
+                                                this.dataset.days || "";
+
+                                            const fixValue =
+                                                this.dataset.fix || "";
+
+                                            const calcValue =
+                                                this.dataset.calc || "";
+
+                                            const percentValue =
+                                                this.dataset.percent || "";
+
+                                            const fixRadio =
+                                                document.getElementById("AllowanceTypeFix");
+
+                                            const percentRadio =
+                                                document.getElementById("AllowanceTypePercent");
+
+                                            const fixBox =
+                                                document.getElementById("AllowanceFixAmountBox");
+
+                                            const calcBox =
+                                                document.getElementById("AllowanceCalcCodeBox");
+
+                                            const percentBox =
+                                                document.getElementById("AllowancePercentBox");
+
+                                            const fixInput =
+                                                document.getElementById("UpdateFixAmount");
+
+                                            const calcInput =
+                                                document.getElementById("UpdateCalcCode");
+
+                                            const percentInput =
+                                                document.getElementById("UpdatePercent");
+
+                                            const usePercentage =
+                                                (
+                                                    String(calcValue).trim() !== "" &&
+                                                    Number(calcValue) !== 0
+                                                )
+                                                ||
+                                                (
+                                                    String(percentValue).trim() !== "" &&
+                                                    Number(percentValue) !== 0
+                                                );
+
+                                            function setAllowanceMode(mode) {
+
+                                                if (mode === "fix") {
+
+                                                    if (fixRadio) fixRadio.checked = true;
+                                                    if (percentRadio) percentRadio.checked = false;
+
+                                                    if (fixBox) fixBox.style.display = "";
+                                                    if (calcBox) calcBox.style.display = "none";
+                                                    if (percentBox) percentBox.style.display = "none";
+
+                                                    if (fixInput) {
+                                                        fixInput.disabled = false;
+                                                    }
+
+                                                    if (calcInput) {
+                                                        calcInput.disabled = true;
+                                                        calcInput.value = "";
+                                                    }
+
+                                                    if (percentInput) {
+                                                        percentInput.disabled = true;
+                                                        percentInput.value = "";
+                                                    }
+                                                }
+                                                else {
+
+                                                    if (fixRadio) fixRadio.checked = false;
+                                                    if (percentRadio) percentRadio.checked = true;
+
+                                                    if (fixBox) fixBox.style.display = "none";
+                                                    if (calcBox) calcBox.style.display = "";
+                                                    if (percentBox) percentBox.style.display = "";
+
+                                                    if (fixInput) {
+                                                        fixInput.disabled = true;
+                                                    }
+
+                                                    if (calcInput) {
+                                                        calcInput.disabled = false;
+                                                        calcInput.value = calcValue;
+                                                    }
+
+                                                    if (percentInput) {
+                                                        percentInput.disabled = false;
+                                                        percentInput.value = percentValue;
+                                                    }
+                                                }
+                                            }
+
+                                            setAllowanceMode(
+                                                usePercentage ? "percent" : "fix"
+                                            );
+
+                                            if (fixRadio) {
+                                                fixRadio.onchange = function () {
+                                                    if (this.checked) {
+                                                        setAllowanceMode("fix");
+                                                    }
+                                                };
+                                            }
+
+                                            if (percentRadio) {
+                                                percentRadio.onchange = function () {
+                                                    if (this.checked) {
+                                                        setAllowanceMode("percent");
+                                                    }
+                                                };
+                                            }
+
+                                        }
+                                    );
+
+                                }
+                            );
+
+                        }
+                    );
+
+                </script>
             }
 
 
         </div>
 
-
     </div>
 
-
 </div>
+
+
+
+<!-- Removed obsolete localStorage selection/count script. dbo.allwfoot.Apply is now the Allowance source of truth. -->
+<!-- Removed obsolete Deduction localStorage/row-exists override. -->
+<!-- Removed obsolete localStorage selection/count script. dbo.allwfoot.Apply is now the Allowance source of truth. -->
+<!-- Removed obsolete localStorage selection/count script. dbo.allwfoot.Apply is now the Allowance source of truth. -->
+
+
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        // Allowance selection is database-based now.
+        // Remove stale browser data left by the old implementation.
+        localStorage.removeItem("gradeWiseAllowanceSelections");
+
+        const allowanceCheckboxes =
+            Array.from(
+                document.querySelectorAll(
+                    ".grade-apply-checkbox"
+                )
+            );
+
+        const totalGrades =
+            Number(
+                "@(Model.Grades?.Count ?? 0)"
+            ) || 0;
+
+        const antiforgeryInput =
+            document.querySelector(
+                'input[name="__RequestVerificationToken"]'
+            );
+
+        const antiforgeryToken =
+            antiforgeryInput
+                ? antiforgeryInput.value
+                : "";
+
+
+        function setEditButton(
+            checkbox,
+            visible
+        ) {
+            const row =
+                checkbox.closest("tr");
+
+            const editButton =
+                row
+                    ? row.querySelector(
+                        ".btnEditAllowance"
+                      )
+                    : null;
+
+            if (!editButton) {
+                return;
+            }
+
+            editButton.classList.toggle(
+                "d-none",
+                !visible
+            );
+        }
+
+
+        function updateSelectedSummary() {
+
+            const selectedCount =
+                allowanceCheckboxes
+                    .filter(
+                        x => x.checked
+                    )
+                    .length;
+
+            const summary =
+                document.querySelector(
+                    ".allowance-selected-summary"
+                );
+
+            if (summary) {
+                summary.textContent =
+                    "Selected Grades : " +
+                    selectedCount +
+                    " / " +
+                    totalGrades;
+            }
+
+            const selectAll =
+                document.getElementById(
+                    "selectAllGrades"
+                );
+
+            if (selectAll) {
+                selectAll.checked =
+                    allowanceCheckboxes.length > 0 &&
+                    selectedCount ===
+                    allowanceCheckboxes.length;
+
+                selectAll.indeterminate =
+                    selectedCount > 0 &&
+                    selectedCount <
+                    allowanceCheckboxes.length;
+            }
+        }
+
+
+        async function saveApplyState(
+            checkbox,
+            isSelected
+        ) {
+            const body =
+                new URLSearchParams();
+
+            body.append(
+                "allowanceCode",
+                checkbox.dataset.allowanceCode || "0"
+            );
+
+            body.append(
+                "gradeCode",
+                checkbox.dataset.gradeCode || "0"
+            );
+
+            body.append(
+                "isSelected",
+                isSelected ? "true" : "false"
+            );
+
+            body.append(
+                "__RequestVerificationToken",
+                antiforgeryToken
+            );
+
+
+            const response =
+                await fetch(
+                    '@Url.Action("UpdateAllowanceApply", "GradeWiseAllowDeduction")',
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type":
+                                "application/x-www-form-urlencoded; charset=UTF-8"
+                        },
+                        body:
+                            body.toString()
+                    }
+                );
+
+
+            if (!response.ok) {
+                throw new Error(
+                    "Server request failed."
+                );
+            }
+
+            return await response.json();
+        }
+
+
+        // Initial state comes from dbo.allwfoot.Apply.
+        allowanceCheckboxes.forEach(
+            function (checkbox) {
+
+                const dbSelected =
+                    String(
+                        checkbox.dataset.dbSelected ||
+                        "false"
+                    ).toLowerCase() ===
+                    "true";
+
+                checkbox.checked =
+                    dbSelected;
+
+                setEditButton(
+                    checkbox,
+                    dbSelected
+                );
+
+
+                // IMPORTANT:
+                // Checkbox select -> only show Edit button.
+                // No row is inserted until Admin clicks Edit
+                // and saves the modal.
+                checkbox.addEventListener(
+                    "change",
+                    async function (event) {
+
+                        // Block older localStorage handlers.
+                        event.stopImmediatePropagation();
+
+                        const isChecked =
+                            this.checked;
+
+                        setEditButton(
+                            this,
+                            isChecked
+                        );
+
+                        updateSelectedSummary();
+
+
+                        // Checked:
+                        // UI only. Save happens from Edit modal.
+                        if (isChecked) {
+                            return;
+                        }
+
+
+                        // Unchecked:
+                        // If database row exists, set Apply = 0.
+                        // Do not delete values/row.
+                        try {
+                            const result =
+                                await saveApplyState(
+                                    this,
+                                    false
+                                );
+
+                            if (!result.success) {
+                                throw new Error(
+                                    result.message ||
+                                    "Unable to update Apply."
+                                );
+                            }
+
+                            this.dataset.dbSelected =
+                                "false";
+                        }
+                        catch (error) {
+
+                            // If database update fails, restore
+                            // previously saved database state.
+                            const dbSelected =
+                                String(
+                                    this.dataset.dbSelected ||
+                                    "false"
+                                ).toLowerCase() ===
+                                "true";
+
+                            this.checked =
+                                dbSelected;
+
+                            setEditButton(
+                                this,
+                                dbSelected
+                            );
+
+                            updateSelectedSummary();
+
+                            alert(
+                                "Unable to update Apply. " +
+                                error.message
+                            );
+                        }
+                    },
+                    true
+                );
+            }
+        );
+
+
+        // Select All:
+        // Checked -> show Edit buttons only.
+        // Unchecked -> existing DB rows get Apply = 0.
+        const selectAll =
+            document.getElementById(
+                "selectAllGrades"
+            );
+
+        if (selectAll) {
+
+            selectAll.addEventListener(
+                "change",
+                async function (event) {
+
+                    event.stopImmediatePropagation();
+
+                    const shouldCheck =
+                        this.checked;
+
+                    for (const checkbox of allowanceCheckboxes) {
+
+                        checkbox.checked =
+                            shouldCheck;
+
+                        setEditButton(
+                            checkbox,
+                            shouldCheck
+                        );
+
+                        if (!shouldCheck) {
+                            try {
+                                const result =
+                                    await saveApplyState(
+                                        checkbox,
+                                        false
+                                    );
+
+                                if (result.success) {
+                                    checkbox.dataset.dbSelected =
+                                        "false";
+                                }
+                            }
+                            catch {
+                                // Keep processing remaining grades.
+                            }
+                        }
+                    }
+
+                    updateSelectedSummary();
+                },
+                true
+            );
+        }
+
+
+        updateSelectedSummary();
+    });
+</script>
+
+
+<!-- =============================================================
+     FINAL DEDUCTION DATABASE SOURCE-OF-TRUTH OVERRIDE
+     dbo.dedufoot row exists = Grade Applied
+============================================================== -->
+<!-- Removed obsolete Deduction localStorage/row-exists override. -->
+<!-- =============================================================
+     DEDUCTION DATABASE APPLY LOGIC
+     dbo.dedufoot.Apply is the source of truth.
+============================================================== -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        // Remove stale browser state left by the old implementation.
+        localStorage.removeItem("gradeWiseDeductionSelections");
+
+        const deductionCheckboxes =
+            Array.from(
+                document.querySelectorAll(
+                    ".deduction-grade-apply-checkbox"
+                )
+            );
+
+        const totalGrades =
+            Number(
+                "@(Model.Grades?.Count ?? 0)"
+            ) || 0;
+
+        const antiforgeryInput =
+            document.querySelector(
+                'input[name="__RequestVerificationToken"]'
+            );
+
+        const antiforgeryToken =
+            antiforgeryInput
+                ? antiforgeryInput.value
+                : "";
+
+
+        function setDeductionEditButton(
+            checkbox,
+            visible
+        ) {
+            const row =
+                checkbox.closest("tr");
+
+            const editButton =
+                row
+                    ? row.querySelector(
+                        ".btnEditDeduction"
+                      )
+                    : null;
+
+            if (!editButton) {
+                return;
+            }
+
+            editButton.classList.toggle(
+                "d-none",
+                !visible
+            );
+        }
+
+
+        function updateDeductionSelectedSummary() {
+
+            const selectedCount =
+                deductionCheckboxes
+                    .filter(
+                        x => x.checked
+                    )
+                    .length;
+
+            const summary =
+                document.querySelector(
+                    ".deduction-selected-summary"
+                );
+
+            if (summary) {
+                summary.textContent =
+                    "Selected Grades : " +
+                    selectedCount +
+                    " / " +
+                    totalGrades;
+            }
+
+            const selectAll =
+                document.getElementById(
+                    "selectAllDeductionGrades"
+                );
+
+            if (selectAll) {
+                selectAll.checked =
+                    deductionCheckboxes.length > 0 &&
+                    selectedCount ===
+                    deductionCheckboxes.length;
+
+                selectAll.indeterminate =
+                    selectedCount > 0 &&
+                    selectedCount <
+                    deductionCheckboxes.length;
+            }
+        }
+
+
+        async function saveDeductionApplyState(
+            checkbox,
+            isSelected
+        ) {
+            const body =
+                new URLSearchParams();
+
+            body.append(
+                "deductionCode",
+                checkbox.dataset.deductionCode || "0"
+            );
+
+            body.append(
+                "gradeCode",
+                checkbox.dataset.gradeCode || "0"
+            );
+
+            body.append(
+                "isSelected",
+                isSelected ? "true" : "false"
+            );
+
+            body.append(
+                "__RequestVerificationToken",
+                antiforgeryToken
+            );
+
+            const response =
+                await fetch(
+                    '@Url.Action("UpdateDeductionApply", "GradeWiseAllowDeduction")',
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type":
+                                "application/x-www-form-urlencoded; charset=UTF-8"
+                        },
+                        body:
+                            body.toString()
+                    }
+                );
+
+            if (!response.ok) {
+                throw new Error(
+                    "Server request failed."
+                );
+            }
+
+            return await response.json();
+        }
+
+
+        // Initial state comes from dbo.dedufoot.Apply.
+        deductionCheckboxes.forEach(
+            function (checkbox) {
+
+                const dbSelected =
+                    String(
+                        checkbox.dataset.dbSelected ||
+                        "false"
+                    ).toLowerCase() ===
+                    "true";
+
+                checkbox.checked =
+                    dbSelected;
+
+                setDeductionEditButton(
+                    checkbox,
+                    dbSelected
+                );
+
+
+                // Checked:
+                // UI only. Admin must click Edit and Save.
+                // Save then creates/updates row with Apply = 1.
+                checkbox.addEventListener(
+                    "change",
+                    async function (event) {
+
+                        event.stopImmediatePropagation();
+
+                        const isChecked =
+                            this.checked;
+
+                        setDeductionEditButton(
+                            this,
+                            isChecked
+                        );
+
+                        updateDeductionSelectedSummary();
+
+                        if (isChecked) {
+                            return;
+                        }
+
+                        // Unchecked:
+                        // Existing row remains; only Apply becomes 0.
+                        try {
+                            const result =
+                                await saveDeductionApplyState(
+                                    this,
+                                    false
+                                );
+
+                            if (!result.success) {
+                                throw new Error(
+                                    result.message ||
+                                    "Unable to update Apply."
+                                );
+                            }
+
+                            this.dataset.dbSelected =
+                                "false";
+
+                            // Parent count = persisted Apply=true rows.
+                            const badge =
+                                document.querySelector(
+                                    '.deduction-count-badge[data-deduction-code="' +
+                                    (this.dataset.deductionCode || "") +
+                                    '"]'
+                                );
+
+                            if (
+                                badge &&
+                                result.rowExists &&
+                                result.selectedCount !== undefined
+                            ) {
+                                badge.dataset.dbCount =
+                                    result.selectedCount;
+
+                                badge.textContent =
+                                    result.selectedCount +
+                                    " / " +
+                                    totalGrades;
+                            }
+                        }
+                        catch (error) {
+
+                            const dbSelected =
+                                String(
+                                    this.dataset.dbSelected ||
+                                    "false"
+                                ).toLowerCase() ===
+                                "true";
+
+                            this.checked =
+                                dbSelected;
+
+                            setDeductionEditButton(
+                                this,
+                                dbSelected
+                            );
+
+                            updateDeductionSelectedSummary();
+
+                            alert(
+                                "Unable to update Apply. " +
+                                error.message
+                            );
+                        }
+                    },
+                    true
+                );
+            }
+        );
+
+
+        // Select All:
+        // Checked -> UI selection + Edit buttons only.
+        // Unchecked -> existing rows get Apply = 0, rows are not deleted.
+        const selectAll =
+            document.getElementById(
+                "selectAllDeductionGrades"
+            );
+
+        if (selectAll) {
+
+            selectAll.addEventListener(
+                "change",
+                async function (event) {
+
+                    event.stopImmediatePropagation();
+
+                    const shouldCheck =
+                        this.checked;
+
+                    for (const checkbox of deductionCheckboxes) {
+
+                        checkbox.checked =
+                            shouldCheck;
+
+                        setDeductionEditButton(
+                            checkbox,
+                            shouldCheck
+                        );
+
+                        if (!shouldCheck) {
+                            try {
+                                const result =
+                                    await saveDeductionApplyState(
+                                        checkbox,
+                                        false
+                                    );
+
+                                if (result.success) {
+                                    checkbox.dataset.dbSelected =
+                                        "false";
+
+                                    const badge =
+                                        document.querySelector(
+                                            '.deduction-count-badge[data-deduction-code="' +
+                                            (checkbox.dataset.deductionCode || "") +
+                                            '"]'
+                                        );
+
+                                    if (
+                                        badge &&
+                                        result.rowExists &&
+                                        result.selectedCount !== undefined
+                                    ) {
+                                        badge.dataset.dbCount =
+                                            result.selectedCount;
+
+                                        badge.textContent =
+                                            result.selectedCount +
+                                            " / " +
+                                            totalGrades;
+                                    }
+                                }
+                            }
+                            catch {
+                                // Continue processing remaining grades.
+                            }
+                        }
+                    }
+
+                    updateDeductionSelectedSummary();
+                },
+                true
+            );
+        }
+
+
+        updateDeductionSelectedSummary();
+    });
+</script>
+

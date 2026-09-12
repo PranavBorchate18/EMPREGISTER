@@ -1,9 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Employee_Management_System.Models
 {
-    [Keyless]
     [Table("allwfoot")]
     public class AllwFoot
     {
@@ -33,5 +31,11 @@ namespace Employee_Management_System.Models
 
         [Column("min_days")]
         public decimal? MinDays { get; set; }
+
+        // SQL Server BIT
+        // true  = 1 -> Grade Selected
+        // false = 0 -> Grade Not Selected
+        [Column("Apply")]
+        public bool Apply { get; set; }
     }
 }

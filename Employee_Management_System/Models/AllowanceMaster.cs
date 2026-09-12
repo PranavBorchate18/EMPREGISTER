@@ -50,5 +50,29 @@ namespace Employee_Management_System.Models
         [Column("Trf_Min_Days")]
         [Display(Name = "Trf Min Days")]
         public decimal? TrfMinDays { get; set; }
+
+
+        // =====================================================
+        // APPLY MONTH
+        // Example:
+        // January = 1
+        // January + April + July = 1,4,7
+        // =====================================================
+
+        [Column("Apply_Month")]
+        [StringLength(50)]
+        [Display(Name = "Apply for Month")]
+        public string? ApplyMonth { get; set; }
+
+
+        // =====================================================
+        // ACTIVE
+        // Yes / No
+        // =====================================================
+
+        [Column("Active")]
+        [StringLength(3)]
+        [Display(Name = "Active")]
+        public string? Active { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 ﻿<!DOCTYPE html>
+
 <html lang="en">
 
 <head>
@@ -8,22 +9,26 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0" />
 
+
     <title>
         @ViewData["Title"] - Employee_Management_System
     </title>
 
 
-    <!-- Bootstrap -->
+    <!-- Bootstrap CSS -->
+
     <link rel="stylesheet"
           href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
 
 
     <!-- Bootstrap Icons -->
+
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
 
     <!-- Site CSS -->
+
     <link rel="stylesheet"
           href="~/css/site.css"
           asp-append-version="true" />
@@ -40,223 +45,371 @@
 
 
     <!-- =========================================================
-         HEADER
+         MOBILE SIDEBAR BUTTON
     ========================================================== -->
 
-    <header>
+    <button type="button"
+            class="sidebar-toggle"
+            id="sidebarToggle">
+
+        <i class="bi bi-list"></i>
+
+    </button>
 
 
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+
+    <!-- =========================================================
+         LEFT SIDEBAR
+    ========================================================== -->
+
+    <aside class="sidebar"
+           id="sidebar">
 
 
-            <div class="container-fluid">
+        <!-- PROJECT NAME -->
+
+        <a class="sidebar-brand"
+           asp-area=""
+           asp-controller="Home"
+           asp-action="Index">
+
+            <i class="bi bi-people-fill"></i>
+
+            <span>
+                Employee_<br />
+                Management_System
+            </span>
+
+        </a>
 
 
-                <!-- =================================================
-                     PROJECT NAME
-                ================================================== -->
 
-                <a class="navbar-brand"
+        <!-- =====================================================
+             MENU
+        ====================================================== -->
+
+        <ul class="sidebar-menu">
+
+
+            <!-- =================================================
+                 HOME
+            ================================================== -->
+
+            <li>
+
+                <a class="nav-link"
                    asp-area=""
                    asp-controller="Home"
                    asp-action="Index">
 
-                    Employee_Management_System
+                    <i class="bi bi-house-door-fill"></i>
+
+                    <span>Home</span>
 
                 </a>
 
+            </li>
 
 
-                <!-- =================================================
-                     MOBILE MENU BUTTON
-                ================================================== -->
 
-                <button class="navbar-toggler"
+            <!-- =================================================
+                 PRIVACY
+            ================================================== -->
+
+            <li>
+
+                <a class="nav-link"
+                   asp-area=""
+                   asp-controller="Home"
+                   asp-action="Privacy">
+
+                    <i class="bi bi-shield-lock-fill"></i>
+
+                    <span>Privacy</span>
+
+                </a>
+
+            </li>
+
+
+
+            <!-- =================================================
+                 EMPLOYEE REGISTRATION
+            ================================================== -->
+
+            <li>
+
+                <a class="nav-link"
+                   asp-area=""
+                   asp-controller="Employee"
+                   asp-action="Register">
+
+                    <i class="bi bi-person-fill-add"></i>
+
+                    <span>Employee Registration</span>
+
+                </a>
+
+            </li>
+
+
+
+            <!-- =================================================
+                 MASTER
+            ================================================== -->
+
+            <li>
+
+                <button class="nav-link sidebar-dropdown-btn"
                         type="button"
                         data-bs-toggle="collapse"
-                        data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent"
+                        data-bs-target="#masterMenu"
                         aria-expanded="false"
-                        aria-label="Toggle navigation">
+                        aria-controls="masterMenu">
 
-                    <span class="navbar-toggler-icon"></span>
+                    <i class="bi bi-database-fill"></i>
+
+                    <span>Master</span>
+
+                    <i class="bi bi-chevron-down ms-auto"></i>
 
                 </button>
 
 
+                <div class="collapse"
+                     id="masterMenu">
 
-                <!-- =================================================
-                     NAVIGATION
-                ================================================== -->
+                    <div class="sidebar-submenu">
 
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
 
+                        <!-- ALLOWANCE -->
 
-                    <ul class="navbar-nav flex-grow-1">
+                        <a class="dropdown-item"
+                           asp-controller="Allowance"
+                           asp-action="Index">
 
+                            <i class="bi bi-cash-stack me-2"></i>
 
+                            Allowance
 
-                        <!-- =================================================
-                             HOME
-                        ================================================== -->
+                        </a>
 
-                        <li class="nav-item">
 
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Home"
-                               asp-action="Index">
+                        <!-- DEDUCTION -->
 
-                                Home
+                        <a class="dropdown-item"
+                           asp-controller="Deduction"
+                           asp-action="Index">
 
-                            </a>
+                            <i class="bi bi-dash-circle me-2"></i>
 
-                        </li>
+                            Deduction
 
+                        </a>
 
 
-                        <!-- =================================================
-                             PRIVACY
-                        ================================================== -->
-
-                        <li class="nav-item">
-
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Home"
-                               asp-action="Privacy">
-
-                                Privacy
-
-                            </a>
-
-                        </li>
-
-
-
-                        <!-- =================================================
-                             EMPLOYEE REGISTRATION
-                        ================================================== -->
-
-                        <li class="nav-item">
-
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Employee"
-                               asp-action="Register">
-
-                                Employee Registration
-
-                            </a>
-
-                        </li>
-
-
-
-                        <!-- =================================================
-                             MASTER MENU
-                        ================================================== -->
-
-                        <li class="nav-item dropdown">
-
-
-                            <a class="nav-link dropdown-toggle text-dark"
-                               href="#"
-                               id="masterDropdown"
-                               role="button"
-                               data-bs-toggle="dropdown"
-                               aria-expanded="false">
-
-                                Master
-
-                            </a>
-
-
-
-                            <ul class="dropdown-menu"
-                                aria-labelledby="masterDropdown">
-
-
-
-                                <!-- =========================================
-                                     ALLOWANCE
-                                ========================================== -->
-
-                                <li>
-
-                                    <a class="dropdown-item"
-                                       asp-controller="Allowance"
-                                       asp-action="Index">
-
-                                        <i class="bi bi-cash-stack me-2"></i>
-
-                                        Allowance
-
-                                    </a>
-
-                                </li>
-
-
-
-                                <!-- =========================================
-                                     DEDUCTION
-                                ========================================== -->
-
-                                <li>
-
-                                    <a class="dropdown-item"
-                                       asp-controller="Deduction"
-                                       asp-action="Index">
-
-                                        <i class="bi bi-dash-circle me-2"></i>
-
-                                        Deduction
-
-                                    </a>
-
-                                </li>
-
-
-                            </ul>
-
-
-                        </li>
-
-                        <!-- MASTER MENU END -->
-                        <!-- =================================================
-                             GRADE WISE ALLOW / DEDUCTION
-                        ================================================== -->
-
-                        <li class="nav-item">
-
-
-                            <a class="nav-link text-dark"
-                               asp-controller="GradeWiseAllowDeduction"
-                               asp-action="Index">
-
-                                <i class="bi bi-table me-1"></i>
-
-                                Grade Wise Allow/Deduction
-
-                            </a>
-
-
-                        </li>
-
-                        <!-- GRADE WISE ALLOW / DEDUCTION END -->
-
-
-
-                    </ul>
-
+                    </div>
 
                 </div>
 
+            </li>
 
-            </div>
 
 
-        </nav>
+            <!-- =================================================
+                 GRADE WISE ALLOW / DEDUCTION
+            ================================================== -->
+
+            <li>
+
+                <button class="nav-link sidebar-dropdown-btn"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#gradeWiseMenu"
+                        aria-expanded="false"
+                        aria-controls="gradeWiseMenu">
+
+                    <i class="bi bi-table"></i>
+
+                    <span>
+                        Grade Wise<br />
+                        Allow/Deduction
+                    </span>
+
+                    <i class="bi bi-chevron-down ms-auto"></i>
+
+                </button>
+
+
+                <div class="collapse"
+                     id="gradeWiseMenu">
+
+                    <div class="sidebar-submenu">
+
+
+                        <!-- GRADE WISE ALLOWANCE -->
+
+                        <a class="dropdown-item"
+                           asp-controller="GradeWiseAllowDeduction"
+                           asp-action="Index"
+                           asp-route-section="allowance">
+
+                            <i class="bi bi-cash-stack me-2"></i>
+
+                            Allowance
+
+                        </a>
+
+
+                        <!-- GRADE WISE DEDUCTION -->
+
+                        <a class="dropdown-item"
+                           asp-controller="GradeWiseAllowDeduction"
+                           asp-action="Index"
+                           asp-route-section="deduction">
+
+                            <i class="bi bi-dash-circle me-2"></i>
+
+                            Deduction
+
+                        </a>
+
+
+                    </div>
+
+                </div>
+
+            </li>
+
+
+
+            <!-- =================================================
+                 EMPLOYEE PAY SETUP
+            ================================================== -->
+
+            <li>
+
+                <a class="nav-link"
+                   asp-area=""
+                   asp-controller="EmployeePaySetup"
+                   asp-action="Index">
+
+                    <i class="bi bi-wallet2"></i>
+
+                    <span>Employee Pay Setup</span>
+
+                </a>
+
+            </li>
+
+
+
+            <!-- =================================================
+                 SALARY REVISION
+            ================================================== -->
+
+            <li>
+
+                <a class="nav-link"
+                   asp-area=""
+                   asp-controller="SalaryRevision"
+                   asp-action="Index">
+
+                    <i class="bi bi-arrow-left-right"></i>
+
+                    <span>Salary Revision</span>
+
+                </a>
+
+            </li>
+
+
+
+            <!-- =================================================
+                 LEAVE APPLICATION DROPDOWN
+            ================================================== -->
+
+            <li>
+
+                <button class="nav-link sidebar-dropdown-btn"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#leaveMenu"
+                        aria-expanded="false"
+                        aria-controls="leaveMenu">
+
+                    <i class="bi bi-calendar2-check-fill"></i>
+
+                    <span>Leave Application</span>
+
+                    <i class="bi bi-chevron-down ms-auto"></i>
+
+                </button>
+
+
+                <div class="collapse"
+                     id="leaveMenu">
+
+                    <div class="sidebar-submenu">
+
+
+                        <!-- LEAVE APPLICATION -->
+
+                        <a class="dropdown-item"
+                           asp-controller="Leave"
+                           asp-action="Index">
+
+                            <i class="bi bi-file-earmark-plus me-2"></i>
+
+                            Leave Application
+
+                        </a>
+
+
+                        <!-- LEAVE SANCTION -->
+
+                        <a class="dropdown-item"
+                           asp-controller="Leave"
+                           asp-action="SanctionList">
+
+                            <i class="bi bi-check2-square me-2"></i>
+
+                            Leave Sanction
+
+                        </a>
+
+
+                    </div>
+
+                </div>
+
+            </li>
+
+
+        </ul>
+
+
+    </aside>
+
+
+
+    <!-- =========================================================
+         TOP BAR
+    ========================================================== -->
+
+    <header class="topbar">
+
+
+        <div class="admin-area">
+
+            <i class="bi bi-person-circle"></i>
+
+            <span>Admin</span>
+
+            <i class="bi bi-chevron-down"
+               style="font-size:12px;"></i>
+
+        </div>
 
 
     </header>
@@ -264,14 +417,14 @@
 
 
     <!-- =========================================================
-         MAIN PAGE CONTENT
+         MAIN CONTENT
     ========================================================== -->
 
-    <div class="container">
+    <div class="main-wrapper">
 
 
         <main role="main"
-              class="pb-3">
+              class="page-content">
 
 
             @RenderBody()
@@ -288,14 +441,13 @@
          FOOTER
     ========================================================== -->
 
-    <footer class="border-top footer text-muted">
+    <footer class="main-footer">
 
 
-        <div class="container">
+        <div class="container-fluid">
 
 
             &copy; 2026 - Employee_Management_System -
-
 
             <a asp-area=""
                asp-controller="Home"
@@ -316,21 +468,160 @@
     <!-- =========================================================
          JAVASCRIPT
     ========================================================== -->
-    <!-- JQuery -->
+    <!-- jQuery -->
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
 
 
-    <!-- Bootstrap JS -->
+    <!-- Bootstrap -->
+
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
 
     <!-- Site JS -->
+
     <script src="~/js/site.js"
             asp-append-version="true">
     </script>
 
 
-    @await RenderSectionAsync("Scripts", required: false)
+
+    <!-- =========================================================
+         MOBILE SIDEBAR SCRIPT
+    ========================================================== -->
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                const sidebar =
+                    document.getElementById(
+                        "sidebar"
+                    );
+
+                const sidebarToggle =
+                    document.getElementById(
+                        "sidebarToggle"
+                    );
+
+
+                // ============================================
+                // MOBILE SIDEBAR OPEN / CLOSE
+                // ============================================
+
+                if (sidebarToggle) {
+
+                    sidebarToggle.addEventListener(
+                        "click",
+                        function () {
+
+                            sidebar.classList.toggle(
+                                "show"
+                            );
+
+                        }
+                    );
+
+                }
+
+
+                // ============================================
+                // MOBILE MENU LINK CLICK
+                // SIDEBAR AUTO CLOSE
+                // ============================================
+
+                const sidebarLinks =
+                    document.querySelectorAll(
+                        "#sidebar a.nav-link, #sidebar a.dropdown-item"
+                    );
+
+
+                sidebarLinks.forEach(
+                    function (link) {
+
+                        link.addEventListener(
+                            "click",
+                            function () {
+
+                                if (
+                                    window.innerWidth <
+                                    992
+                                ) {
+
+                                    sidebar.classList.remove(
+                                        "show"
+                                    );
+
+                                }
+
+                            }
+                        );
+
+                    }
+                );
+
+
+                // ============================================
+                // KEEP LEAVE MENU OPEN
+                // WHEN USER IS ON LEAVE PAGE
+                // ============================================
+
+                const currentPath =
+                    window.location.pathname
+                        .toLowerCase();
+
+
+                if (
+                    currentPath.startsWith(
+                        "/leave"
+                    )
+                ) {
+
+                    const leaveMenu =
+                        document.getElementById(
+                            "leaveMenu"
+                        );
+
+
+                    if (leaveMenu) {
+
+                        leaveMenu.classList.add(
+                            "show"
+                        );
+
+                    }
+
+
+                    const leaveButton =
+                        document.querySelector(
+                            '[data-bs-target="#leaveMenu"]'
+                        );
+
+
+                    if (leaveButton) {
+
+                        leaveButton.setAttribute(
+                            "aria-expanded",
+                            "true"
+                        );
+
+                    }
+
+                }
+
+            }
+        );
+
+    </script>
+
+
+
+    @await RenderSectionAsync(
+    "Scripts",
+        required: false
+        )
 
 
 </body>

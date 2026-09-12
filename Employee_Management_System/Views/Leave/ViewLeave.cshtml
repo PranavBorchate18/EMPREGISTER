@@ -1,0 +1,345 @@
+﻿@model Employee_Management_System.Models.LeaveSanctionListViewModel
+
+@{
+    ViewData["Title"] = "Leave Details";
+}
+
+
+<div class="container-fluid py-3">
+
+
+    <!-- HEADER -->
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+
+        <div>
+
+            <h3 class="mb-1">
+
+                <i class="bi bi-eye-fill me-2"></i>
+
+                Leave Details
+
+            </h3>
+
+            <small class="text-muted">
+                Leave Application Information
+            </small>
+
+        </div>
+
+
+        <a asp-controller="Leave"
+           asp-action="SanctionList"
+           class="btn btn-outline-secondary">
+
+            <i class="bi bi-arrow-left me-1"></i>
+
+            Back to List
+
+        </a>
+
+    </div>
+
+
+
+    <!-- STATUS -->
+
+    <div class="mb-3">
+
+        <strong>Status:</strong>
+
+        @if (Model.Status == "Approved")
+        {
+            <span class="badge bg-success ms-2">
+                Approved
+            </span>
+        }
+        else if (Model.Status == "Rejected")
+        {
+            <span class="badge bg-danger ms-2">
+                Rejected
+            </span>
+        }
+        else
+        {
+            <span class="badge bg-warning text-dark ms-2">
+                Pending
+            </span>
+        }
+
+    </div>
+
+
+
+    <div class="row">
+
+
+        <!-- =====================================================
+             EMPLOYEE INFORMATION
+        ====================================================== -->
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-header">
+                    <strong>Employee Information</strong>
+                </div>
+
+
+                <div class="card-body">
+
+                    <table class="table table-bordered mb-0">
+
+                        <tr>
+                            <th>Leave App ID</th>
+                            <td>@Model.LeaveApplicationId</td>
+                        </tr>
+
+                        <tr>
+                            <th>Employee Code</th>
+                            <td>@Model.EmployeeCode</td>
+                        </tr>
+
+                        <tr>
+                            <th>Employee Name</th>
+                            <td>@Model.EmployeeName</td>
+                        </tr>
+
+                        <tr>
+                            <th>C/D Code</th>
+                            <td>@Model.CDCode</td>
+                        </tr>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =====================================================
+             LEAVE REQUEST INFORMATION
+        ====================================================== -->
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-header">
+                    <strong>Leave Request Information</strong>
+                </div>
+
+
+                <div class="card-body">
+
+                    <table class="table table-bordered mb-0">
+
+                        <tr>
+                            <th>Demand From</th>
+                            <td>
+                                @(Model.DemandFromDate?.ToString("dd-MM-yyyy"))
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Demand To</th>
+                            <td>
+                                @(Model.DemandToDate?.ToString("dd-MM-yyyy"))
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Demand Leave</th>
+                            <td>
+                                @Model.DemandLeaveCode -
+                                @Model.DemandLeaveName
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Previous Days</th>
+                            <td>@Model.PreviousDays</td>
+                        </tr>
+
+                        <tr>
+                            <th>Reason Code</th>
+                            <td>@Model.ReasonCode</td>
+                        </tr>
+
+                        <tr>
+                            <th>Reason Remark</th>
+                            <td>@Model.ReasonRemark</td>
+                        </tr>
+
+                        <tr>
+                            <th>Charge To</th>
+                            <td>@Model.ChargeTo</td>
+                        </tr>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =====================================================
+             SANCTION INFORMATION
+        ====================================================== -->
+
+        <div class="col-md-4 mb-3">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-header">
+                    <strong>Sanction Information</strong>
+                </div>
+
+
+                <div class="card-body">
+
+                    <table class="table table-bordered mb-0">
+
+                        <tr>
+                            <th>Sanction From</th>
+                            <td>
+                                @(Model.SanctionFromDate?.ToString("dd-MM-yyyy"))
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Sanction To</th>
+                            <td>
+                                @(Model.SanctionToDate?.ToString("dd-MM-yyyy"))
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Sanction Leave</th>
+                            <td>
+                                @Model.SanctionLeaveCode -
+                                @Model.SanctionLeaveName
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Sanction Officer</th>
+                            <td>@Model.SanctionOfficer</td>
+                        </tr>
+
+                        <tr>
+                            <th>Effect Pay Date</th>
+                            <td>
+                                @(Model.EffectPayDate?.ToString("dd-MM-yyyy"))
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Operator</th>
+                            <td>
+                                @(string.IsNullOrWhiteSpace(Model.Operator)
+                                                                ? "NULL"
+                                                                : Model.Operator)
+                            </td>
+                        </tr>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =========================================================
+         APPROVE / REJECT
+         ONLY WHEN PENDING
+    ========================================================== -->
+    @if (Model.Status != "Approved" &&
+        Model.Status != "Rejected")
+    {
+        <div class="text-center mt-3">
+
+
+            <!-- APPROVE -->
+
+            <form asp-controller="Leave"
+                  asp-action="Approve"
+                  method="post"
+                  class="d-inline">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       name="id"
+                       value="@Model.LeaveApplicationId" />
+
+
+                <button type="submit"
+                        class="btn btn-success me-2"
+                        onclick="return confirm('Are you sure you want to approve this leave?');">
+
+                    <i class="bi bi-check-circle-fill me-1"></i>
+
+                    Approve
+
+                </button>
+
+            </form>
+
+
+
+            <!-- REJECT -->
+
+            <form asp-controller="Leave"
+                  asp-action="Reject"
+                  method="post"
+                  class="d-inline">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       name="id"
+                       value="@Model.LeaveApplicationId" />
+
+
+                <button type="submit"
+                        class="btn btn-danger"
+                        onclick="return confirm('Are you sure you want to reject this leave?');">
+
+                    <i class="bi bi-x-circle-fill me-1"></i>
+
+                    Reject
+
+                </button>
+
+            </form>
+
+
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center mt-3">
+
+            This leave application has already been
+            <strong>@Model.Status</strong>.
+
+        </div>
+    }
+
+
+</div>

@@ -1,9 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Employee_Management_System.Models
 {
-    [Keyless]
     [Table("dedufoot")]
     public class DeduFoot
     {
@@ -30,5 +28,11 @@ namespace Employee_Management_System.Models
 
         [Column("min_days")]
         public int? MinDays { get; set; }
+
+        // SQL BIT:
+        // true  = 1 = selected/applied
+        // false = 0 = unselected
+        [Column("Apply")]
+        public bool Apply { get; set; }
     }
 }

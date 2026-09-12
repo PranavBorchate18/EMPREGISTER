@@ -1,0 +1,3029 @@
+﻿@model Employee_Management_System.Models.EmployeePaySetupViewModel
+
+@{
+    ViewData["Title"] = "Employee Pay Setup";
+}
+
+<style>
+
+    #payComponentModal .modal-dialog {
+        max-width: 1150px;
+    }
+
+    #payComponentModal .modal-content {
+        max-height: 92vh;
+    }
+
+    #payComponentModal .modal-body {
+        overflow-y: auto;
+        padding: 16px;
+    }
+
+    #payComponentModal .modal-header {
+        padding: 12px 18px;
+    }
+
+    #payComponentModal .modal-footer {
+        padding: 10px 16px;
+    }
+
+    .calc-rule-item {
+        display: flex;
+        align-items: center;
+        min-height: 32px;
+        white-space: nowrap;
+        font-size: 14px;
+    }
+
+    .calc-rule-label {
+        min-width: 105px;
+        font-weight: 500;
+        color: #344054;
+    }
+
+    .calc-rule-colon {
+        width: 20px;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .calc-rule-value {
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .pay-component-table th,
+    .pay-component-table td {
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .account-section {
+        background-color: #f8f9fa;
+    }
+
+</style>
+
+
+<div class="container-fluid mt-3">
+
+    <div class="card shadow-sm">
+
+        <!-- HEADER -->
+        <div class="card-header bg-primary text-white">
+
+            <h5 class="mb-0">
+
+                <i class="bi bi-wallet2 me-2"></i>
+
+                Employee Pay Setup
+
+            </h5>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div id="messageArea"></div>
+
+
+            <form id="paySetupForm">
+
+                @Html.AntiForgeryToken()
+
+
+                <!-- ================================================= -->
+                <!-- HIDDEN VALUES -->
+                <!-- ================================================= -->
+
+                <input asp-for="Flag"
+                       id="Flag"
+                       type="hidden" />
+
+                <input asp-for="ComponentCode"
+                       id="ComponentCode"
+                       type="hidden" />
+
+
+
+                <!-- ================================================= -->
+                <!-- EMPLOYEE INFORMATION -->
+                <!-- ================================================= -->
+
+                <div class="border rounded p-3 mb-4">
+
+                    <h6 class="text-primary mb-3">
+
+                        <i class="bi bi-person-badge me-1"></i>
+
+                        Employee Information
+
+                    </h6>
+
+
+                    <div class="row">
+
+
+                        <!-- Employee Code -->
+
+                        <div class="col-md-3 mb-3">
+
+                            <label class="form-label">
+                                Employee Code
+                            </label>
+
+                            <div class="input-group">
+
+                                <input asp-for="EmployeeCode"
+                                       id="EmployeeCode"
+                                       class="form-control"
+                                       autocomplete="off" />
+
+                                <button type="button"
+                                        id="btnSearchEmployee"
+                                        class="btn btn-primary">
+
+                                    <i class="bi bi-search"></i>
+
+                                    Search
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- Employee Name -->
+
+                        <div class="col-md-4 mb-3">
+
+                            <label class="form-label">
+                                Employee Name
+                            </label>
+
+                            <input asp-for="EmployeeName"
+                                   id="EmployeeName"
+                                   class="form-control"
+                                   readonly />
+
+                        </div>
+
+
+
+                        <!-- Basic Salary -->
+
+                        <div class="col-md-3 mb-3">
+
+                            <label class="form-label">
+                                Basic Salary
+                            </label>
+
+                            <input asp-for="BasicSalary"
+                                   id="BasicSalary"
+                                   class="form-control"
+                                   readonly />
+
+                        </div>
+
+
+
+                        <!-- Grade -->
+
+                        <div class="col-md-2 mb-3">
+
+                            <label class="form-label">
+                                Grade
+                            </label>
+
+                            <input asp-for="GradeCode"
+                                   id="GradeCode"
+                                   class="form-control"
+                                   readonly />
+
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- ================================================= -->
+                <!-- EXISTING PAY COMPONENTS -->
+                <!-- ================================================= -->
+
+                <div id="existingPayComponentsSection" style="display:none;">
+
+
+                    <div class="border rounded p-3 mb-3">
+
+                        <h6 class="text-primary mb-3">
+
+                            <i class="bi bi-list-check me-1"></i>
+
+                            Existing Pay Components
+
+                        </h6>
+
+
+
+                        <!-- ================================================= -->
+                        <!-- ALLOWANCE -->
+                        <!-- ================================================= -->
+
+                        <div class="card border-success mb-4">
+
+                            <div class="card-header bg-success text-white">
+
+                                <h6 class="mb-0">
+
+                                    <i class="bi bi-plus-circle me-1"></i>
+
+                                    Allowance Components
+
+                                </h6>
+
+                            </div>
+
+
+                            <div class="table-responsive">
+
+                                <table class="table table-bordered table-hover mb-0 pay-component-table">
+
+                                    <thead class="table-success">
+
+                                        <tr>
+
+                                            <th>Code</th>
+                                            <th>Component</th>
+                                            <th>Calc Code</th>
+                                            <th>Percent</th>
+                                            <th>Amount</th>
+                                            <th>Effective Date</th>
+                                            <th>Cancel Date</th>
+                                            <th>For Times</th>
+                                            <th>GLC</th>
+                                            <th>Branch</th>
+                                            <th>SLC</th>
+                                            <th>Loan / Advance</th>
+                                            <th>Action</th>
+
+                                        </tr>
+
+                                    </thead>
+
+
+                                    <tbody id="allowanceComponentBody">
+
+                                        <tr>
+
+                                            <td colspan="13"
+                                                class="text-center text-muted py-3">
+
+                                                Search Employee to view Allowance Components.
+
+                                            </td>
+
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- ================================================= -->
+                        <!-- DEDUCTION -->
+                        <!-- ================================================= -->
+
+                        <div class="card border-danger">
+
+                            <div class="card-header bg-danger text-white">
+
+                                <h6 class="mb-0">
+
+                                    <i class="bi bi-dash-circle me-1"></i>
+
+                                    Deduction Components
+
+                                </h6>
+
+                            </div>
+
+
+                            <div class="table-responsive">
+
+                                <table class="table table-bordered table-hover mb-0 pay-component-table">
+
+                                    <thead class="table-danger">
+
+                                        <tr>
+
+                                            <th>Code</th>
+                                            <th>Component</th>
+                                            <th>Calc Code</th>
+                                            <th>Percent</th>
+                                            <th>Amount</th>
+                                            <th>Effective Date</th>
+                                            <th>Cancel Date</th>
+                                            <th>For Times</th>
+                                            <th>GLC</th>
+                                            <th>Branch</th>
+                                            <th>SLC</th>
+                                            <th>Loan / Advance</th>
+                                            <th>Action</th>
+
+                                        </tr>
+
+                                    </thead>
+
+
+                                    <tbody id="deductionComponentBody">
+
+                                        <tr>
+
+                                            <td colspan="13"
+                                                class="text-center text-muted py-3">
+
+                                                Search Employee to view Deduction Components.
+
+                                            </td>
+
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- ================================================= -->
+                    <!-- UPDATE ALL ALLOWANCE / DEDUCTION -->
+                    <!-- ================================================= -->
+
+                    <div class="d-flex justify-content-end mb-3">
+
+                        <button type="button"
+                                id="btnUpdateAllComponents"
+                                class="btn btn-primary px-4">
+
+                            <i class="bi bi-arrow-repeat me-1"></i>
+
+                            Update
+
+                        </button>
+
+                    </div>
+
+
+
+
+                </div>
+
+
+                <!-- ================================================= -->
+                <!-- PAY COMPONENT MODAL -->
+                <!-- ================================================= -->
+
+                <div class="modal fade"
+                     id="payComponentModal"
+                     tabindex="-1"
+                     aria-hidden="true">
+
+                    <div class="modal-dialog modal-xl modal-dialog-centered">
+
+                        <div class="modal-content shadow">
+
+
+                            <!-- MODAL HEADER -->
+
+                            <div class="modal-header bg-primary text-white">
+
+                                <h5 class="modal-title">
+
+                                    <i class="bi bi-pencil-square me-2"></i>
+
+                                    Pay Component Details
+
+                                </h5>
+
+                                <button type="button"
+                                        class="btn-close btn-close-white"
+                                        data-bs-dismiss="modal">
+                                </button>
+
+                            </div>
+
+
+
+                            <!-- MODAL BODY -->
+
+                            <div class="modal-body">
+
+
+                                <!-- SELECTED COMPONENT -->
+
+                                <div class="alert alert-info py-2 mb-3">
+
+                                    <strong>
+                                        Selected Component:
+                                    </strong>
+
+                                    <span id="selectedComponentText"></span>
+
+                                </div>
+
+
+
+                                <!-- ================================================= -->
+                                <!-- CALCULATION RULE -->
+                                <!-- ================================================= -->
+
+                                <div class="border rounded p-3 mb-3">
+
+                                    <h6 class="text-primary mb-4">
+
+                                        <i class="bi bi-calculator me-1"></i>
+
+                                        Calculation Rule
+
+                                    </h6>
+
+
+                                    <!-- ROW 1 -->
+
+                                    <div class="row mb-3">
+
+
+                                        <div class="col-md-3">
+
+                                            <div class="calc-rule-item">
+
+                                                <span class="calc-rule-label">
+                                                    Calculation
+                                                </span>
+
+                                                <span class="calc-rule-colon">
+                                                    :
+                                                </span>
+
+                                                <span id="CalculationText"
+                                                      class="calc-rule-value">
+                                                    -
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-md-3">
+
+                                            <div class="calc-rule-item">
+
+                                                <span class="calc-rule-label">
+                                                    Percentage
+                                                </span>
+
+                                                <span class="calc-rule-colon">
+                                                    :
+                                                </span>
+
+                                                <span id="PercentageText"
+                                                      class="calc-rule-value">
+                                                    -
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-md-3">
+
+                                            <div class="calc-rule-item">
+
+                                                <span class="calc-rule-label">
+                                                    Fixed Amount
+                                                </span>
+
+                                                <span class="calc-rule-colon">
+                                                    :
+                                                </span>
+
+                                                <span id="AmountText"
+                                                      class="calc-rule-value">
+                                                    -
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-md-3">
+
+                                            <div class="calc-rule-item">
+
+                                                <span class="calc-rule-label">
+                                                    Pay Div
+                                                </span>
+
+                                                <span class="calc-rule-colon">
+                                                    :
+                                                </span>
+
+                                                <span id="PayDivText"
+                                                      class="calc-rule-value">
+                                                    -
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+
+                                    </div>
+
+
+
+                                    <!-- ROW 2 -->
+
+                                    <div class="row">
+
+
+                                        <div class="col-md-3">
+
+                                            <div class="calc-rule-item">
+
+                                                <span class="calc-rule-label">
+                                                    Min Limit
+                                                </span>
+
+                                                <span class="calc-rule-colon">
+                                                    :
+                                                </span>
+
+                                                <span id="MinLimitText"
+                                                      class="calc-rule-value">
+                                                    -
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-md-3">
+
+                                            <div class="calc-rule-item">
+
+                                                <span class="calc-rule-label">
+                                                    Max Limit
+                                                </span>
+
+                                                <span class="calc-rule-colon">
+                                                    :
+                                                </span>
+
+                                                <span id="MaxLimitText"
+                                                      class="calc-rule-value">
+                                                    -
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-md-3">
+
+                                            <div class="calc-rule-item">
+
+                                                <span class="calc-rule-label">
+                                                    Min Days
+                                                </span>
+
+                                                <span class="calc-rule-colon">
+                                                    :
+                                                </span>
+
+                                                <span id="MinDaysText"
+                                                      class="calc-rule-value">
+                                                    -
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-md-3">
+
+                                            <div class="calc-rule-item">
+
+                                                <span class="calc-rule-label">
+                                                    Apply
+                                                </span>
+
+                                                <span class="calc-rule-colon">
+                                                    :
+                                                </span>
+
+                                                <span id="ApplyText"
+                                                      class="calc-rule-value">
+                                                    -
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <!-- ================================================= -->
+                                <!-- EMPLOYEE SPECIFIC DETAILS -->
+                                <!-- ================================================= -->
+
+                                <div class="border rounded p-3">
+
+                                    <h6 class="text-primary mb-3">
+
+                                        <i class="bi bi-person-lines-fill me-1"></i>
+
+                                        Employee Specific Details
+
+                                    </h6>
+
+
+                                    <!-- ============================================= -->
+                                    <!-- BASIC EMPLOYEE SPECIFIC DETAILS -->
+                                    <!-- ============================================= -->
+
+                                    <div class="row">
+
+
+                                        <!-- Effective Date -->
+
+                                        <div class="col-md-3 mb-3">
+
+                                            <label class="form-label">
+                                                Effective Date
+                                            </label>
+
+                                            <input asp-for="EffectiveDate"
+                                                   id="EffectiveDate"
+                                                   type="date"
+                                                   class="form-control" />
+
+                                        </div>
+
+
+
+                                        <!-- Cancel Date -->
+
+                                        <div class="col-md-3 mb-3">
+
+                                            <label class="form-label">
+                                                Cancel Date
+                                            </label>
+
+                                            <input asp-for="CancelDate"
+                                                   id="CancelDate"
+                                                   type="date"
+                                                   class="form-control" />
+
+                                        </div>
+
+
+
+                                        <!-- For Times -->
+
+                                        <div class="col-md-2 mb-3">
+
+                                            <label class="form-label">
+                                                For Times
+                                            </label>
+
+                                            <input asp-for="ForTimes"
+                                                   id="ForTimes"
+                                                   type="number"
+                                                   class="form-control" />
+
+                                        </div>
+
+
+
+                                        <!-- Percentage -->
+
+                                        <div class="col-md-2 mb-3"
+                                             id="employeePercentageArea"
+                                             style="display:none;">
+
+                                            <label class="form-label">
+                                                Percentage (%)
+                                            </label>
+
+                                            <input asp-for="Percentage"
+                                                   id="Percentage"
+                                                   type="number"
+                                                   step="0.01"
+                                                   min="0"
+                                                   class="form-control" />
+
+                                            <small class="text-primary fw-semibold d-block mt-1">
+                                                Max:
+                                                <span id="percentageMaxText">0</span>%
+                                            </small>
+
+                                            <div id="percentageValidation"
+                                                 class="text-danger small mt-1">
+                                            </div>
+
+                                        </div>
+
+
+
+                                        <!-- Fixed Amount -->
+
+                                        <div class="col-md-2 mb-3"
+                                             id="employeeAmountArea"
+                                             style="display:none;">
+
+                                            <label class="form-label">
+                                                Amount
+                                            </label>
+
+                                            <input asp-for="Amount"
+                                                   id="Amount"
+                                                   type="number"
+                                                   step="0.01"
+                                                   min="0"
+                                                   class="form-control" />
+
+                                            <small class="text-primary fw-semibold d-block mt-1">
+                                                Max:
+                                                <span id="amountMaxText">0</span>
+                                            </small>
+
+                                            <div id="amountValidation"
+                                                 class="text-danger small mt-1">
+                                            </div>
+
+                                        </div>
+
+
+                                    </div>
+
+
+
+                                    <!-- ================================================= -->
+                                    <!-- ACCOUNT SECTION -->
+                                    <!-- ================================================= -->
+
+                                    <div class="border rounded p-3 mb-3 account-section">
+
+                                        <h6 class="text-primary mb-3">
+
+                                            <i class="bi bi-bank me-1"></i>
+
+                                            Account
+
+                                        </h6>
+
+
+                                        <div class="row">
+
+
+                                            <!-- GLC -->
+
+                                            <div class="col-md-4 mb-2">
+
+                                                <label class="form-label">
+                                                    GLC
+                                                </label>
+
+                                                <input asp-for="GLC"
+                                                       id="GLC"
+                                                       class="form-control" />
+
+                                            </div>
+
+
+
+                                            <!-- Branch -->
+
+                                            <div class="col-md-4 mb-2">
+
+                                                <label class="form-label">
+                                                    Branch
+                                                </label>
+
+                                                <input asp-for="Branch"
+                                                       id="Branch"
+                                                       class="form-control" />
+
+                                            </div>
+
+
+
+                                            <!-- SLC -->
+
+                                            <div class="col-md-4 mb-2">
+
+                                                <label class="form-label">
+                                                    SLC
+                                                </label>
+
+                                                <input asp-for="SLC"
+                                                       id="SLC"
+                                                       class="form-control" />
+
+                                            </div>
+
+
+                                        </div>
+
+                                    </div>
+
+
+
+                                    <!-- ================================================= -->
+                                    <!-- LOAN / ADVANCE -->
+                                    <!-- ONLY FOR DEDUCTION -->
+                                    <!-- ================================================= -->
+
+                                    <div class="row"
+                                         id="loanAdvanceArea"
+                                         style="display:none;">
+
+
+                                        <div class="col-md-4 mb-2">
+
+                                            <label class="form-label">
+                                                Loan / Advance Amount
+                                            </label>
+
+                                            <input asp-for="LoanAdvanceAmount"
+                                                   id="LoanAdvanceAmount"
+                                                   type="number"
+                                                   step="any"
+                                                   class="form-control" />
+
+                                        </div>
+
+
+                                    </div>
+
+
+                                </div>
+
+
+                            </div>
+
+
+
+                            <!-- MODAL FOOTER -->
+
+                            <div class="modal-footer">
+
+                                <button type="button"
+                                        class="btn btn-secondary"
+                                        data-bs-dismiss="modal">
+
+                                    <i class="bi bi-x-circle me-1"></i>
+
+                                    Close
+
+                                </button>
+
+
+                                <button type="submit"
+                                        id="btnSave"
+                                        class="btn btn-success">
+
+                                    <i class="bi bi-save me-1"></i>
+
+                                    Save Pay Setup
+
+                                </button>
+
+                            </div>
+
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+@section Scripts
+{
+    <script>
+
+                $(document).ready(function () {
+
+
+                    // =====================================================
+                    // MODAL
+                    // =====================================================
+
+                    var payComponentModal =
+                        new bootstrap.Modal(
+                            document.getElementById(
+                                "payComponentModal"
+                            )
+                        );
+
+
+
+                    // =====================================================
+                    // CALCULATION CODE TEXT
+                    // =====================================================
+
+                    function getCalculationText(calcCode) {
+
+                        var code =
+                            parseInt(calcCode);
+
+
+                        switch (code) {
+
+                            case 1:
+
+                                return "On Basic";
+
+
+                            case 2:
+
+                                return "B + DA";
+
+
+                            case 3:
+
+                                return "B + DA + HRA";
+
+
+                            default:
+
+                                return "Not Defined";
+                        }
+                    }
+
+
+
+                    // =====================================================
+                    // SEARCH BUTTON
+                    // =====================================================
+
+                    $("#btnSearchEmployee")
+                        .click(function () {
+
+                            searchEmployee();
+
+                        });
+
+
+
+                    // =====================================================
+                    // ENTER KEY
+                    // =====================================================
+
+                    $("#EmployeeCode")
+                        .keypress(function (e) {
+
+                            if (e.which === 13) {
+
+                                e.preventDefault();
+
+                                searchEmployee();
+
+                            }
+
+                        });
+
+
+
+                    // =====================================================
+                    // SEARCH EMPLOYEE
+                    // =====================================================
+
+                    function searchEmployee() {
+
+
+                        var employeeCode =
+                            $("#EmployeeCode")
+                                .val();
+
+
+                        if (!employeeCode) {
+
+                            $("#existingPayComponentsSection")
+                                .hide();
+
+                            showMessage(
+                                "Please enter Employee Code.",
+                                "warning"
+                            );
+
+                            return;
+                        }
+
+
+                        $("#existingPayComponentsSection")
+                            .hide();
+
+
+                        $.ajax({
+
+                            url:
+                                '@Url.Action("GetEmployee", "EmployeePaySetup")',
+
+                            type:
+                                "GET",
+
+                            data: {
+
+                                employeeCode:
+                                    employeeCode
+                            },
+
+
+                            success: function (response) {
+
+
+                                if (!response.success) {
+
+                                    clearEmployeeInformation();
+
+                                    showMessage(
+                                        response.message,
+                                        "danger"
+                                    );
+
+                                    return;
+                                }
+
+
+                                $("#EmployeeCode")
+                                    .val(
+                                        response.data.employeeCode
+                                    );
+
+
+                                $("#EmployeeName")
+                                    .val(
+                                        response.data.employeeName
+                                        ?? ""
+                                    );
+
+
+                                $("#BasicSalary")
+                                    .val(
+                                        response.data.basicSalary
+                                        ?? ""
+                                    );
+
+
+                                $("#GradeCode")
+                                    .val(
+                                        response.data.gradeCode
+                                        ?? ""
+                                    );
+
+
+                                clearSelectedComponent();
+
+
+                                $("#existingPayComponentsSection")
+                                    .show();
+
+
+                                loadEmployeeComponents(
+                                    response.data.employeeCode
+                                );
+
+
+                                showMessage(
+                                    "Employee found successfully.",
+                                    "success"
+                                );
+
+                            },
+
+
+                            error: function () {
+
+                                showMessage(
+                                    "Unable to retrieve Employee information.",
+                                    "danger"
+                                );
+
+                            }
+
+                        });
+
+                    }
+
+
+
+                    // =====================================================
+                    // LOAD EXISTING PAY COMPONENTS
+                    // =====================================================
+
+                    function loadEmployeeComponents(
+                        employeeCode
+                    ) {
+
+
+                        $("#allowanceComponentBody")
+                            .html(
+                                '<tr>' +
+                                '<td colspan="13" class="text-center">' +
+                                'Loading...' +
+                                '</td>' +
+                                '</tr>'
+                            );
+
+
+                        $("#deductionComponentBody")
+                            .html(
+                                '<tr>' +
+                                '<td colspan="13" class="text-center">' +
+                                'Loading...' +
+                                '</td>' +
+                                '</tr>'
+                            );
+
+
+                        $.ajax({
+
+                            url:
+                                '@Url.Action("GetEmployeeComponents", "EmployeePaySetup")',
+
+                            type:
+                                "GET",
+
+                            data: {
+
+                                employeeCode:
+                                    employeeCode
+
+                            },
+
+
+                            success: function (response) {
+
+
+                                $("#allowanceComponentBody")
+                                    .empty();
+
+
+                                $("#deductionComponentBody")
+                                    .empty();
+
+
+                                if (!response.success) {
+
+                                    showMessage(
+                                        response.message,
+                                        "danger"
+                                    );
+
+                                    return;
+                                }
+
+
+                                var allowanceCount = 0;
+
+                                var deductionCount = 0;
+
+
+                                $.each(
+                                    response.data || [],
+                                    function (
+                                        index,
+                                        item
+                                    ) {
+
+
+                                        if (item.flag == 1) {
+
+                                            allowanceCount++;
+
+                                            $("#allowanceComponentBody")
+                                                .append(
+                                                    createComponentRow(
+                                                        item,
+                                                        "allowance"
+                                                    )
+                                                );
+                                        }
+
+
+                                        if (item.flag == 2) {
+
+                                            deductionCount++;
+
+                                            $("#deductionComponentBody")
+                                                .append(
+                                                    createComponentRow(
+                                                        item,
+                                                        "deduction"
+                                                    )
+                                                );
+                                        }
+
+                                    }
+                                );
+
+
+                                if (allowanceCount === 0) {
+
+                                    $("#allowanceComponentBody")
+                                        .html(
+                                            '<tr>' +
+                                            '<td colspan="13" class="text-center text-muted py-3">' +
+                                            'No Allowance Components found.' +
+                                            '</td>' +
+                                            '</tr>'
+                                        );
+
+                                }
+
+
+                                if (deductionCount === 0) {
+
+                                    $("#deductionComponentBody")
+                                        .html(
+                                            '<tr>' +
+                                            '<td colspan="13" class="text-center text-muted py-3">' +
+                                            'No Deduction Components found.' +
+                                            '</td>' +
+                                            '</tr>'
+                                        );
+
+                                }
+
+                            },
+
+
+                            error: function () {
+
+                                showMessage(
+                                    "Unable to load Pay Components.",
+                                    "danger"
+                                );
+
+                            }
+
+                        });
+
+                    }
+
+
+
+                    // =====================================================
+                    // CREATE ROW
+                    // =====================================================
+
+                    function createComponentRow(
+                        item,
+                        type
+                    ) {
+
+
+                        var rowClass =
+                            type === "allowance"
+                                ? "table-success"
+                                : "table-danger";
+
+
+                        var itemJson =
+                            encodeURIComponent(
+                                JSON.stringify(item)
+                            );
+
+
+                        return (
+
+                            '<tr class="' +
+                            rowClass +
+                            '">' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                safe(item.componentCode)
+                            ) +
+                            '</td>' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                safe(item.componentName)
+                            ) +
+                            '</td>' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                safe(item.calculationCode)
+                            ) +
+                            '</td>' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                safe(item.percentage)
+                            ) +
+                            '</td>' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                safe(item.amount)
+                            ) +
+                            '</td>' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                formatDate(
+                                    item.effectiveDate
+                                )
+                            ) +
+                            '</td>' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                formatDate(
+                                    item.cancelDate
+                                )
+                            ) +
+                            '</td>' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                safe(item.forTimes)
+                            ) +
+                            '</td>' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                safe(item.glc)
+                            ) +
+                            '</td>' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                safe(item.branch)
+                            ) +
+                            '</td>' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                safe(item.slc)
+                            ) +
+                            '</td>' +
+
+
+                            '<td>' +
+                            escapeHtml(
+                                safe(item.loanAdvanceAmount)
+                            ) +
+                            '</td>' +
+
+
+                            '<td class="text-center">' +
+
+                            '<div class="d-flex gap-1 justify-content-center">' +
+
+                            '<button type="button" ' +
+                            'class="btn btn-sm btn-primary btn-component-edit" ' +
+                            'data-item="' +
+                            itemJson +
+                            '">' +
+
+                            '<i class="bi bi-pencil-square me-1"></i>' +
+
+                            'Edit' +
+
+                            '</button>' +
+
+
+                            '<button type="button" ' +
+                            'class="btn btn-sm btn-danger btn-component-cancel" ' +
+                            'data-flag="' +
+                            escapeHtml(
+                                safe(item.flag)
+                            ) +
+                            '" ' +
+                            'data-component-code="' +
+                            escapeHtml(
+                                safe(item.componentCode)
+                            ) +
+                            '" ' +
+                            'data-component-name="' +
+                            escapeHtml(
+                                safe(item.componentName)
+                            ) +
+                            '">' +
+
+                            '<i class="bi bi-trash me-1"></i>' +
+
+                            'Cancel' +
+
+                            '</button>' +
+
+                            '</div>' +
+
+                            '</td>' +
+
+
+                            '</tr>'
+                        );
+
+                    }
+
+
+
+                    // =====================================================
+                    // EDIT BUTTON
+                    // =====================================================
+
+                    $(document)
+                        .on(
+                            "click",
+                            ".btn-component-edit",
+                            function () {
+
+
+                                var encodedItem =
+                                    $(this)
+                                        .attr(
+                                            "data-item"
+                                        );
+
+
+                                if (!encodedItem) {
+
+                                    return;
+                                }
+
+
+                                var item =
+                                    JSON.parse(
+                                        decodeURIComponent(
+                                            encodedItem
+                                        )
+                                    );
+
+
+                                selectComponent(
+                                    item
+                                );
+
+                            }
+                        );
+
+
+
+                    // =====================================================
+                    // CANCEL COMPONENT
+                    //
+                    // Allowance  -> flag = 1
+                    // Deduction  -> flag = 2
+                    //
+                    // Record is deleted from dbo.payfoot.
+                    // =====================================================
+
+                    $(document)
+                        .on(
+                            "click",
+                            ".btn-component-cancel",
+                            function () {
+
+
+                                var button =
+                                    $(this);
+
+
+                                var employeeCode =
+                                    $("#EmployeeCode")
+                                        .val();
+
+
+                                var flag =
+                                    parseInt(
+                                        button.attr(
+                                            "data-flag"
+                                        )
+                                    );
+
+
+                                var componentCode =
+                                    parseInt(
+                                        button.attr(
+                                            "data-component-code"
+                                        )
+                                    );
+
+
+                                var componentName =
+                                    button.attr(
+                                        "data-component-name"
+                                    )
+                                    || "";
+
+
+                                if (!employeeCode) {
+
+                                    showMessage(
+                                        "Please search Employee first.",
+                                        "warning"
+                                    );
+
+                                    return;
+                                }
+
+
+                                if (
+                                    isNaN(flag) ||
+                                    isNaN(componentCode)
+                                ) {
+
+                                    showMessage(
+                                        "Invalid Pay Component.",
+                                        "danger"
+                                    );
+
+                                    return;
+                                }
+
+
+                                var typeName =
+                                    flag === 1
+                                        ? "Allowance"
+                                        : "Deduction";
+
+
+                                var confirmMessage =
+                                    "Are you sure you want to cancel " +
+                                    typeName +
+                                    " - " +
+                                    componentName +
+                                    "?";
+
+
+                                if (!confirm(confirmMessage)) {
+
+                                    return;
+                                }
+
+
+                                button
+                                    .prop(
+                                        "disabled",
+                                        true
+                                    );
+
+
+                                $.ajax({
+
+                                    url:
+                                        '@Url.Action("CancelComponent", "EmployeePaySetup")',
+
+                                    type:
+                                        "POST",
+
+                                    data: {
+
+                                        employeeCode:
+                                            employeeCode,
+
+                                        flag:
+                                            flag,
+
+                                        componentCode:
+                                            componentCode,
+
+                                        __RequestVerificationToken:
+                                            $('#paySetupForm input[name="__RequestVerificationToken"]')
+                                                .val()
+
+                                    },
+
+
+                                    success: function (response) {
+
+                                        if (!response.success) {
+
+                                            showMessage(
+                                                response.message,
+                                                "danger"
+                                            );
+
+                                            return;
+                                        }
+
+
+                                        showMessage(
+                                            response.message,
+                                            "success"
+                                        );
+
+
+                                        // Remove only the cancelled row
+                                        // from the current screen.
+                                        var currentRow =
+                                            button.closest("tr");
+
+
+                                        var currentBody =
+                                            currentRow.closest("tbody");
+
+
+                                        currentRow.remove();
+
+
+                                        // If the table becomes empty,
+                                        // show an empty-state message.
+                                        if (
+                                            currentBody
+                                                .children("tr")
+                                                .length === 0
+                                        ) {
+
+                                            if (flag === 1) {
+
+                                                $("#allowanceComponentBody")
+                                                    .html(
+                                                        '<tr>' +
+                                                        '<td colspan="13" class="text-center text-muted py-3">' +
+                                                        'No Allowance Components found.' +
+                                                        '</td>' +
+                                                        '</tr>'
+                                                    );
+
+                                            }
+                                            else {
+
+                                                $("#deductionComponentBody")
+                                                    .html(
+                                                        '<tr>' +
+                                                        '<td colspan="13" class="text-center text-muted py-3">' +
+                                                        'No Deduction Components found.' +
+                                                        '</td>' +
+                                                        '</tr>'
+                                                    );
+
+                                            }
+
+                                        }
+
+                                    },
+
+
+                                    error: function () {
+
+                                        showMessage(
+                                            "Unable to cancel Pay Component.",
+                                            "danger"
+                                        );
+
+                                    },
+
+
+                                    complete: function () {
+
+                                        button
+                                            .prop(
+                                                "disabled",
+                                                false
+                                            );
+
+                                    }
+
+                                });
+
+                            }
+                        );
+
+
+
+                    // =====================================================
+                    // SELECT COMPONENT
+                    // =====================================================
+
+                    function selectComponent(
+                        item
+                    ) {
+
+
+                        $("#Flag")
+                            .val(
+                                item.flag ?? ""
+                            );
+
+
+                        $("#ComponentCode")
+                            .val(
+                                item.componentCode ?? ""
+                            );
+
+
+
+                        // =================================================
+                        // LOAN / ADVANCE VISIBILITY
+                        //
+                        // Allowance = Hide
+                        // Deduction = Show
+                        // =================================================
+
+                        if (item.flag == 2) {
+
+                            $("#loanAdvanceArea")
+                                .show();
+
+                            $("#LoanAdvanceAmount")
+                                .val(
+                                    item.loanAdvanceAmount
+                                    ?? 0
+                                );
+
+                        }
+                        else {
+
+                            $("#loanAdvanceArea")
+                                .hide();
+
+                            $("#LoanAdvanceAmount")
+                                .val(0);
+
+                        }
+
+
+
+                        // =================================================
+                        // SELECTED COMPONENT
+                        // =================================================
+
+                        var typeName =
+                            item.flag == 1
+                                ? "Allowance"
+                                : "Deduction";
+
+
+                        $("#selectedComponentText")
+                            .text(
+
+                                typeName +
+
+                                " - " +
+
+                                safe(
+                                    item.componentCode
+                                ) +
+
+                                " - " +
+
+                                safe(
+                                    item.componentName
+                                )
+
+                            );
+
+
+
+                        // =================================================
+                        // EMPLOYEE SPECIFIC DETAILS
+                        // =================================================
+
+                        $("#EffectiveDate")
+                            .val(
+                                formatDate(
+                                    item.effectiveDate
+                                )
+                            );
+
+
+                        $("#CancelDate")
+                            .val(
+                                formatDate(
+                                    item.cancelDate
+                                )
+                            );
+
+
+                        $("#ForTimes")
+                            .val(
+                                item.forTimes ?? 0
+                            );
+
+
+                        $("#GLC")
+                            .val(
+                                item.glc ?? 0
+                            );
+
+
+                        $("#Branch")
+                            .val(
+                                item.branch ?? 0
+                            );
+
+
+                        $("#SLC")
+                            .val(
+                                item.slc ?? 0
+                            );
+
+
+                        // Initially clear conditional values
+
+                        $("#Percentage")
+                            .val(
+                                item.percentage ?? 0
+                            );
+
+
+                        $("#Amount")
+                            .val(
+                                item.amount ?? 0
+                            );
+
+
+
+                        // Open popup
+
+                        payComponentModal.show();
+
+
+
+                        // Load calculation rule
+
+                        loadCalculationRule(
+
+                            $("#EmployeeCode")
+                                .val(),
+
+                            item.flag,
+
+                            item.componentCode,
+
+                            item
+
+                        );
+
+                    }
+
+
+
+                    // =====================================================
+                    // LOAD CALCULATION RULE
+                    // =====================================================
+
+                    function loadCalculationRule(
+                        employeeCode,
+                        flag,
+                        componentCode,
+                        existingItem
+                    ) {
+
+
+                        $.ajax({
+
+                            url:
+                                '@Url.Action("GetCalculationRule", "EmployeePaySetup")',
+
+                            type:
+                                "GET",
+
+                            data: {
+
+                                employeeCode:
+                                    employeeCode,
+
+                                flag:
+                                    flag,
+
+                                componentCode:
+                                    componentCode
+
+                            },
+
+
+                            success: function (response) {
+
+
+                                if (!response.success) {
+
+                                    showMessage(
+                                        response.message,
+                                        "warning"
+                                    );
+
+                                    return;
+                                }
+
+
+                                var data =
+                                    response.data;
+
+
+                                // =================================================
+                                // CALCULATION RULE TEXT
+                                // =================================================
+
+                                $("#CalculationText")
+                                    .text(
+                                        getCalculationText(
+                                            data.calculationCode
+                                        )
+                                    );
+
+
+                                $("#PercentageText")
+                                    .text(
+                                        data.percentage
+                                        ?? 0
+                                    );
+
+
+                                $("#AmountText")
+                                    .text(
+                                        data.amount
+                                        ?? 0
+                                    );
+
+
+                                $("#PayDivText")
+                                    .text(
+                                        data.payDiv
+                                        ?? 0
+                                    );
+
+
+                                $("#MinLimitText")
+                                    .text(
+                                        data.minLimit
+                                        ?? 0
+                                    );
+
+
+                                $("#MaxLimitText")
+                                    .text(
+                                        data.maxLimit
+                                        ?? 0
+                                    );
+
+
+                                $("#MinDaysText")
+                                    .text(
+                                        data.minDays
+                                        ?? 0
+                                    );
+
+
+                                $("#ApplyText")
+                                    .text(
+                                        data.apply
+                                            ? "Yes"
+                                            : "No"
+                                    );
+
+
+
+                                // =================================================
+                                // PERCENTAGE RULE
+                                // =================================================
+
+                                var rulePercentage =
+                                    parseFloat(
+                                        data.percentage
+                                        ?? 0
+                                    );
+
+
+                                var ruleAmount =
+                                    parseFloat(
+                                        data.amount
+                                        ?? 0
+                                    );
+
+
+                                if (rulePercentage !== 0) {
+
+
+                                    $("#employeePercentageArea")
+                                        .show();
+
+
+                                    $("#employeeAmountArea")
+                                        .hide();
+
+
+                                    $("#percentageMaxText")
+                                        .text(
+                                            rulePercentage
+                                        );
+
+
+                                    $("#Percentage")
+                                        .attr(
+                                            "data-max-percentage",
+                                            rulePercentage
+                                        );
+
+
+                                    $("#percentageValidation")
+                                        .text("");
+
+
+                                    var employeePercentage =
+                                        parseFloat(
+                                            existingItem.percentage
+                                            ?? 0
+                                        );
+
+
+                                    if (isNaN(employeePercentage)) {
+
+                                        employeePercentage = 0;
+
+                                    }
+
+
+                                    $("#Percentage")
+                                        .val(
+                                            employeePercentage
+                                        );
+
+
+                                    $("#Amount")
+                                        .val(0)
+                                        .removeAttr("data-max-amount");
+
+                                    $("#amountMaxText").text("0");
+                                    $("#amountValidation").text("");
+
+                                }
+
+
+                                // =================================================
+                                // FIXED AMOUNT RULE
+                                // =================================================
+
+                                else if (ruleAmount !== 0) {
+
+
+                                    $("#employeePercentageArea")
+                                        .hide();
+
+
+                                    $("#percentageMaxText")
+                                        .text("0");
+
+
+                                    $("#Percentage")
+                                        .removeAttr(
+                                            "data-max-percentage"
+                                        );
+
+
+                                    $("#percentageValidation")
+                                        .text("");
+
+
+                                    $("#employeeAmountArea")
+                                        .show();
+
+
+                                    $("#amountMaxText")
+                                        .text(ruleAmount);
+
+
+                                    $("#Amount")
+                                        .attr(
+                                            "data-max-amount",
+                                            ruleAmount
+                                        );
+
+
+                                    $("#amountValidation")
+                                        .text("");
+
+
+                                    var employeeAmount =
+                                        parseFloat(
+                                            existingItem.amount
+                                            ?? 0
+                                        );
+
+                                    if (isNaN(employeeAmount)) {
+                                        employeeAmount = 0;
+                                    }
+
+        $("#Percentage")
+                                        .val(0);
+
+
+                                    $("#Amount")
+                                        .val(
+                                            employeeAmount
+                                        );
+
+                                }
+
+
+                                // =================================================
+                                // NO PERCENT / NO AMOUNT
+                                // =================================================
+
+                                else {
+
+
+                                    $("#employeePercentageArea")
+                                        .hide();
+
+
+                                    $("#percentageMaxText")
+                                        .text("0");
+
+
+                                    $("#Percentage")
+                                        .removeAttr(
+                                            "data-max-percentage"
+                                        );
+
+
+                                    $("#percentageValidation")
+                                        .text("");
+
+
+                                    $("#employeeAmountArea")
+                                        .hide();
+
+
+                                    $("#Percentage")
+                                        .val(0);
+
+
+                                    $("#Amount")
+                                        .val(0)
+                                        .removeAttr("data-max-amount");
+
+                                    $("#amountMaxText").text("0");
+                                    $("#amountValidation").text("");
+
+                                }
+
+                            },
+
+
+                            error: function () {
+
+                                showMessage(
+                                    "Unable to load Calculation Rule.",
+                                    "danger"
+                                );
+
+                            }
+
+                        });
+
+                    }
+
+
+
+                    // =====================================================
+                    // PERCENTAGE LIVE VALIDATION
+                    // Rule: 0 <= employee percentage < Calculation Rule %
+                    // UI shows Max: X%
+                    // =====================================================
+
+                    $("#Percentage").on(
+                        "input",
+                        function () {
+
+                            var value =
+                                parseFloat(
+                                    $(this).val()
+                                );
+
+
+                            var maxPercentage =
+                                parseFloat(
+                                    $(this)
+                                        .attr(
+                                            "data-max-percentage"
+                                        )
+                                );
+
+
+                            $("#percentageValidation")
+                                .text("");
+
+
+                            if (isNaN(value) ||
+                                isNaN(maxPercentage)) {
+
+                                return;
+                            }
+
+
+                            if (value < 0) {
+
+                                $("#percentageValidation")
+                                    .text(
+                                        "Percentage cannot be less than 0."
+                                    );
+
+                                return;
+                            }
+
+
+                            if (value >= maxPercentage) {
+
+                                $("#percentageValidation")
+                                    .text(
+                                        "Percentage must be less than " +
+                                        maxPercentage +
+                                        "%."
+                                    );
+
+                            }
+
+                        }
+                    );
+
+
+                    // =====================================================
+                    // FIXED AMOUNT LIVE VALIDATION
+                    // 0 <= employee amount < grade rule fixed amount
+                    // =====================================================
+
+                    $("#Amount").on("input", function () {
+
+                        var value = parseFloat($(this).val());
+                        var maxAmount =
+                            parseFloat($(this).attr("data-max-amount"));
+
+                        $("#amountValidation").text("");
+
+                        if (isNaN(value) || isNaN(maxAmount))
+                            return;
+
+                        if (value < 0) {
+                            $("#amountValidation")
+                                .text("Amount cannot be less than 0.");
+                            return;
+                        }
+
+                        if (value >= maxAmount) {
+                            $("#amountValidation")
+                                .text(
+                                    "Amount must be less than " +
+                                    maxAmount +
+                                    "."
+                                );
+                        }
+                    });
+
+
+                    // =====================================================
+                    // UPDATE ALL ALLOWANCE + DEDUCTION
+                    //
+                    // Stores all Grade-wise Apply = 1 components
+                    // into dbo.payfoot.
+                    // Existing records are not duplicated.
+                    // =====================================================
+
+                    $("#btnUpdateAllComponents")
+                        .click(function () {
+
+                            var employeeCode =
+                                $("#EmployeeCode")
+                                    .val();
+
+
+                            if (!employeeCode) {
+
+                                showMessage(
+                                    "Please search Employee first.",
+                                    "warning"
+                                );
+
+                                return;
+                            }
+
+
+                            var button =
+                                $(this);
+
+
+                            button
+                                .prop(
+                                    "disabled",
+                                    true
+                                )
+                                .html(
+                                    '<span class="spinner-border spinner-border-sm me-1"></span>' +
+                                    'Updating...'
+                                );
+
+
+                            $.ajax({
+
+                                url:
+                                    '@Url.Action("UpdateAllComponents", "EmployeePaySetup")',
+
+                                type:
+                                    "POST",
+
+                                data: {
+
+                                    employeeCode:
+                                        employeeCode,
+
+                                    __RequestVerificationToken:
+                                        $('#paySetupForm input[name="__RequestVerificationToken"]')
+                                            .val()
+
+                                },
+
+
+                                success: function (response) {
+
+                                    if (!response.success) {
+
+                                        showMessage(
+                                            response.message,
+                                            "danger"
+                                        );
+
+                                        return;
+                                    }
+
+
+                                    showMessage(
+                                        response.message,
+                                        "success"
+                                    );
+
+
+                                    // ============================================
+                                    // RESET PAGE AFTER SUCCESSFUL UPDATE
+                                    // ============================================
+
+                                    $("#EmployeeCode")
+                                        .val("");
+
+                                    $("#EmployeeName")
+                                        .val("");
+
+                                    $("#BasicSalary")
+                                        .val("");
+
+                                    $("#GradeCode")
+                                        .val("");
+
+
+                                    clearSelectedComponent();
+
+
+                                    $("#allowanceComponentBody")
+                                        .html(
+                                            '<tr>' +
+                                            '<td colspan="13" class="text-center text-muted py-3">' +
+                                            'Search Employee to view Allowance Components.' +
+                                            '</td>' +
+                                            '</tr>'
+                                        );
+
+
+                                    $("#deductionComponentBody")
+                                        .html(
+                                            '<tr>' +
+                                            '<td colspan="13" class="text-center text-muted py-3">' +
+                                            'Search Employee to view Deduction Components.' +
+                                            '</td>' +
+                                            '</tr>'
+                                        );
+
+
+                                    $("#existingPayComponentsSection")
+                                        .hide();
+
+
+                                    $("#EmployeeCode")
+                                        .focus();
+
+                                },
+
+
+                                error: function () {
+
+                                    showMessage(
+                                        "Unable to update Allowance and Deduction.",
+                                        "danger"
+                                    );
+
+                                },
+
+
+                                complete: function () {
+
+                                    button
+                                        .prop(
+                                            "disabled",
+                                            false
+                                        )
+                                        .html(
+                                            '<i class="bi bi-arrow-repeat me-1"></i>' +
+                                            'Update'
+                                        );
+
+                                }
+
+                            });
+
+                        });
+
+
+
+                    // =====================================================
+                    // SAVE
+                    // Controller handles INSERT + UPDATE
+                    // =====================================================
+
+                    $("#paySetupForm")
+                        .submit(function (e) {
+
+
+                            e.preventDefault();
+
+
+                            var employeeCode =
+                                $("#EmployeeCode")
+                                    .val();
+
+
+                            var flag =
+                                $("#Flag")
+                                    .val();
+
+
+                            var componentCode =
+                                $("#ComponentCode")
+                                    .val();
+
+
+                            if (!employeeCode) {
+
+                                showMessage(
+                                    "Please search Employee first.",
+                                    "warning"
+                                );
+
+                                return;
+                            }
+
+
+                            if (
+                                !flag ||
+                                !componentCode
+                            ) {
+
+                                showMessage(
+                                    "Please select Pay Component.",
+                                    "warning"
+                                );
+
+                                return;
+                            }
+
+
+                            // =================================================
+                            // PERCENTAGE RANGE VALIDATION
+                            // Calculation Rule 25 असल्यास:
+                            // Max: 25% दिसेल, पण save value 25 पेक्षा कमी हवी.
+                            // =================================================
+
+                            if (
+                                $("#employeePercentageArea")
+                                    .is(":visible")
+                            ) {
+
+                                var employeePercentage =
+                                    parseFloat(
+                                        $("#Percentage")
+                                            .val()
+                                    );
+
+
+                                var maxPercentage =
+                                    parseFloat(
+                                        $("#Percentage")
+                                            .attr(
+                                                "data-max-percentage"
+                                            )
+                                    );
+
+
+                                if (isNaN(employeePercentage)) {
+
+                                    showMessage(
+                                        "Please enter Percentage.",
+                                        "danger"
+                                    );
+
+                                    $("#Percentage")
+                                        .focus();
+
+                                    return;
+                                }
+
+
+                                if (employeePercentage < 0) {
+
+                                    showMessage(
+                                        "Percentage cannot be less than 0.",
+                                        "danger"
+                                    );
+
+                                    $("#Percentage")
+                                        .focus();
+
+                                    return;
+                                }
+
+
+                                if (
+                                    !isNaN(maxPercentage) &&
+                                    employeePercentage >= maxPercentage
+                                ) {
+
+                                    showMessage(
+                                        "Percentage must be less than " +
+                                        maxPercentage +
+                                        "%.",
+                                        "danger"
+                                    );
+
+                                    $("#Percentage")
+                                        .focus();
+
+                                    return;
+                                }
+
+                            }
+
+
+                            // =================================================
+                            // FIXED AMOUNT RANGE VALIDATION
+                            // =================================================
+
+                            if ($("#employeeAmountArea").is(":visible")) {
+
+                                var employeeAmount =
+                                    parseFloat($("#Amount").val());
+
+                                var maxAmount =
+                                    parseFloat(
+                                        $("#Amount")
+                                            .attr("data-max-amount")
+                                    );
+
+                                if (isNaN(employeeAmount)) {
+                                    showMessage(
+                                        "Please enter Amount.",
+                                        "danger"
+                                    );
+                                    $("#Amount").focus();
+                                    return;
+                                }
+
+                                if (employeeAmount < 0) {
+                                    showMessage(
+                                        "Amount cannot be less than 0.",
+                                        "danger"
+                                    );
+                                    $("#Amount").focus();
+                                    return;
+                                }
+
+                                if (!isNaN(maxAmount) &&
+                                    employeeAmount >= maxAmount) {
+                                    showMessage(
+                                        "Amount must be less than " +
+                                        maxAmount +
+                                        ".",
+                                        "danger"
+                                    );
+                                    $("#Amount").focus();
+                                    return;
+                                }
+                            }
+
+
+                            // Allowance असल्यास loan always 0
+
+                            if (flag == 1) {
+
+                                $("#LoanAdvanceAmount")
+                                    .val(0);
+
+                            }
+
+
+                            $.ajax({
+
+                                url:
+                                    '@Url.Action("Save", "EmployeePaySetup")',
+
+                                type:
+                                    "POST",
+
+                                data:
+                                    $("#paySetupForm")
+                                        .serialize(),
+
+
+                                success: function (response) {
+
+
+                                    if (!response.success) {
+
+                                        showMessage(
+                                            response.message,
+                                            "danger"
+                                        );
+
+                                        return;
+                                    }
+
+
+                                    payComponentModal
+                                        .hide();
+
+
+                                    showMessage(
+                                        response.message,
+                                        "success"
+                                    );
+
+
+                                    loadEmployeeComponents(
+                                        $("#EmployeeCode")
+                                            .val()
+                                    );
+
+                                },
+
+
+                                error: function () {
+
+                                    showMessage(
+                                        "Unable to save Employee Pay Setup.",
+                                        "danger"
+                                    );
+
+                                }
+
+                            });
+
+                        });
+
+
+
+                    // =====================================================
+                    // MODAL CLOSE
+                    // =====================================================
+
+                    $("#payComponentModal")
+                        .on(
+                            "hidden.bs.modal",
+                            function () {
+
+
+                                clearSelectedComponent();
+
+                            }
+                        );
+
+
+
+                    // =====================================================
+                    // CLEAR SELECTED
+                    // =====================================================
+
+                    function clearSelectedComponent() {
+
+
+                        $("#Flag")
+                            .val("");
+
+
+                        $("#ComponentCode")
+                            .val("");
+
+
+                        $("#selectedComponentText")
+                            .text("");
+
+
+                        // Calculation rule
+
+                        $("#CalculationText")
+                            .text("-");
+
+
+                        $("#PercentageText")
+                            .text("-");
+
+
+                        $("#AmountText")
+                            .text("-");
+
+
+                        $("#PayDivText")
+                            .text("-");
+
+
+                        $("#MinLimitText")
+                            .text("-");
+
+
+                        $("#MaxLimitText")
+                            .text("-");
+
+
+                        $("#MinDaysText")
+                            .text("-");
+
+
+                        $("#ApplyText")
+                            .text("-");
+
+
+                        // Employee values
+
+                        $("#EffectiveDate")
+                            .val("");
+
+
+                        $("#CancelDate")
+                            .val("");
+
+
+                        $("#ForTimes")
+                            .val("");
+
+
+                        $("#GLC")
+                            .val("");
+
+
+                        $("#Branch")
+                            .val("");
+
+
+                        $("#SLC")
+                            .val("");
+
+
+                        $("#Percentage")
+                            .val("")
+                            .removeAttr(
+                                "data-max-percentage"
+                            );
+
+
+                        $("#percentageMaxText")
+                            .text("0");
+
+
+                        $("#percentageValidation")
+                            .text("");
+
+
+                        $("#Amount")
+                            .val("")
+                            .removeAttr("data-max-amount");
+
+                        $("#amountMaxText")
+                            .text("0");
+
+                        $("#amountValidation")
+                            .text("");
+
+
+                        $("#LoanAdvanceAmount")
+                            .val("");
+
+
+                        // Hide conditional areas
+
+                        $("#employeePercentageArea")
+                            .hide();
+
+
+                        $("#employeeAmountArea")
+                            .hide();
+
+
+                        $("#loanAdvanceArea")
+                            .hide();
+
+                    }
+
+
+
+                    // =====================================================
+                    // CLEAR EMPLOYEE
+                    // =====================================================
+
+                    function clearEmployeeInformation() {
+
+
+                        $("#EmployeeName")
+                            .val("");
+
+
+                        $("#BasicSalary")
+                            .val("");
+
+
+                        $("#GradeCode")
+                            .val("");
+
+
+                        clearSelectedComponent();
+
+
+                        $("#existingPayComponentsSection")
+                            .hide();
+
+
+                        $("#allowanceComponentBody")
+                            .html(
+                                '<tr>' +
+                                '<td colspan="13" class="text-center text-muted py-3">' +
+                                'Search Employee to view Allowance Components.' +
+                                '</td>' +
+                                '</tr>'
+                            );
+
+
+                        $("#deductionComponentBody")
+                            .html(
+                                '<tr>' +
+                                '<td colspan="13" class="text-center text-muted py-3">' +
+                                'Search Employee to view Deduction Components.' +
+                                '</td>' +
+                                '</tr>'
+                            );
+
+                    }
+
+
+
+                    // =====================================================
+                    // DATE FORMAT
+                    // =====================================================
+
+                    function formatDate(value) {
+
+
+                        if (!value) {
+
+                            return "";
+
+                        }
+
+
+                        return value
+                            .toString()
+                            .substring(
+                                0,
+                                10
+                            );
+
+                    }
+
+
+
+                    // =====================================================
+                    // SAFE
+                    // =====================================================
+
+                    function safe(value) {
+
+
+                        if (
+                            value === null ||
+                            value === undefined
+                        ) {
+
+                            return "";
+
+                        }
+
+
+                        return value
+                            .toString();
+
+                    }
+
+
+
+                    // =====================================================
+                    // ESCAPE HTML
+                    // =====================================================
+
+                    function escapeHtml(value) {
+
+
+                        return $("<div>")
+                            .text(value)
+                            .html();
+
+                    }
+
+
+
+                    // =====================================================
+                    // MESSAGE
+                    // =====================================================
+
+                    function showMessage(
+                        message,
+                        type
+                    ) {
+
+
+                        $("#messageArea")
+                            .html(
+
+                                '<div class="alert alert-' +
+                                type +
+                                ' alert-dismissible fade show">' +
+
+                                escapeHtml(
+                                    message
+                                ) +
+
+                                '<button type="button" ' +
+                                'class="btn-close" ' +
+                                'data-bs-dismiss="alert">' +
+
+                                '</button>' +
+
+                                '</div>'
+
+                            );
+
+                    }
+
+
+                });
+
+    </script>
+}

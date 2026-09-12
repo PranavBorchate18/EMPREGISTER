@@ -4,32 +4,56 @@
     ViewData["Title"] = "Deduction Master";
 }
 
+
 <div class="container mt-4">
 
     <div class="card shadow">
 
         <div class="card-header bg-primary text-white">
+
             <h3 class="text-center mb-0">
                 <i class="bi bi-dash-circle me-2"></i>
                 Deduction Master
             </h3>
+
         </div>
+
 
         <div class="card-body">
 
             @if (TempData["Success"] != null)
             {
-                <div class="alert alert-success">
+                <div class="alert alert-success alert-dismissible fade show">
+
+                    <i class="bi bi-check-circle-fill me-2"></i>
+
                     @TempData["Success"]
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert">
+                    </button>
+
                 </div>
             }
 
+
             @if (TempData["Error"] != null)
             {
-                <div class="alert alert-danger">
+                <div class="alert alert-danger alert-dismissible fade show">
+
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
                     @TempData["Error"]
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert">
+                    </button>
+
                 </div>
             }
+
 
 
             <div class="d-flex justify-content-between mb-3">
@@ -53,24 +77,38 @@
             </div>
 
 
+
             <div class="table-responsive">
 
-                <table class="table table-bordered table-hover"
+                <table class="table table-bordered table-hover align-middle"
                        id="deductionTable">
 
                     <thead class="table-dark">
 
                         <tr>
+
                             <th>Code</th>
+
                             <th>Name</th>
+
                             <th>Short Name</th>
+
                             <th>G/L Code</th>
+
                             <th>Comp</th>
+
                             <th>Flag</th>
+
                             <th>HO Cutting</th>
+
                             <th>Income Tax Report</th>
+
+                            <th>Apply Month</th>
+
                             <th>Active</th>
+
                             <th>Action</th>
+
                         </tr>
 
                     </thead>
@@ -94,17 +132,49 @@
 
                                 <td>@item.Flag</td>
 
+
                                 <td>
-                                    @(item.HOCutting == true ? "Yes" : "No")
+                                    @(item.HOCutting == true
+                                        ? "Yes"
+                                        : "No")
                                 </td>
+
 
                                 <td>
                                     @(item.PrintInIncomeTaxReport == true
-                                                                    ? "Yes"
-                                                                    : "No")
-                            </td>
+                                        ? "Yes"
+                                        : "No")
+                                </td>
 
-                                <td>@item.Active</td>
+
+                                <td>
+                                    @item.ApplyMonth
+                                </td>
+
+
+                                <td>
+
+                                    @if (
+                                        string.Equals(
+                                            item.Active,
+                                            "Yes",
+                                            StringComparison.OrdinalIgnoreCase
+                                        )
+                                    )
+                                    {
+                                        <span class="badge bg-success">
+                                            Yes
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            No
+                                        </span>
+                                    }
+
+                                </td>
+
 
                                 <td>
 
@@ -128,7 +198,7 @@
                                 </td>
 
                             </tr>
-                                                }
+                        }
 
                     </tbody>
 
@@ -143,6 +213,7 @@
 </div>
 
 
+
 <!-- ===========================================================
      ADD / EDIT MODAL
      =========================================================== -->
@@ -151,7 +222,7 @@
      id="deductionModal"
      tabindex="-1">
 
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
 
         <div class="modal-content">
 
@@ -170,6 +241,7 @@
 
                     </h5>
 
+
                     <button type="button"
                             class="btn-close btn-close-white"
                             data-bs-dismiss="modal">
@@ -178,16 +250,20 @@
                 </div>
 
 
+
                 <div class="modal-body">
+
 
                     <div class="row">
 
 
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
-                                Deduction Code *
+                            <label class="form-label fw-bold">
+                                Deduction Code
+                                <span class="text-danger">*</span>
                             </label>
+
 
                             <input type="number"
                                    name="Code"
@@ -198,11 +274,14 @@
                         </div>
 
 
+
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
-                                Deduction Name *
+                            <label class="form-label fw-bold">
+                                Deduction Name
+                                <span class="text-danger">*</span>
                             </label>
+
 
                             <input type="text"
                                    name="Name"
@@ -213,12 +292,19 @@
 
                         </div>
 
+                    </div>
+
+
+
+                    <div class="row">
+
 
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                            <label class="form-label fw-bold">
                                 Short Name
                             </label>
+
 
                             <input type="text"
                                    name="ShortName"
@@ -229,11 +315,13 @@
                         </div>
 
 
+
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                            <label class="form-label fw-bold">
                                 G/L Code
                             </label>
+
 
                             <input type="number"
                                    name="GLC"
@@ -242,96 +330,64 @@
 
                         </div>
 
+                    </div>
+
+
+
+                    <div class="row">
+
 
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                            <label class="form-label fw-bold">
                                 Comp
                             </label>
+
 
                             <select name="Comp"
                                     id="Comp"
                                     class="form-select">
 
-                                <option value="">Select</option>
-                                <option value="Y">Yes</option>
-                                <option value="N">No</option>
+                                <option value="">
+                                    Select
+                                </option>
+
+                                <option value="Y">
+                                    Yes
+                                </option>
+
+                                <option value="N">
+                                    No
+                                </option>
 
                             </select>
 
                         </div>
 
 
+
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                            <label class="form-label fw-bold">
                                 Flag
                             </label>
+
 
                             <select name="Flag"
                                     id="Flag"
                                     class="form-select">
 
-                                <option value="">Select</option>
-                                <option value="Y">Yes</option>
-                                <option value="N">No</option>
+                                <option value="">
+                                    Select
+                                </option>
 
-                            </select>
+                                <option value="Y">
+                                    Yes
+                                </option>
 
-                        </div>
-
-
-                        <div class="col-md-6 mb-3">
-
-                            <label class="form-label">
-                                HO Cutting
-                            </label>
-
-                            <select name="HOCutting"
-                                    id="HOCutting"
-                                    class="form-select">
-
-                                <option value="">Select</option>
-                                <option value="true">Yes</option>
-                                <option value="false">No</option>
-
-                            </select>
-
-                        </div>
-
-
-                        <div class="col-md-6 mb-3">
-
-                            <label class="form-label">
-                                Print In Income Tax Report
-                            </label>
-
-                            <select name="PrintInIncomeTaxReport"
-                                    id="PrintInIncomeTaxReport"
-                                    class="form-select">
-
-                                <option value="">Select</option>
-                                <option value="true">Yes</option>
-                                <option value="false">No</option>
-
-                            </select>
-
-                        </div>
-
-
-                        <div class="col-md-6 mb-3">
-
-                            <label class="form-label">
-                                Active
-                            </label>
-
-                            <select name="Active"
-                                    id="Active"
-                                    class="form-select">
-
-                                <option value="">Select</option>
-                                <option value="Y">Yes</option>
-                                <option value="N">No</option>
+                                <option value="N">
+                                    No
+                                </option>
 
                             </select>
 
@@ -339,10 +395,171 @@
 
                     </div>
 
+
+
+                    <div class="row">
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold">
+                                HO Cutting
+                            </label>
+
+
+                            <select name="HOCutting"
+                                    id="HOCutting"
+                                    class="form-select">
+
+                                <option value="">
+                                    Select
+                                </option>
+
+                                <option value="true">
+                                    Yes
+                                </option>
+
+                                <option value="false">
+                                    No
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold">
+                                Print In Income Tax Report
+                            </label>
+
+
+                            <select name="PrintInIncomeTaxReport"
+                                    id="PrintInIncomeTaxReport"
+                                    class="form-select">
+
+                                <option value="">
+                                    Select
+                                </option>
+
+                                <option value="true">
+                                    Yes
+                                </option>
+
+                                <option value="false">
+                                    No
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- ==========================================
+                         ACTIVE
+                         ========================================== -->
+
+                    <div class="row">
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold d-block">
+                                Active
+                            </label>
+
+
+                            <div class="form-check form-switch mt-2">
+
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       role="switch"
+                                       id="ActiveFlag"
+                                       style="
+                                           width:48px;
+                                           height:24px;
+                                           cursor:pointer;
+                                       " />
+
+
+                                <label class="form-check-label ms-2 fw-bold"
+                                       id="ActiveFlagText"
+                                       for="ActiveFlag">
+
+                                    No
+
+                                </label>
+
+
+                                <input type="hidden"
+                                       name="Active"
+                                       id="Active"
+                                       value="No" />
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <!-- ==========================================
+                         APPLY FOR MONTH
+                         ========================================== -->
+
+                    <div class="row">
+
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold d-block">
+                                Apply for Month
+                            </label>
+
+
+                            <button type="button"
+                                    class="btn btn-outline-primary"
+                                    onclick="openMonthSelector()">
+
+                                <i class="bi bi-calendar3 me-1"></i>
+
+                                Apply for Month
+
+                            </button>
+
+
+                            <input type="hidden"
+                                   name="ApplyMonth"
+                                   id="ApplyMonth" />
+
+
+                            <div id="selectedMonthText"
+                                 class="form-control bg-light mt-2"
+                                 style="min-height:38px;">
+
+                                No month selected
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
                 </div>
 
 
+
                 <div class="modal-footer">
+
 
                     <button type="button"
                             class="btn btn-secondary"
@@ -352,15 +569,20 @@
 
                     </button>
 
+
                     <button type="submit"
-                            class="btn btn-success">
+                            class="btn btn-success"
+                            id="btnDeductionSave">
 
                         <i class="bi bi-save"></i>
+
                         Save
 
                     </button>
 
+
                 </div>
+
 
             </form>
 
@@ -369,6 +591,291 @@
     </div>
 
 </div>
+
+
+
+<!-- ===========================================================
+     MONTH MODAL
+     =========================================================== -->
+
+<div class="modal fade"
+     id="monthModal"
+     tabindex="-1">
+
+    <div class="modal-dialog modal-md modal-dialog-centered">
+
+        <div class="modal-content">
+
+
+            <div class="modal-header bg-primary text-white">
+
+                <h5 class="modal-title">
+
+                    <i class="bi bi-calendar3 me-2"></i>
+
+                    Select Months
+
+                </h5>
+
+
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        onclick="cancelMonthSelection()">
+                </button>
+
+            </div>
+
+
+
+            <div class="modal-body">
+
+                <div class="row">
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="1"
+                                   id="month1" />
+
+                            <label class="form-check-label"
+                                   for="month1">
+                                January (1)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="7"
+                                   id="month7" />
+
+                            <label class="form-check-label"
+                                   for="month7">
+                                July (7)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="2"
+                                   id="month2" />
+
+                            <label class="form-check-label"
+                                   for="month2">
+                                February (2)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="8"
+                                   id="month8" />
+
+                            <label class="form-check-label"
+                                   for="month8">
+                                August (8)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="3"
+                                   id="month3" />
+
+                            <label class="form-check-label"
+                                   for="month3">
+                                March (3)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="9"
+                                   id="month9" />
+
+                            <label class="form-check-label"
+                                   for="month9">
+                                September (9)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="4"
+                                   id="month4" />
+
+                            <label class="form-check-label"
+                                   for="month4">
+                                April (4)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="10"
+                                   id="month10" />
+
+                            <label class="form-check-label"
+                                   for="month10">
+                                October (10)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="5"
+                                   id="month5" />
+
+                            <label class="form-check-label"
+                                   for="month5">
+                                May (5)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="11"
+                                   id="month11" />
+
+                            <label class="form-check-label"
+                                   for="month11">
+                                November (11)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="6"
+                                   id="month6" />
+
+                            <label class="form-check-label"
+                                   for="month6">
+                                June (6)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+
+                            <input class="form-check-input month-check"
+                                   type="checkbox"
+                                   value="12"
+                                   id="month12" />
+
+                            <label class="form-check-label"
+                                   for="month12">
+                                December (12)
+                            </label>
+
+                        </div>
+                    </div>
+
+
+                </div>
+
+            </div>
+
+
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-secondary"
+                        onclick="cancelMonthSelection()">
+
+                    Cancel
+
+                </button>
+
+
+                <button type="button"
+                        class="btn btn-primary"
+                        onclick="saveMonthSelection()">
+
+                    <i class="bi bi-check-lg"></i>
+                    OK
+
+                </button>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</div>
+
 
 
 <!-- DELETE FORM -->
@@ -380,6 +887,7 @@
 
     @Html.AntiForgeryToken()
 
+
     <input type="hidden"
            name="code"
            id="DeleteCode" />
@@ -387,164 +895,951 @@
 </form>
 
 
+
 @section Scripts
 {
     <script>
 
+
         var deductionModal;
 
-        document.addEventListener("DOMContentLoaded", function () {
+        var monthModal;
 
-            deductionModal =
-                new bootstrap.Modal(
-                    document.getElementById("deductionModal")
-                );
+        var previousMonthSelection = "";
 
 
-            // SEARCH
-            document.getElementById("searchDeduction")
-                .addEventListener("keyup", function () {
 
-                    var value =
-                        this.value.toLowerCase();
+        const monthNames = {
 
-                    document
-                        .querySelectorAll(
-                            "#deductionTable tbody tr"
+            1: "Jan",
+            2: "Feb",
+            3: "Mar",
+            4: "Apr",
+            5: "May",
+            6: "Jun",
+            7: "Jul",
+            8: "Aug",
+            9: "Sep",
+            10: "Oct",
+            11: "Nov",
+            12: "Dec"
+
+        };
+
+
+
+        // ==========================================
+        // PAGE LOAD
+        // ==========================================
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+
+                deductionModal =
+                    bootstrap.Modal.getOrCreateInstance(
+                        document.getElementById(
+                            "deductionModal"
                         )
-                        .forEach(function (row) {
+                    );
 
-                            row.style.display =
-                                row.innerText
-                                   .toLowerCase()
-                                   .includes(value)
-                                ? ""
-                                : "none";
 
-                        });
+                monthModal =
+                    bootstrap.Modal.getOrCreateInstance(
+                        document.getElementById(
+                            "monthModal"
+                        )
+                    );
 
-                });
 
-        });
 
+                // SEARCH
+
+                document
+                    .getElementById(
+                        "searchDeduction"
+                    )
+                    .addEventListener(
+                        "keyup",
+                        function () {
+
+
+                            var value =
+                                this.value
+                                    .toLowerCase();
+
+
+                            document
+                                .querySelectorAll(
+                                    "#deductionTable tbody tr"
+                                )
+                                .forEach(
+                                    function (row) {
+
+
+                                        row.style.display =
+                                            row.innerText
+                                                .toLowerCase()
+                                                .includes(value)
+                                                ? ""
+                                                : "none";
+
+                                    }
+                                );
+
+                        }
+                    );
+
+
+
+                // ACTIVE FLAG
+
+                document
+                    .getElementById(
+                        "ActiveFlag"
+                    )
+                    .addEventListener(
+                        "change",
+                        function () {
+
+
+                            setActiveValue(
+                                this.checked
+                            );
+
+                        }
+                    );
+
+            }
+        );
+
+
+
+        // ==========================================
+        // ACTIVE
+        // ==========================================
+
+        function setActiveValue(
+            isActive
+        ) {
+
+
+            if (isActive) {
+
+                document
+                    .getElementById(
+                        "Active"
+                    )
+                    .value =
+                        "Yes";
+
+
+                document
+                    .getElementById(
+                        "ActiveFlag"
+                    )
+                    .checked =
+                        true;
+
+
+                document
+                    .getElementById(
+                        "ActiveFlagText"
+                    )
+                    .innerText =
+                        "Yes";
+
+            }
+            else {
+
+                document
+                    .getElementById(
+                        "Active"
+                    )
+                    .value =
+                        "No";
+
+
+                document
+                    .getElementById(
+                        "ActiveFlag"
+                    )
+                    .checked =
+                        false;
+
+
+                document
+                    .getElementById(
+                        "ActiveFlagText"
+                    )
+                    .innerText =
+                        "No";
+
+            }
+
+        }
+
+
+
+        // ==========================================
+        // ADD
+        // ==========================================
 
         function openAddDeduction() {
 
-            document.getElementById(
-                "deductionModalTitle"
-            ).innerText = "Add Deduction";
 
-            document.getElementById(
-                "deductionForm"
-            ).action =
-                '@Url.Action("Create", "Deduction")';
+            document
+                .getElementById(
+                    "deductionModalTitle"
+                )
+                .innerText =
+                    "Add Deduction";
 
-            document.getElementById("Code").value = "";
-            document.getElementById("Code").readOnly = false;
 
-            document.getElementById("Name").value = "";
-            document.getElementById("ShortName").value = "";
-            document.getElementById("GLC").value = "";
+            document
+                .getElementById(
+                    "deductionForm"
+                )
+                .action =
+                    '@Url.Action("Create", "Deduction")';
 
-            document.getElementById("Comp").value = "";
-            document.getElementById("Flag").value = "";
 
-            document.getElementById("HOCutting").value = "";
-            document.getElementById(
-                "PrintInIncomeTaxReport"
-            ).value = "";
 
-            document.getElementById("Active").value = "";
+            document
+                .getElementById(
+                    "Code"
+                )
+                .value = "";
+
+
+            document
+                .getElementById(
+                    "Code"
+                )
+                .readOnly =
+                    false;
+
+
+
+            document
+                .getElementById(
+                    "Name"
+                )
+                .value = "";
+
+
+            document
+                .getElementById(
+                    "ShortName"
+                )
+                .value = "";
+
+
+            document
+                .getElementById(
+                    "GLC"
+                )
+                .value = "";
+
+
+            document
+                .getElementById(
+                    "Comp"
+                )
+                .value = "";
+
+
+            document
+                .getElementById(
+                    "Flag"
+                )
+                .value = "";
+
+
+            document
+                .getElementById(
+                    "HOCutting"
+                )
+                .value = "";
+
+
+            document
+                .getElementById(
+                    "PrintInIncomeTaxReport"
+                )
+                .value = "";
+
+
+
+            // ACTIVE DEFAULT NO
+
+            setActiveValue(
+                false
+            );
+
+
+
+            // APPLY MONTH RESET
+
+            document
+                .getElementById(
+                    "ApplyMonth"
+                )
+                .value = "";
+
+
+            document
+                .getElementById(
+                    "selectedMonthText"
+                )
+                .innerText =
+                    "No month selected";
+
+
+            clearMonthCheckboxes();
+
+
+
+            var saveButton =
+                document.getElementById(
+                    "btnDeductionSave"
+                );
+
+
+            saveButton.classList.remove(
+                "btn-warning"
+            );
+
+
+            saveButton.classList.add(
+                "btn-success"
+            );
+
+
+            saveButton.innerHTML =
+                '<i class="bi bi-save"></i> Save';
+
 
             deductionModal.show();
+
         }
 
 
-        function editDeduction(code) {
+
+        // ==========================================
+        // EDIT
+        // ==========================================
+
+        function editDeduction(
+            code
+        ) {
+
 
             fetch(
                 '@Url.Action("GetDeduction", "Deduction")'
-                + '?code='
-                + code
+                +
+                '?code='
+                +
+                code
             )
-            .then(response => response.json())
-            .then(result => {
+            .then(
+                response =>
+                    response.json()
+            )
+            .then(
+                result => {
 
-                if (!result.success) {
 
-                    alert(result.message);
-                    return;
+                    if (!result.success) {
+
+                        alert(
+                            result.message
+                        );
+
+                        return;
+
+                    }
+
+
+                    var d =
+                        result.data;
+
+
+
+                    document
+                        .getElementById(
+                            "deductionModalTitle"
+                        )
+                        .innerText =
+                            "Edit Deduction";
+
+
+                    document
+                        .getElementById(
+                            "deductionForm"
+                        )
+                        .action =
+                            '@Url.Action("Update", "Deduction")';
+
+
+
+                    document
+                        .getElementById(
+                            "Code"
+                        )
+                        .value =
+                            d.code;
+
+
+                    document
+                        .getElementById(
+                            "Code"
+                        )
+                        .readOnly =
+                            true;
+
+
+
+                    document
+                        .getElementById(
+                            "Name"
+                        )
+                        .value =
+                            d.name ?? "";
+
+
+                    document
+                        .getElementById(
+                            "ShortName"
+                        )
+                        .value =
+                            d.shortName ?? "";
+
+
+                    document
+                        .getElementById(
+                            "GLC"
+                        )
+                        .value =
+                            d.glc ?? "";
+
+
+                    document
+                        .getElementById(
+                            "Comp"
+                        )
+                        .value =
+                            d.comp ?? "";
+
+
+                    document
+                        .getElementById(
+                            "Flag"
+                        )
+                        .value =
+                            d.flag ?? "";
+
+
+
+                    document
+                        .getElementById(
+                            "HOCutting"
+                        )
+                        .value =
+                            d.hoCutting === null ||
+                            d.hoCutting === undefined
+                                ? ""
+                                : d.hoCutting.toString();
+
+
+
+                    document
+                        .getElementById(
+                            "PrintInIncomeTaxReport"
+                        )
+                        .value =
+                            d.printInIncomeTaxReport === null ||
+                            d.printInIncomeTaxReport === undefined
+                                ? ""
+                                : d.printInIncomeTaxReport.toString();
+
+
+
+                    // ACTIVE
+
+                    var active =
+                        (
+                            d.active ?? ""
+                        )
+                        .toString()
+                        .toLowerCase();
+
+
+                    setActiveValue(
+                        active === "yes" ||
+                        active === "y"
+                    );
+
+
+
+                    // APPLY MONTH
+
+                    var applyMonth =
+                        d.applyMonth ?? "";
+
+
+                    document
+                        .getElementById(
+                            "ApplyMonth"
+                        )
+                        .value =
+                            applyMonth;
+
+
+                    setMonthCheckboxes(
+                        applyMonth
+                    );
+
+
+                    updateSelectedMonthText(
+                        applyMonth
+                    );
+
+
+
+                    var saveButton =
+                        document.getElementById(
+                            "btnDeductionSave"
+                        );
+
+
+                    saveButton.classList.remove(
+                        "btn-success"
+                    );
+
+
+                    saveButton.classList.add(
+                        "btn-warning"
+                    );
+
+
+                    saveButton.innerHTML =
+                        '<i class="bi bi-pencil-square"></i> Update';
+
+
+
+                    deductionModal.show();
+
                 }
-
-                var d = result.data;
-
-                document.getElementById(
-                    "deductionModalTitle"
-                ).innerText = "Edit Deduction";
-
-                document.getElementById(
-                    "deductionForm"
-                ).action =
-                    '@Url.Action("Update", "Deduction")';
+            )
+            .catch(
+                error => {
 
 
-                document.getElementById("Code").value = d.code;
-                document.getElementById("Code").readOnly = true;
+                    console.error(
+                        error
+                    );
 
-                document.getElementById("Name").value =
-                    d.name ?? "";
 
-                document.getElementById("ShortName").value =
-                    d.shortName ?? "";
+                    alert(
+                        "Unable to load deduction."
+                    );
 
-                document.getElementById("GLC").value =
-                    d.glc ?? "";
-
-                document.getElementById("Comp").value =
-                    d.comp ?? "";
-
-                document.getElementById("Flag").value =
-                    d.flag ?? "";
-
-                document.getElementById("HOCutting").value =
-                    d.hoCutting === null
-                    ? ""
-                    : d.hoCutting.toString();
-
-                document.getElementById(
-                    "PrintInIncomeTaxReport"
-                ).value =
-                    d.printInIncomeTaxReport === null
-                    ? ""
-                    : d.printInIncomeTaxReport.toString();
-
-                document.getElementById("Active").value =
-                    d.active ?? "";
-
-                deductionModal.show();
-
-            });
+                }
+            );
 
         }
 
 
-        function deleteDeduction(code) {
 
-            if (!confirm(
-                "Are you sure you want to delete this deduction?"
-            )) {
+        // ==========================================
+        // OPEN MONTH SELECTOR
+        // ==========================================
+
+        function openMonthSelector() {
+
+
+            previousMonthSelection =
+                document
+                    .getElementById(
+                        "ApplyMonth"
+                    )
+                    .value
+                || "";
+
+
+            setMonthCheckboxes(
+                previousMonthSelection
+            );
+
+
+            deductionModal.hide();
+
+
+            document
+                .getElementById(
+                    "deductionModal"
+                )
+                .addEventListener(
+                    "hidden.bs.modal",
+                    function () {
+
+                        monthModal.show();
+
+                    },
+                    {
+                        once: true
+                    }
+                );
+
+        }
+
+
+
+        // ==========================================
+        // SAVE MONTH
+        // ==========================================
+
+        function saveMonthSelection() {
+
+
+            var selectedMonths =
+                [];
+
+
+            document
+                .querySelectorAll(
+                    ".month-check:checked"
+                )
+                .forEach(
+                    function (
+                        checkbox
+                    ) {
+
+
+                        var month =
+                            parseInt(
+                                checkbox.value
+                            );
+
+
+                        if (
+                            month >= 1 &&
+                            month <= 12
+                        )
+                        {
+                            selectedMonths.push(
+                                month
+                            );
+                        }
+
+                    }
+                );
+
+
+
+            selectedMonths =
+                [
+                    ...new Set(
+                        selectedMonths
+                    )
+                ];
+
+
+            selectedMonths.sort(
+                function (
+                    a,
+                    b
+                ) {
+
+                    return a - b;
+
+                }
+            );
+
+
+            var value =
+                selectedMonths.join(",");
+
+
+            document
+                .getElementById(
+                    "ApplyMonth"
+                )
+                .value =
+                    value;
+
+
+            updateSelectedMonthText(
+                value
+            );
+
+
+            closeMonthModalAndReturn();
+
+        }
+
+
+
+        // ==========================================
+        // CANCEL MONTH
+        // ==========================================
+
+        function cancelMonthSelection() {
+
+
+            setMonthCheckboxes(
+                previousMonthSelection
+            );
+
+
+            closeMonthModalAndReturn();
+
+        }
+
+
+
+        // ==========================================
+        // CLOSE MONTH
+        // ==========================================
+
+        function closeMonthModalAndReturn() {
+
+
+            monthModal.hide();
+
+
+            document
+                .getElementById(
+                    "monthModal"
+                )
+                .addEventListener(
+                    "hidden.bs.modal",
+                    function () {
+
+                        deductionModal.show();
+
+                    },
+                    {
+                        once: true
+                    }
+                );
+
+        }
+
+
+
+        // ==========================================
+        // CLEAR MONTH
+        // ==========================================
+
+        function clearMonthCheckboxes() {
+
+
+            document
+                .querySelectorAll(
+                    ".month-check"
+                )
+                .forEach(
+                    function (
+                        checkbox
+                    ) {
+
+                        checkbox.checked =
+                            false;
+
+                    }
+                );
+
+        }
+
+
+
+        // ==========================================
+        // SET MONTH CHECKBOX
+        // ==========================================
+
+        function setMonthCheckboxes(
+            value
+        ) {
+
+
+            clearMonthCheckboxes();
+
+
+            if (!value) {
+
+                return;
+
+            }
+
+
+            var months =
+                value
+                    .toString()
+                    .split(",");
+
+
+            months.forEach(
+                function (
+                    month
+                ) {
+
+
+                    month =
+                        month.trim();
+
+
+                    var checkbox =
+                        document.getElementById(
+                            "month" + month
+                        );
+
+
+                    if (checkbox) {
+
+                        checkbox.checked =
+                            true;
+
+                    }
+
+                }
+            );
+
+        }
+
+
+
+        // ==========================================
+        // DISPLAY MONTH NAME
+        // ==========================================
+
+        function updateSelectedMonthText(
+            value
+        ) {
+
+
+            var display =
+                document
+                    .getElementById(
+                        "selectedMonthText"
+                    );
+
+
+            if (!value) {
+
+                display.innerText =
+                    "No month selected";
+
+                return;
+
+            }
+
+
+            var numbers =
+                value
+                    .toString()
+                    .split(",")
+                    .map(
+                        function (
+                            value
+                        ) {
+
+                            return parseInt(
+                                value.trim()
+                            );
+
+                        }
+                    )
+                    .filter(
+                        function (
+                            value
+                        ) {
+
+                            return (
+                                value >= 1 &&
+                                value <= 12
+                            );
+
+                        }
+                    );
+
+
+            var names =
+                numbers
+                    .map(
+                        function (
+                            number
+                        ) {
+
+                            return monthNames[number];
+
+                        }
+                    )
+                    .filter(
+                        function (
+                            name
+                        ) {
+
+                            return name;
+
+                        }
+                    );
+
+
+            if (names.length === 0) {
+
+                display.innerText =
+                    "No month selected";
+
+            }
+            else {
+
+                display.innerText =
+                    names.join(", ");
+
+            }
+
+        }
+
+
+
+        // ==========================================
+        // DELETE
+        // ==========================================
+
+        function deleteDeduction(
+            code
+        ) {
+
+
+            if (
+                !confirm(
+                    "Are you sure you want to delete this deduction?"
+                )
+            )
+            {
                 return;
             }
 
-            document.getElementById(
-                "DeleteCode"
-            ).value = code;
 
-            document.getElementById(
-                "deleteDeductionForm"
-            ).submit();
+            document
+                .getElementById(
+                    "DeleteCode"
+                )
+                .value =
+                    code;
+
+
+            document
+                .getElementById(
+                    "deleteDeductionForm"
+                )
+                .submit();
 
         }
+
 
     </script>
 }

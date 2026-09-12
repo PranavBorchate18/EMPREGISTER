@@ -1,22 +1,322 @@
 html {
-  font-size: 14px;
+    font-size: 14px;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+    html {
+        font-size: 16px;
+    }
 }
 
 html {
-  position: relative;
-  min-height: 100%;
+    position: relative;
+    min-height: 100%;
 }
 
 body {
-  margin-bottom: 60px;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: #f5f7fb;
+}
+
+/* ==========================================================
+   FOCUS
+========================================================== */
+
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+
+/* ==========================================================
+   LEFT SIDEBAR
+========================================================== */
+
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: linear-gradient(180deg, #12355b 0%, #0b2748 100%);
+    color: white;
+    overflow-y: auto;
+    z-index: 1050;
+    transition: all 0.3s ease;
+}
+
+
+/* ==========================================================
+   PROJECT / LOGO
+========================================================== */
+
+.sidebar-brand {
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+    padding: 20px 22px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+    .sidebar-brand:hover {
+        color: #ffffff;
+    }
+
+    .sidebar-brand i {
+        font-size: 28px;
+        margin-right: 12px;
+    }
+
+
+/* ==========================================================
+   SIDEBAR MENU
+========================================================== */
+
+.sidebar-menu {
+    list-style: none;
+    margin: 0;
+    padding: 20px 10px;
+}
+
+    .sidebar-menu li {
+        margin-bottom: 5px;
+    }
+
+    .sidebar-menu .nav-link {
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 12px 15px;
+        border-radius: 7px;
+        font-size: 15px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+        .sidebar-menu .nav-link i {
+            width: 28px;
+            font-size: 18px;
+            margin-right: 8px;
+        }
+
+        .sidebar-menu .nav-link:hover {
+            background-color: #0d6efd;
+            color: #ffffff;
+        }
+
+
+        /* Active Link */
+
+        .sidebar-menu .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+
+/* ==========================================================
+   SIDEBAR DROPDOWN BUTTON
+========================================================== */
+
+.sidebar-dropdown-btn {
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+    .sidebar-dropdown-btn::after {
+        margin-left: auto;
+    }
+
+
+/* ==========================================================
+   SIDEBAR SUB MENU
+========================================================== */
+
+.sidebar-submenu {
+    margin: 5px 0 5px 20px;
+    padding: 5px;
+    border-left: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+    .sidebar-submenu .dropdown-item {
+        color: #ffffff;
+        padding: 10px 14px;
+        border-radius: 5px;
+        font-size: 14px;
+        white-space: normal;
+    }
+
+        .sidebar-submenu .dropdown-item:hover {
+            background-color: #0d6efd;
+            color: #ffffff;
+        }
+
+
+/* ==========================================================
+   TOP BAR
+========================================================== */
+
+.topbar {
+    height: 65px;
+    position: fixed;
+    top: 0;
+    left: 260px;
+    right: 0;
+    background-color: #ffffff;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 30px;
+    border-bottom: 1px solid #dee2e6;
+    z-index: 1040;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.admin-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    color: #333333;
+}
+
+    .admin-area i {
+        font-size: 26px;
+        color: #0d6efd;
+    }
+
+
+/* ==========================================================
+   MAIN WRAPPER
+========================================================== */
+
+.main-wrapper {
+    margin-left: 260px;
+    padding-top: 65px;
+    min-height: 100vh;
+    transition: all 0.3s ease;
+}
+
+
+/* ==========================================================
+   PAGE CONTENT
+========================================================== */
+
+.page-content {
+    padding: 25px;
+    min-height: calc(100vh - 125px);
+}
+
+    .page-content .container,
+    .page-content .container-fluid {
+        max-width: 100%;
+    }
+
+
+/* ==========================================================
+   FOOTER
+========================================================== */
+
+.main-footer {
+    margin-left: 260px;
+    min-height: 55px;
+    background-color: #ffffff;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    padding: 10px 25px;
+    color: #6c757d;
+    transition: all 0.3s ease;
+}
+
+
+/* ==========================================================
+   MOBILE SIDEBAR BUTTON
+========================================================== */
+
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 13px;
+    left: 15px;
+    z-index: 1100;
+    border: none;
+    background-color: #0d6efd;
+    color: #ffffff;
+    border-radius: 5px;
+    padding: 7px 10px;
+}
+
+
+/* ==========================================================
+   SCROLLBAR
+========================================================== */
+
+.sidebar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 10px;
+}
+
+
+/* ==========================================================
+   RESPONSIVE
+========================================================== */
+
+@media (max-width: 991.98px) {
+
+    .sidebar {
+        left: -260px;
+    }
+
+        .sidebar.show {
+            left: 0;
+        }
+
+    .sidebar-toggle {
+        display: block;
+    }
+
+    .topbar {
+        left: 0;
+        padding-left: 65px;
+    }
+
+    .main-wrapper {
+        margin-left: 0;
+    }
+
+    .main-footer {
+        margin-left: 0;
+    }
+}
+
+
+@media (max-width: 576px) {
+
+    .page-content {
+        padding: 12px;
+    }
+
+    .sidebar {
+        width: 245px;
+    }
+
+    .admin-area span {
+        display: none;
+    }
 }
