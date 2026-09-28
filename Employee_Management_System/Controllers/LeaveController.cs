@@ -21,12 +21,10 @@ namespace Employee_Management_System.Controllers
         // =========================================================
         // INDEX
         // =========================================================
-
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            LeaveApplicationViewModel model =
-                new LeaveApplicationViewModel();
+            var model = new LeaveApplicationViewModel();
 
             await LoadLeaveTypes(model);
 
@@ -37,10 +35,8 @@ namespace Employee_Management_System.Controllers
         // =========================================================
         // GET EMPLOYEE
         // =========================================================
-
         [HttpGet]
-        public async Task<IActionResult> GetEmployee(
-            int employeeCode)
+        public async Task<IActionResult> GetEmployee(int employeeCode)
         {
             try
             {
@@ -53,19 +49,16 @@ namespace Employee_Management_System.Controllers
                     });
                 }
 
-
-                var employee =
-                    await _context.PayMasts
-                        .AsNoTracking()
-                        .Where(x =>
-                            x.EmployeeCode == employeeCode)
-                        .Select(x => new
-                        {
-                            employeeCode = x.EmployeeCode,
-                            employeeName = x.EmployeeName
-                        })
-                        .FirstOrDefaultAsync();
-
+                var employee = await _context.PayMasts
+                    .AsNoTracking()
+                    .Where(x => x.EmployeeCode == employeeCode)
+                    .Select(x => new
+                    {
+                        employeeCode = x.EmployeeCode,
+                        employeeName = x.EmployeeName,
+                        gender = x.Sex
+                    })
+                    .FirstOrDefaultAsync();
 
                 if (employee == null)
                 {
@@ -75,7 +68,6 @@ namespace Employee_Management_System.Controllers
                         message = "Employee not found."
                     });
                 }
-
 
                 return Json(new
                 {
@@ -97,7 +89,6 @@ namespace Employee_Management_System.Controllers
         // =========================================================
         // SAVE LEAVE
         // =========================================================
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Save(
@@ -108,7 +99,6 @@ namespace Employee_Management_System.Controllers
                 // =================================================
                 // EMPLOYEE VALIDATION
                 // =================================================
-
                 if (model.EmployeeCode <= 0)
                 {
                     TempData["Error"] =
@@ -120,13 +110,10 @@ namespace Employee_Management_System.Controllers
                 }
 
 
-                bool employeeExists =
-                    await _context.PayMasts
-                        .AsNoTracking()
-                        .AnyAsync(x =>
-                            x.EmployeeCode ==
-                            model.EmployeeCode);
-
+                bool employeeExists = await _context.PayMasts
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.EmployeeCode == model.EmployeeCode);
 
                 if (!employeeExists)
                 {
@@ -140,9 +127,8 @@ namespace Employee_Management_System.Controllers
 
 
                 // =================================================
-                // FROM DATE
+                // DEMAND FROM
                 // =================================================
-
                 if (!model.DemandFromDate.HasValue)
                 {
                     TempData["Error"] =
@@ -155,9 +141,8 @@ namespace Employee_Management_System.Controllers
 
 
                 // =================================================
-                // TO DATE
+                // DEMAND TO
                 // =================================================
-
                 if (!model.DemandToDate.HasValue)
                 {
                     TempData["Error"] =
@@ -182,9 +167,8 @@ namespace Employee_Management_System.Controllers
 
 
                 // =================================================
-                // LEAVE TYPE
+                // DEMAND LEAVE TYPE
                 // =================================================
-
                 if (!model.DemandLeaveCode.HasValue ||
                     model.DemandLeaveCode.Value <= 0)
                 {
@@ -198,7 +182,7 @@ namespace Employee_Management_System.Controllers
 
 
                 if (!await LeaveCodeExists(
-                        model.DemandLeaveCode.Value))
+                    model.DemandLeaveCode.Value))
                 {
                     TempData["Error"] =
                         "Invalid Leave Type.";
@@ -212,7 +196,6 @@ namespace Employee_Management_System.Controllers
                 // =================================================
                 // SANCTION FROM
                 // =================================================
-
                 if (!model.SanctionFromDate.HasValue)
                 {
                     TempData["Error"] =
@@ -227,7 +210,6 @@ namespace Employee_Management_System.Controllers
                 // =================================================
                 // SANCTION LEAVE
                 // =================================================
-
                 if (!model.SanctionLeaveCode.HasValue ||
                     model.SanctionLeaveCode.Value <= 0)
                 {
@@ -254,7 +236,7 @@ namespace Employee_Management_System.Controllers
 
 
                 if (!await LeaveCodeExists(
-                        model.SanctionLeaveCode.Value))
+                    model.SanctionLeaveCode.Value))
                 {
                     TempData["Error"] =
                         "Invalid Sanction Leave Type.";
@@ -266,16 +248,91 @@ namespace Employee_Management_System.Controllers
 
 
                 // =================================================
-                // CONNECTION
+                // MATERNITY LEAVE - FEMALE EMPLOYEE ONLY
+                // =================================================
+                bool demandIsMaternity =
+                    await IsMaternityLeave(model.DemandLeaveCode.Value);
+
+                bool sanctionIsMaternity =
+                    await IsMaternityLeave(model.SanctionLeaveCode.Value);
+
+                if (demandIsMaternity || sanctionIsMaternity)
+                {
+                    string? employeeGender =
+                        await _context.PayMasts
+                            .AsNoTracking()
+                            .Where(x => x.EmployeeCode == model.EmployeeCode)
+                            .Select(x => x.Sex)
+                            .FirstOrDefaultAsync();
+
+                    if (!IsFemale(employeeGender))
+                    {
+                        TempData["Error"] =
+                            "Maternity Leave is only applicable for Female Employees.";
+
+                        await LoadLeaveTypes(model);
+                        return View("Index", model);
+                    }
+                }
+
+
+                // =================================================
+                // CHARGE TO VALIDATION
+                // =================================================
+                if (model.ChargeTo.HasValue &&
+                    model.ChargeTo.Value > 0)
+                {
+                    bool chargeEmployeeExists =
+                        await _context.PayMasts
+                            .AsNoTracking()
+                            .AnyAsync(x =>
+                                x.EmployeeCode ==
+                                model.ChargeTo.Value);
+
+                    if (!chargeEmployeeExists)
+                    {
+                        TempData["Error"] =
+                            "Charge To Transfer Employee not found.";
+
+                        await LoadLeaveTypes(model);
+
+                        return View("Index", model);
+                    }
+                }
+
+
+                // =================================================
+                // AUTOMATIC VALUES
                 // =================================================
 
+                // Employee Code -> sact_officer
+                int sanctionOfficerCode =
+                    model.EmployeeCode;
+
+
+                // Logged-in User -> Operator
+                // Keep LoginId as string so leading zero is preserved (example: 0119).
+                string operatorCode =
+                    HttpContext.Session.GetString("LoginId") ?? "";
+
+
+                // =================================================
+                // C/D CODE
+                //
+                // ALWAYS STORE 2
+                // NOT TAKEN FROM DASHBOARD
+                // =================================================
+                short cdCode = 2;
+
+
+                // =================================================
+                // DATABASE CONNECTION
+                // =================================================
                 DbConnection connection =
                     _context.Database.GetDbConnection();
 
-
                 bool shouldCloseConnection =
                     connection.State != ConnectionState.Open;
-
 
                 if (shouldCloseConnection)
                 {
@@ -288,10 +345,9 @@ namespace Employee_Management_System.Controllers
 
                 try
                 {
-                    // =================================================
-                    // AUTO LEAVE APP ID
-                    // =================================================
-
+                    // =============================================
+                    // AUTO LEAVE APPLICATION ID
+                    // =============================================
                     using (DbCommand idCommand =
                            connection.CreateCommand())
                     {
@@ -299,24 +355,19 @@ namespace Employee_Management_System.Controllers
 SELECT ISNULL(MAX(Leave_App_ID), 0) + 1
 FROM dbo.leavtrn;";
 
-
                         object? result =
                             await idCommand.ExecuteScalarAsync();
 
-
                         newLeaveApplicationId =
-                            Convert.ToDecimal(
-                                result ?? 1);
+                            Convert.ToDecimal(result ?? 1);
                     }
 
 
-                    // =================================================
-                    // INSERT
-                    // =================================================
-
+                    // =============================================
+                    // INSERT LEAVE
+                    // =============================================
                     using DbCommand command =
                         connection.CreateCommand();
-
 
                     command.CommandText = @"
 INSERT INTO dbo.leavtrn
@@ -361,6 +412,9 @@ VALUES
 );";
 
 
+                    // =============================================
+                    // SANCTION FROM
+                    // =============================================
                     AddParameter(
                         command,
                         "@sact_from_date",
@@ -368,6 +422,9 @@ VALUES
                         DbType.DateTime);
 
 
+                    // =============================================
+                    // EMPLOYEE
+                    // =============================================
                     AddParameter(
                         command,
                         "@empl",
@@ -375,15 +432,20 @@ VALUES
                         DbType.Int32);
 
 
-                    // C/D Code automatic = 2
-
+                    // =============================================
+                    // C/D CODE
+                    // ALWAYS 2
+                    // =============================================
                     AddParameter(
                         command,
                         "@c_d_code",
-                        (short)2,
+                        cdCode,
                         DbType.Int16);
 
 
+                    // =============================================
+                    // SANCTION TO
+                    // =============================================
                     AddParameter(
                         command,
                         "@sact_to_date",
@@ -391,6 +453,9 @@ VALUES
                         DbType.DateTime);
 
 
+                    // =============================================
+                    // SANCTION LEAVE
+                    // =============================================
                     AddParameter(
                         command,
                         "@sact_code",
@@ -398,6 +463,9 @@ VALUES
                         DbType.Int32);
 
 
+                    // =============================================
+                    // DEMAND FROM
+                    // =============================================
                     AddParameter(
                         command,
                         "@dmnd_from_date",
@@ -405,6 +473,9 @@ VALUES
                         DbType.DateTime);
 
 
+                    // =============================================
+                    // DEMAND TO
+                    // =============================================
                     AddParameter(
                         command,
                         "@dmnd_to_date",
@@ -412,6 +483,9 @@ VALUES
                         DbType.DateTime);
 
 
+                    // =============================================
+                    // DEMAND LEAVE
+                    // =============================================
                     AddParameter(
                         command,
                         "@dmnd_code",
@@ -419,6 +493,9 @@ VALUES
                         DbType.Int32);
 
 
+                    // =============================================
+                    // PREVIOUS DAYS
+                    // =============================================
                     AddParameter(
                         command,
                         "@prv_days",
@@ -426,13 +503,22 @@ VALUES
                         DbType.Double);
 
 
+                    // =============================================
+                    // SANCTION OFFICER
+                    // EMPLOYEE CODE AUTOMATIC
+                    // =============================================
                     AddParameter(
                         command,
                         "@sact_officer",
-                        model.SanctionOfficer,
+                        sanctionOfficerCode,
                         DbType.Int32);
 
 
+                    // =============================================
+                    // REASON CODE
+                    // NO CHANGE
+                    // USER ENTERED VALUE IS SAVED
+                    // =============================================
                     AddParameter(
                         command,
                         "@reason",
@@ -440,6 +526,9 @@ VALUES
                         DbType.Int32);
 
 
+                    // =============================================
+                    // REASON REMARK
+                    // =============================================
                     AddParameter(
                         command,
                         "@reason_Remark",
@@ -451,6 +540,12 @@ VALUES
                         80);
 
 
+                    // =============================================
+                    // CHARGE TO TRANSFER
+                    //
+                    // ONLY EMPLOYEE CODE STORED IN DATABASE
+                    // NAME COMES FROM PayMast WHILE DISPLAYING
+                    // =============================================
                     AddParameter(
                         command,
                         "@cherge_to",
@@ -458,6 +553,9 @@ VALUES
                         DbType.Int32);
 
 
+                    // =============================================
+                    // EFFECT PAY DATE
+                    // =============================================
                     AddParameter(
                         command,
                         "@effect_pay_date",
@@ -465,6 +563,9 @@ VALUES
                         DbType.DateTime);
 
 
+                    // =============================================
+                    // LEAVE APPLICATION ID
+                    // =============================================
                     AddParameter(
                         command,
                         "@Leave_App_ID",
@@ -472,24 +573,32 @@ VALUES
                         DbType.Decimal);
 
 
+                    // =============================================
+                    // OPERATOR
+                    // EMPLOYEE CODE AUTOMATIC
+                    // =============================================
                     AddParameter(
                         command,
                         "@Operator",
-                        null,
+                        operatorCode,
                         DbType.String,
                         50);
 
 
-                    // NEW LEAVE = PENDING
-
+                    // =============================================
+                    // STATUS
+                    // =============================================
                     AddParameter(
                         command,
                         "@Status",
-                        "Pending",
+                        "P",
                         DbType.String,
                         20);
 
 
+                    // =============================================
+                    // EXECUTE
+                    // =============================================
                     int rowsAffected =
                         await command.ExecuteNonQueryAsync();
 
@@ -538,7 +647,6 @@ VALUES
         // =========================================================
         // SANCTION LIST
         // =========================================================
-
         [HttpGet]
         public async Task<IActionResult> SanctionList()
         {
@@ -548,7 +656,6 @@ VALUES
 
             DbConnection connection =
                 _context.Database.GetDbConnection();
-
 
             bool shouldCloseConnection =
                 connection.State != ConnectionState.Open;
@@ -571,6 +678,7 @@ SELECT
     l.Leave_App_ID,
     l.empl,
     p.name AS EmployeeName,
+
     l.c_d_code,
 
     l.dmnd_from_date,
@@ -581,7 +689,10 @@ SELECT
     l.prv_days,
     l.reason,
     l.reason_Remark,
+
     l.cherge_to,
+
+    chargeEmp.name AS ChargeToEmployeeName,
 
     l.sact_from_date,
     l.sact_to_date,
@@ -592,12 +703,15 @@ SELECT
     l.effect_pay_date,
     l.Operator,
 
-    ISNULL(l.Status, 'Pending') AS Status
+    ISNULL(NULLIF(LTRIM(RTRIM(l.Status)), ''), 'P') AS Status
 
 FROM dbo.leavtrn l
 
 LEFT JOIN dbo.PayMast p
     ON p.code = l.empl
+
+LEFT JOIN dbo.PayMast chargeEmp
+    ON chargeEmp.code = l.cherge_to
 
 LEFT JOIN dbo.leavmast dl
     ON dl.code = l.dmnd_code
@@ -634,20 +748,17 @@ ORDER BY l.Leave_App_ID DESC;";
 
 
         // =========================================================
-        // VIEW ONE LEAVE
+        // VIEW LEAVE
         // =========================================================
-
         [HttpGet]
         public async Task<IActionResult> ViewLeave(
             decimal id)
         {
-            LeaveSanctionListViewModel? model =
-                null;
+            LeaveSanctionListViewModel? model = null;
 
 
             DbConnection connection =
                 _context.Database.GetDbConnection();
-
 
             bool shouldCloseConnection =
                 connection.State != ConnectionState.Open;
@@ -670,6 +781,7 @@ SELECT
     l.Leave_App_ID,
     l.empl,
     p.name AS EmployeeName,
+
     l.c_d_code,
 
     l.dmnd_from_date,
@@ -680,7 +792,10 @@ SELECT
     l.prv_days,
     l.reason,
     l.reason_Remark,
+
     l.cherge_to,
+
+    chargeEmp.name AS ChargeToEmployeeName,
 
     l.sact_from_date,
     l.sact_to_date,
@@ -691,12 +806,15 @@ SELECT
     l.effect_pay_date,
     l.Operator,
 
-    ISNULL(l.Status, 'Pending') AS Status
+    ISNULL(NULLIF(LTRIM(RTRIM(l.Status)), ''), 'P') AS Status
 
 FROM dbo.leavtrn l
 
 LEFT JOIN dbo.PayMast p
     ON p.code = l.empl
+
+LEFT JOIN dbo.PayMast chargeEmp
+    ON chargeEmp.code = l.cherge_to
 
 LEFT JOIN dbo.leavmast dl
     ON dl.code = l.dmnd_code
@@ -750,80 +868,93 @@ WHERE l.Leave_App_ID = @id;";
 
 
         // =========================================================
-        // APPROVE
+        // APPROVE LEAVE
+        //
+        // ADMIN CAN EDIT:
+        // Sanction From
+        // Sanction To
+        //
+        // BOTH VALUES ARE UPDATED IN DATABASE
         // =========================================================
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Approve(
-            decimal id)
+            LeaveSanctionListViewModel model)
         {
-            int rowsAffected =
-                await UpdateLeaveStatus(
-                    id,
-                    "Approved");
-
-
-            if (rowsAffected <= 0)
+            if (!model.LeaveApplicationId.HasValue)
             {
                 TempData["Error"] =
-                    "Leave application not found.";
-            }
-            else
-            {
-                TempData["Success"] =
-                    $"Leave Application ID {id} approved successfully.";
+                    "Invalid Leave Application ID.";
+
+                return RedirectToAction(
+                    nameof(SanctionList));
             }
 
 
-            return RedirectToAction(
-                nameof(SanctionList));
-        }
+            decimal leaveApplicationId =
+                model.LeaveApplicationId.Value;
 
 
-        // =========================================================
-        // REJECT
-        // =========================================================
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Reject(
-            decimal id)
-        {
-            int rowsAffected =
-                await UpdateLeaveStatus(
-                    id,
-                    "Rejected");
-
-
-            if (rowsAffected <= 0)
+            if (!model.SanctionFromDate.HasValue)
             {
                 TempData["Error"] =
-                    "Leave application not found.";
+                    "Sanction From Date is required.";
+
+                return RedirectToAction(
+                    nameof(ViewLeave),
+                    new
+                    {
+                        id = leaveApplicationId
+                    });
             }
-            else
+
+
+            if (!model.SanctionToDate.HasValue)
             {
-                TempData["Success"] =
-                    $"Leave Application ID {id} rejected successfully.";
+                TempData["Error"] =
+                    "Sanction To Date is required.";
+
+                return RedirectToAction(
+                    nameof(ViewLeave),
+                    new
+                    {
+                        id = leaveApplicationId
+                    });
             }
 
 
-            return RedirectToAction(
-                nameof(SanctionList));
-        }
+            if (model.SanctionToDate.Value.Date <
+                model.SanctionFromDate.Value.Date)
+            {
+                TempData["Error"] =
+                    "Sanction To Date cannot be less than Sanction From Date.";
+
+                return RedirectToAction(
+                    nameof(ViewLeave),
+                    new
+                    {
+                        id = leaveApplicationId
+                    });
+            }
 
 
-        // =========================================================
-        // UPDATE STATUS
-        // =========================================================
+            if (!model.NumberOfDays.HasValue ||
+                model.NumberOfDays.Value <= 0)
+            {
+                TempData["Error"] =
+                    "Please enter valid Days.";
 
-        private async Task<int> UpdateLeaveStatus(
-            decimal id,
-            string status)
-        {
+                return RedirectToAction(
+                    nameof(ViewLeave),
+                    new
+                    {
+                        id = leaveApplicationId
+                    });
+            }
+
+
             DbConnection connection =
                 _context.Database.GetDbConnection();
-
 
             bool shouldCloseConnection =
                 connection.State != ConnectionState.Open;
@@ -844,9 +975,196 @@ WHERE l.Leave_App_ID = @id;";
                 command.CommandText = @"
 UPDATE dbo.leavtrn
 
-SET Status = @Status
+SET
+    sact_from_date = @sact_from_date,
+    sact_to_date   = @sact_to_date,
+    Num_of_days    = @Num_of_days,
+    Status         = @Status,
+    Operator       = @Operator
 
-WHERE Leave_App_ID = @id;";
+WHERE Leave_App_ID = @Leave_App_ID
+  AND UPPER(LTRIM(RTRIM(ISNULL(Status, 'P')))) IN ('P', 'PENDING');";
+
+
+                AddParameter(
+                    command,
+                    "@sact_from_date",
+                    model.SanctionFromDate.Value,
+                    DbType.DateTime);
+
+
+                AddParameter(
+                    command,
+                    "@sact_to_date",
+                    model.SanctionToDate.Value,
+                    DbType.DateTime);
+
+
+                // =============================================
+                // NUMBER OF DAYS
+                // Required because UPDATE uses @Num_of_days
+                // =============================================
+                AddParameter(
+                    command,
+                    "@Num_of_days",
+                    model.NumberOfDays.Value,
+                    DbType.Double);
+
+
+                AddParameter(
+                    command,
+                    "@Status",
+                    "A",
+                    DbType.String,
+                    20);
+
+
+                // Logged-in user who approved this leave.
+                // String value preserves leading zero, e.g. 0119.
+                string operatorCode =
+                    HttpContext.Session.GetString("LoginId") ?? "";
+
+                AddParameter(
+                    command,
+                    "@Operator",
+                    operatorCode,
+                    DbType.String,
+                    50);
+
+
+                AddParameter(
+                    command,
+                    "@Leave_App_ID",
+                    leaveApplicationId,
+                    DbType.Decimal);
+
+
+                int rowsAffected =
+                    await command.ExecuteNonQueryAsync();
+
+
+                if (rowsAffected <= 0)
+                {
+                    TempData["Error"] =
+                        "Leave application not found or already processed.";
+
+                    return RedirectToAction(
+                        nameof(SanctionList));
+                }
+
+
+                TempData["Success"] =
+                    $"Leave Application ID {leaveApplicationId} approved successfully.";
+
+
+                return RedirectToAction(
+                    nameof(SanctionList));
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] =
+                    ex.Message;
+
+
+                return RedirectToAction(
+                    nameof(ViewLeave),
+                    new
+                    {
+                        id = leaveApplicationId
+                    });
+            }
+            finally
+            {
+                if (shouldCloseConnection &&
+                    connection.State ==
+                    ConnectionState.Open)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+        }
+
+
+        // =========================================================
+        // REJECT LEAVE
+        // =========================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reject(
+            LeaveSanctionListViewModel model)
+        {
+            if (!model.LeaveApplicationId.HasValue)
+            {
+                TempData["Error"] =
+                    "Invalid Leave Application ID.";
+
+                return RedirectToAction(
+                    nameof(SanctionList));
+            }
+
+
+            decimal id =
+                model.LeaveApplicationId.Value;
+
+
+            int rowsAffected =
+                await UpdateLeaveStatus(
+                    id,
+                    "R");
+
+
+            if (rowsAffected <= 0)
+            {
+                TempData["Error"] =
+                    "Leave application not found or already processed.";
+            }
+            else
+            {
+                TempData["Success"] =
+                    $"Leave Application ID {id} rejected successfully.";
+            }
+
+
+            return RedirectToAction(
+                nameof(SanctionList));
+        }
+
+
+        // =========================================================
+        // UPDATE LEAVE STATUS
+        // =========================================================
+        private async Task<int> UpdateLeaveStatus(
+            decimal id,
+            string status)
+        {
+            DbConnection connection =
+                _context.Database.GetDbConnection();
+
+            bool shouldCloseConnection =
+                connection.State != ConnectionState.Open;
+
+
+            if (shouldCloseConnection)
+            {
+                await connection.OpenAsync();
+            }
+
+
+            try
+            {
+                using DbCommand command =
+                    connection.CreateCommand();
+
+
+                command.CommandText = @"
+UPDATE dbo.leavtrn
+
+SET
+    Status   = @Status,
+    Operator = @Operator
+
+WHERE Leave_App_ID = @id
+  AND UPPER(LTRIM(RTRIM(ISNULL(Status, 'P')))) IN ('P', 'PENDING');";
 
 
                 AddParameter(
@@ -855,6 +1173,17 @@ WHERE Leave_App_ID = @id;";
                     status,
                     DbType.String,
                     20);
+
+
+                string operatorCode =
+                    HttpContext.Session.GetString("LoginId") ?? "";
+
+                AddParameter(
+                    command,
+                    "@Operator",
+                    operatorCode,
+                    DbType.String,
+                    50);
 
 
                 AddParameter(
@@ -880,171 +1209,187 @@ WHERE Leave_App_ID = @id;";
 
 
         // =========================================================
-        // MAP LEAVE RECORD
+        // MAP LEAVE READER
         // =========================================================
-
         private static LeaveSanctionListViewModel
-            MapLeaveReader(
-                DbDataReader reader)
+            MapLeaveReader(DbDataReader reader)
         {
             return new LeaveSanctionListViewModel
             {
+                // =================================================
+                // LEAVE APPLICATION ID
+                // =================================================
                 LeaveApplicationId =
-                    reader["Leave_App_ID"] ==
-                    DBNull.Value
+                    reader["Leave_App_ID"] == DBNull.Value
                         ? null
                         : Convert.ToDecimal(
                             reader["Leave_App_ID"]),
 
 
+                // =================================================
+                // EMPLOYEE
+                // =================================================
                 EmployeeCode =
-                    reader["empl"] ==
-                    DBNull.Value
+                    reader["empl"] == DBNull.Value
                         ? 0
                         : Convert.ToInt32(
                             reader["empl"]),
 
 
                 EmployeeName =
-                    reader["EmployeeName"] ==
-                    DBNull.Value
+                    reader["EmployeeName"] == DBNull.Value
                         ? ""
                         : Convert.ToString(
                             reader["EmployeeName"]),
 
 
+                // =================================================
+                // C/D CODE
+                //
+                // STILL READ FROM DATABASE.
+                // DO NOT DISPLAY ON ViewLeave DASHBOARD.
+                // =================================================
                 CDCode =
-                    reader["c_d_code"] ==
-                    DBNull.Value
+                    reader["c_d_code"] == DBNull.Value
                         ? null
                         : Convert.ToInt16(
                             reader["c_d_code"]),
 
 
+                // =================================================
+                // DEMAND
+                // =================================================
                 DemandFromDate =
-                    reader["dmnd_from_date"] ==
-                    DBNull.Value
+                    reader["dmnd_from_date"] == DBNull.Value
                         ? null
                         : Convert.ToDateTime(
                             reader["dmnd_from_date"]),
 
 
                 DemandToDate =
-                    reader["dmnd_to_date"] ==
-                    DBNull.Value
+                    reader["dmnd_to_date"] == DBNull.Value
                         ? null
                         : Convert.ToDateTime(
                             reader["dmnd_to_date"]),
 
 
                 DemandLeaveCode =
-                    reader["dmnd_code"] ==
-                    DBNull.Value
+                    reader["dmnd_code"] == DBNull.Value
                         ? null
                         : Convert.ToInt32(
                             reader["dmnd_code"]),
 
 
                 DemandLeaveName =
-                    reader["DemandLeaveName"] ==
-                    DBNull.Value
+                    reader["DemandLeaveName"] == DBNull.Value
                         ? ""
                         : Convert.ToString(
                             reader["DemandLeaveName"]),
 
 
                 PreviousDays =
-                    reader["prv_days"] ==
-                    DBNull.Value
+                    reader["prv_days"] == DBNull.Value
                         ? null
                         : Convert.ToDouble(
                             reader["prv_days"]),
 
 
+                // =================================================
+                // REASON
+                // NO CHANGE
+                // =================================================
                 ReasonCode =
-                    reader["reason"] ==
-                    DBNull.Value
+                    reader["reason"] == DBNull.Value
                         ? null
                         : Convert.ToInt32(
                             reader["reason"]),
 
 
                 ReasonRemark =
-                    reader["reason_Remark"] ==
-                    DBNull.Value
+                    reader["reason_Remark"] == DBNull.Value
                         ? ""
                         : Convert.ToString(
                             reader["reason_Remark"]),
 
 
+                // =================================================
+                // CHARGE TO TRANSFER
+                // =================================================
                 ChargeTo =
-                    reader["cherge_to"] ==
-                    DBNull.Value
+                    reader["cherge_to"] == DBNull.Value
                         ? null
                         : Convert.ToInt32(
                             reader["cherge_to"]),
 
 
+                ChargeToEmployeeName =
+                    reader["ChargeToEmployeeName"] == DBNull.Value
+                        ? ""
+                        : Convert.ToString(
+                            reader["ChargeToEmployeeName"]),
+
+
+                // =================================================
+                // SANCTION
+                // =================================================
                 SanctionFromDate =
-                    reader["sact_from_date"] ==
-                    DBNull.Value
+                    reader["sact_from_date"] == DBNull.Value
                         ? null
                         : Convert.ToDateTime(
                             reader["sact_from_date"]),
 
 
                 SanctionToDate =
-                    reader["sact_to_date"] ==
-                    DBNull.Value
+                    reader["sact_to_date"] == DBNull.Value
                         ? null
                         : Convert.ToDateTime(
                             reader["sact_to_date"]),
 
 
                 SanctionLeaveCode =
-                    reader["sact_code"] ==
-                    DBNull.Value
+                    reader["sact_code"] == DBNull.Value
                         ? null
                         : Convert.ToInt32(
                             reader["sact_code"]),
 
 
                 SanctionLeaveName =
-                    reader["SanctionLeaveName"] ==
-                    DBNull.Value
+                    reader["SanctionLeaveName"] == DBNull.Value
                         ? ""
                         : Convert.ToString(
                             reader["SanctionLeaveName"]),
 
 
                 SanctionOfficer =
-                    reader["sact_officer"] ==
-                    DBNull.Value
+                    reader["sact_officer"] == DBNull.Value
                         ? null
                         : Convert.ToInt32(
                             reader["sact_officer"]),
 
 
                 EffectPayDate =
-                    reader["effect_pay_date"] ==
-                    DBNull.Value
+                    reader["effect_pay_date"] == DBNull.Value
                         ? null
                         : Convert.ToDateTime(
                             reader["effect_pay_date"]),
 
 
+                // =================================================
+                // OPERATOR
+                // =================================================
                 Operator =
-                    reader["Operator"] ==
-                    DBNull.Value
+                    reader["Operator"] == DBNull.Value
                         ? ""
                         : Convert.ToString(
                             reader["Operator"]),
 
 
+                // =================================================
+                // STATUS
+                // =================================================
                 Status =
-                    reader["Status"] ==
-                    DBNull.Value
-                        ? "Pending"
+                    reader["Status"] == DBNull.Value
+                        ? "P"
                         : Convert.ToString(
                             reader["Status"])
             };
@@ -1054,7 +1399,6 @@ WHERE Leave_App_ID = @id;";
         // =========================================================
         // LOAD LEAVE TYPES
         // =========================================================
-
         private async Task LoadLeaveTypes(
             LeaveApplicationViewModel model)
         {
@@ -1064,7 +1408,6 @@ WHERE Leave_App_ID = @id;";
 
             DbConnection connection =
                 _context.Database.GetDbConnection();
-
 
             bool shouldCloseConnection =
                 connection.State != ConnectionState.Open;
@@ -1084,7 +1427,9 @@ WHERE Leave_App_ID = @id;";
 
                 command.CommandText = @"
 SELECT code, name
-FROM dbo.leavmast;";
+FROM dbo.leavmast
+WHERE ISNULL(Active, 'N') = 'Y'
+ORDER BY code;";
 
 
                 using DbDataReader reader =
@@ -1105,12 +1450,10 @@ FROM dbo.leavmast;";
                                     reader["code"]),
 
                             Name =
-                                reader["name"] ==
-                                DBNull.Value
+                                reader["name"] == DBNull.Value
                                     ? ""
                                     : Convert.ToString(
-                                        reader["name"])
-                                      ?? ""
+                                        reader["name"]) ?? ""
                         });
                 }
 
@@ -1144,13 +1487,11 @@ FROM dbo.leavmast;";
         // =========================================================
         // LEAVE CODE EXISTS
         // =========================================================
-
         private async Task<bool> LeaveCodeExists(
             int leaveCode)
         {
             DbConnection connection =
                 _context.Database.GetDbConnection();
-
 
             bool shouldCloseConnection =
                 connection.State != ConnectionState.Open;
@@ -1171,7 +1512,8 @@ FROM dbo.leavmast;";
                 command.CommandText = @"
 SELECT COUNT(1)
 FROM dbo.leavmast
-WHERE code = @code;";
+WHERE code = @code
+  AND ISNULL(Active, 'N') = 'Y';";
 
 
                 AddParameter(
@@ -1201,9 +1543,33 @@ WHERE code = @code;";
 
 
         // =========================================================
+        // MATERNITY LEAVE HELPERS
+        // =========================================================
+        private async Task<bool> IsMaternityLeave(int leaveCode)
+        {
+            string? leaveName = await _context.LeaveMasters
+                .AsNoTracking()
+                .Where(x => x.Code == leaveCode && x.Active == "Y")
+                .Select(x => x.Name)
+                .FirstOrDefaultAsync();
+
+            return !string.IsNullOrWhiteSpace(leaveName) &&
+                   leaveName.Contains("MATERNITY",
+                       StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsFemale(string? gender)
+        {
+            string value = (gender ?? "").Trim();
+
+            return value.Equals("F", StringComparison.OrdinalIgnoreCase) ||
+                   value.Equals("FEMALE", StringComparison.OrdinalIgnoreCase);
+        }
+
+
+        // =========================================================
         // PARAMETER HELPER
         // =========================================================
-
         private static void AddParameter(
             DbCommand command,
             string parameterName,
@@ -1217,6 +1583,7 @@ WHERE code = @code;";
 
             parameter.ParameterName =
                 parameterName;
+
 
             parameter.DbType =
                 dbType;
@@ -1241,7 +1608,6 @@ WHERE code = @code;";
         // =========================================================
         // LEAVE TYPE TEMP CLASS
         // =========================================================
-
         private class LeaveTypeData
         {
             public int Code { get; set; }

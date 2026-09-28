@@ -1,0 +1,295 @@
+﻿@model Employee_Management_System.Models.LeaveMaster
+
+@{
+    ViewData["Title"] = "Edit Leave";
+}
+
+<div class="container-fluid py-3">
+
+    <div class="card shadow-sm">
+
+        <!-- HEADER -->
+        <div class="card-header bg-white py-3">
+
+            <h3 class="fw-bold mb-1">
+                <i class="bi bi-pencil-square me-2"></i>
+                Edit Leave
+            </h3>
+
+            <div class="text-muted">
+                Update leave master information
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <!-- ERROR MESSAGE -->
+            <div asp-validation-summary="ModelOnly"
+                 class="alert alert-danger">
+            </div>
+
+            <form asp-controller="LeaveMaster"
+                  asp-action="Edit"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <!-- =================================================
+                     LEAVE CODE
+                ================================================== -->
+
+                <div class="row mb-3">
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Code"
+                               class="form-label fw-semibold">
+                            Leave Code
+                        </label>
+
+                        <input asp-for="Code"
+                               class="form-control"
+                               readonly />
+
+                        <span asp-validation-for="Code"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+
+                    <!-- LEAVE NAME -->
+
+                    <div class="col-md-5">
+
+                        <label asp-for="Name"
+                               class="form-label fw-semibold">
+                            Leave Type
+                        </label>
+
+                        <input asp-for="Name"
+                               class="form-control" />
+
+                        <span asp-validation-for="Name"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+
+                    <!-- SHORT NAME -->
+
+                    <div class="col-md-3">
+
+                        <label asp-for="ShortName"
+                               class="form-label fw-semibold">
+                            Short Name
+                        </label>
+
+                        <input asp-for="ShortName"
+                               class="form-control" />
+
+                        <span asp-validation-for="ShortName"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     YEAR / MONTH
+                ================================================== -->
+
+                <div class="row mb-3">
+
+                    <div class="col-md-4">
+
+                        <label asp-for="PermanentYear"
+                               class="form-label fw-semibold">
+                            Permanent Year
+                        </label>
+
+                        <input asp-for="PermanentYear"
+                               type="number"
+                               step="1"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="PermanentMonth"
+                               class="form-label fw-semibold">
+                            Permanent Month
+                        </label>
+
+                        <input asp-for="PermanentMonth"
+                               type="number"
+                               step="1"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="TemporaryMonth"
+                               class="form-label fw-semibold">
+                            Temporary Month
+                        </label>
+
+                        <input asp-for="TemporaryMonth"
+                               type="number"
+                               step="1"
+                               class="form-control" />
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     STORE DETAILS
+                ================================================== -->
+
+                <div class="row mb-3">
+
+                    <div class="col-md-4">
+
+                        <label asp-for="StoreYN"
+                               class="form-label fw-semibold">
+                            Store Y/N
+                        </label>
+
+                        <input asp-for="StoreYN"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="StoreLimit"
+                               class="form-label fw-semibold">
+                            Store Limit
+                        </label>
+
+                        <input asp-for="StoreLimit"
+                               type="number"
+                               step="1"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="CashLimit"
+                               class="form-label fw-semibold">
+                            Cash Limit
+                        </label>
+
+                        <input asp-for="CashLimit"
+                               type="number"
+                               step="1"
+                               class="form-control" />
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     LIMIT DETAILS
+                ================================================== -->
+
+                <div class="row mb-4">
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Flag"
+                               class="form-label fw-semibold">
+                            Flag
+                        </label>
+
+                        <input asp-for="Flag"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="LeaveLimit"
+                               class="form-label fw-semibold">
+                            Leave Limit
+                        </label>
+
+                        <input asp-for="LeaveLimit"
+                               type="number"
+                               step="1"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="MinimumLimit"
+                               class="form-label fw-semibold">
+                            Minimum Limit
+                        </label>
+
+                        <input asp-for="MinimumLimit"
+                               type="number"
+                               step="1"
+                               class="form-control" />
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     BUTTONS
+                ================================================== -->
+
+                <div class="border-top pt-3 text-end">
+
+                    <a asp-controller="LeaveMaster"
+                       asp-action="Index"
+                       class="btn btn-secondary px-4 me-2">
+
+                        <i class="bi bi-arrow-left me-1"></i>
+                        Cancel
+
+                    </a>
+
+
+                    <button type="submit"
+                            class="btn btn-primary px-4">
+
+                        <i class="bi bi-check-circle me-1"></i>
+                        Update Leave
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

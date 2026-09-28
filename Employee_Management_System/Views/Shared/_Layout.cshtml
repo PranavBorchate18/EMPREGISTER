@@ -44,6 +44,38 @@
 <body>
 
 
+    @{
+        // =========================================================
+        // LOGGED-IN USER INFORMATION
+        // =========================================================
+
+        var currentLoginId =
+        Context.Session.GetString("LoginId");
+
+        var currentUserName =
+        Context.Session.GetString("UserName");
+
+        var currentAuthority =
+        Context.Session.GetString("Authority");
+
+
+        // If UserName is empty,
+        // display Login ID instead.
+        if (string.IsNullOrWhiteSpace(currentUserName))
+        {
+            currentUserName = currentLoginId;
+        }
+
+
+        // Final fallback
+        if (string.IsNullOrWhiteSpace(currentUserName))
+        {
+            currentUserName = "User";
+        }
+    }
+
+
+
     <!-- =========================================================
          MOBILE SIDEBAR BUTTON
     ========================================================== -->
@@ -66,7 +98,9 @@
            id="sidebar">
 
 
-        <!-- PROJECT NAME -->
+        <!-- =====================================================
+             PROJECT NAME
+        ====================================================== -->
 
         <a class="sidebar-brand"
            asp-area=""
@@ -146,7 +180,9 @@
 
                     <i class="bi bi-person-fill-add"></i>
 
-                    <span>Employee Registration</span>
+                    <span>
+                        Employee Registration
+                    </span>
 
                 </a>
 
@@ -296,7 +332,9 @@
 
                     <i class="bi bi-wallet2"></i>
 
-                    <span>Employee Pay Setup</span>
+                    <span>
+                        Employee Pay Setup
+                    </span>
 
                 </a>
 
@@ -317,7 +355,25 @@
 
                     <i class="bi bi-arrow-left-right"></i>
 
-                    <span>Salary Revision</span>
+                    <span>
+                        Salary Revision
+                    </span>
+
+                </a>
+
+            </li>
+
+            <li class="nav-item">
+
+                <a class="nav-link"
+                   asp-controller="PayCalculation"
+                   asp-action="Index">
+
+                    <i class="bi bi-calculator me-2"></i>
+
+                    <span>
+                        Pay Calculation
+                    </span>
 
                 </a>
 
@@ -340,7 +396,9 @@
 
                     <i class="bi bi-calendar2-check-fill"></i>
 
-                    <span>Leave Application</span>
+                    <span>
+                        Leave Application
+                    </span>
 
                     <i class="bi bi-chevron-down ms-auto"></i>
 
@@ -353,7 +411,9 @@
                     <div class="sidebar-submenu">
 
 
-                        <!-- LEAVE APPLICATION -->
+                        <!-- =========================================
+                             LEAVE APPLICATION
+                        ========================================== -->
 
                         <a class="dropdown-item"
                            asp-controller="Leave"
@@ -366,7 +426,10 @@
                         </a>
 
 
-                        <!-- LEAVE SANCTION -->
+
+                        <!-- =========================================
+                             LEAVE SANCTION
+                        ========================================== -->
 
                         <a class="dropdown-item"
                            asp-controller="Leave"
@@ -375,6 +438,67 @@
                             <i class="bi bi-check2-square me-2"></i>
 
                             Leave Sanction
+
+                        </a>
+
+
+
+                        <!-- =========================================
+                             LEAVE CREDIT
+                        ========================================== -->
+
+                        <a class="dropdown-item"
+                           asp-controller="LeaveCredit"
+                           asp-action="Index">
+
+                            <i class="bi bi-calendar-plus me-2"></i>
+
+                            Leave Credit
+
+                        </a>
+
+
+                        <!-- =========================================
+                             LEAVE DEBIT
+                        ========================================== -->
+
+                        <a class="dropdown-item"
+                           asp-controller="LeaveDebit"
+                           asp-action="Index">
+
+                            <i class="bi bi-calendar-minus me-2"></i>
+
+                            Leave Debit
+
+                        </a>
+
+
+                        <!-- =========================================
+                             LEAVE STATEMENT
+                        ========================================== -->
+
+                        <a class="dropdown-item"
+                           asp-controller="LeaveStatement"
+                           asp-action="Index">
+
+                            <i class="bi bi-file-earmark-text me-2"></i>
+
+                            Leave Statement
+
+                        </a>
+
+
+                        <!-- =========================================
+                             LEAVE MASTER
+                        ========================================== -->
+
+                        <a class="dropdown-item"
+                           asp-controller="LeaveMaster"
+                           asp-action="Index">
+
+                            <i class="bi bi-journal-text me-2"></i>
+
+                            Leave Master
 
                         </a>
 
@@ -400,14 +524,168 @@
     <header class="topbar">
 
 
-        <div class="admin-area">
+        <!-- =====================================================
+             LOGGED-IN USER DROPDOWN
+        ====================================================== -->
 
-            <i class="bi bi-person-circle"></i>
+        <div class="dropdown ms-auto">
 
-            <span>Admin</span>
 
-            <i class="bi bi-chevron-down"
-               style="font-size:12px;"></i>
+            <button class="btn
+                           btn-link
+                           text-dark
+                           text-decoration-none
+                           dropdown-toggle
+                           d-flex
+                           align-items-center
+                           gap-2"
+                    type="button"
+                    id="userDropdown"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false">
+
+
+                <!-- USER ICON -->
+
+                <i class="bi bi-person-circle"
+                   style="
+                       font-size:27px;
+                       color:#0d6efd;
+                   ">
+                </i>
+
+
+                <!-- ACTUAL LOGGED-IN USER NAME -->
+
+                <span style="font-size:15px;">
+
+                    @currentUserName
+
+                </span>
+
+
+            </button>
+
+
+
+            <!-- =================================================
+                 USER DROPDOWN MENU
+            ================================================== -->
+
+            <ul class="dropdown-menu
+                       dropdown-menu-end
+                       shadow-sm"
+                aria-labelledby="userDropdown"
+                style="
+                    min-width:230px;
+                ">
+
+
+                <!-- USER INFORMATION -->
+
+                <li>
+
+                    <div class="dropdown-item-text">
+
+
+                        <div class="d-flex
+                                    align-items-center
+                                    gap-2
+                                    mb-2">
+
+                            <i class="bi bi-person-circle"
+                               style="
+                                   font-size:30px;
+                                   color:#0d6efd;
+                               ">
+                            </i>
+
+
+                            <div>
+
+                                <strong>
+                                    @currentUserName
+                                </strong>
+
+                                <br />
+
+                                <small class="text-muted">
+
+                                    Login ID:
+                                    @currentLoginId
+
+                                </small>
+
+                            </div>
+
+                        </div>
+
+
+                        @if (!string.IsNullOrWhiteSpace(currentAuthority))
+                        {
+                            <small class="text-muted">
+
+                                Authority:
+                                @currentAuthority
+
+                            </small>
+                        }
+
+
+                    </div>
+
+                </li>
+
+
+
+                <li>
+
+                    <hr class="dropdown-divider" />
+
+                </li>
+
+
+
+                <!-- =================================================
+                     LOGOUT
+                ================================================== -->
+
+                <li>
+
+
+                    <form asp-controller="Account"
+                          asp-action="Logout"
+                          method="post"
+                          class="m-0">
+
+
+                        @Html.AntiForgeryToken()
+
+
+                        <button type="submit"
+                                class="dropdown-item text-danger">
+
+
+                            <i class="bi
+                                      bi-box-arrow-right
+                                      me-2">
+                            </i>
+
+
+                            Logout
+
+
+                        </button>
+
+
+                    </form>
+
+
+                </li>
+
+
+            </ul>
+
 
         </div>
 
@@ -447,7 +725,9 @@
         <div class="container-fluid">
 
 
-            &copy; 2026 - Employee_Management_System -
+            &copy; 2026 -
+            Employee_Management_System -
+
 
             <a asp-area=""
                asp-controller="Home"
@@ -470,12 +750,14 @@
     ========================================================== -->
     <!-- jQuery -->
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js">
+    </script>
 
 
     <!-- Bootstrap -->
 
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js">
+    </script>
 
 
     <!-- Site JS -->
@@ -487,7 +769,7 @@
 
 
     <!-- =========================================================
-         MOBILE SIDEBAR SCRIPT
+         SIDEBAR SCRIPT
     ========================================================== -->
 
     <script>
@@ -496,10 +778,12 @@
             "DOMContentLoaded",
             function () {
 
+
                 const sidebar =
                     document.getElementById(
                         "sidebar"
                     );
+
 
                 const sidebarToggle =
                     document.getElementById(
@@ -507,11 +791,12 @@
                     );
 
 
-                // ============================================
-                // MOBILE SIDEBAR OPEN / CLOSE
-                // ============================================
 
-                if (sidebarToggle) {
+                // =================================================
+                // MOBILE SIDEBAR OPEN / CLOSE
+                // =================================================
+
+                if (sidebarToggle && sidebar) {
 
                     sidebarToggle.addEventListener(
                         "click",
@@ -527,10 +812,11 @@
                 }
 
 
-                // ============================================
+
+                // =================================================
                 // MOBILE MENU LINK CLICK
                 // SIDEBAR AUTO CLOSE
-                // ============================================
+                // =================================================
 
                 const sidebarLinks =
                     document.querySelectorAll(
@@ -546,8 +832,8 @@
                             function () {
 
                                 if (
-                                    window.innerWidth <
-                                    992
+                                    window.innerWidth < 992 &&
+                                    sidebar
                                 ) {
 
                                     sidebar.classList.remove(
@@ -563,15 +849,116 @@
                 );
 
 
-                // ============================================
-                // KEEP LEAVE MENU OPEN
-                // WHEN USER IS ON LEAVE PAGE
-                // ============================================
+
+                // =================================================
+                // CURRENT PATH
+                // =================================================
 
                 const currentPath =
                     window.location.pathname
                         .toLowerCase();
 
+
+
+                // =================================================
+                // KEEP MASTER MENU OPEN
+                // =================================================
+
+                if (
+                    currentPath.startsWith("/allowance") ||
+                    currentPath.startsWith("/deduction")
+                ) {
+
+                    const masterMenu =
+                        document.getElementById(
+                            "masterMenu"
+                        );
+
+
+                    if (masterMenu) {
+
+                        masterMenu.classList.add(
+                            "show"
+                        );
+
+                    }
+
+
+                    const masterButton =
+                        document.querySelector(
+                            '[data-bs-target="#masterMenu"]'
+                        );
+
+
+                    if (masterButton) {
+
+                        masterButton.setAttribute(
+                            "aria-expanded",
+                            "true"
+                        );
+
+                    }
+
+                }
+
+
+
+                // =================================================
+                // KEEP GRADE WISE MENU OPEN
+                // =================================================
+
+                if (
+                    currentPath.startsWith(
+                        "/gradewiseallowdeduction"
+                    )
+                ) {
+
+                    const gradeWiseMenu =
+                        document.getElementById(
+                            "gradeWiseMenu"
+                        );
+
+
+                    if (gradeWiseMenu) {
+
+                        gradeWiseMenu.classList.add(
+                            "show"
+                        );
+
+                    }
+
+
+                    const gradeButton =
+                        document.querySelector(
+                            '[data-bs-target="#gradeWiseMenu"]'
+                        );
+
+
+                    if (gradeButton) {
+
+                        gradeButton.setAttribute(
+                            "aria-expanded",
+                            "true"
+                        );
+
+                    }
+
+                }
+
+
+
+                // =================================================
+                // KEEP LEAVE MENU OPEN
+                //
+                // Supports:
+                //
+                // /Leave/Index
+                // /Leave/SanctionList
+                // /Leave/ViewLeave
+                // /LeaveCredit/Index
+                //
+                // Because both start with "/leave"
+                // =================================================
 
                 if (
                     currentPath.startsWith(
@@ -611,6 +998,7 @@
 
                 }
 
+
             }
         );
 
@@ -618,6 +1006,9 @@
 
 
 
+    <!-- =========================================================
+         PAGE SPECIFIC SCRIPTS
+    ========================================================== -->
     @await RenderSectionAsync(
     "Scripts",
         required: false

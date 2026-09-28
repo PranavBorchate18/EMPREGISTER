@@ -4,87 +4,62 @@
     ViewData["Title"] = "Leave Sanction";
 }
 
-
 <div class="container-fluid py-3">
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-
         <div>
-
             <h3 class="mb-1">
-
                 <i class="bi bi-check2-square me-2"></i>
-
                 Leave Sanction
-
             </h3>
 
             <small class="text-muted">
                 Employee Leave Request List
             </small>
-
         </div>
-
 
         <a asp-controller="Leave"
            asp-action="Index"
            class="btn btn-primary">
-
             <i class="bi bi-plus-circle me-1"></i>
-
             New Leave
-
         </a>
-
     </div>
-
 
     @if (TempData["Success"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show">
-
             <i class="bi bi-check-circle-fill me-2"></i>
-
             @TempData["Success"]
 
             <button type="button"
                     class="btn-close"
                     data-bs-dismiss="alert">
             </button>
-
         </div>
     }
-
 
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show">
-
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
             @TempData["Error"]
 
             <button type="button"
                     class="btn-close"
                     data-bs-dismiss="alert">
             </button>
-
         </div>
     }
-
 
     <div class="card shadow-sm">
 
         <div class="card-header">
-
             <strong>
-
                 <i class="bi bi-list-ul me-1"></i>
-
                 Leave Requests
-
             </strong>
-
         </div>
-
 
         <div class="card-body">
 
@@ -93,90 +68,81 @@
                 <table class="table table-bordered table-hover align-middle text-nowrap">
 
                     <thead class="table-light">
-
                         <tr>
-
                             <th>Leave App ID</th>
-
                             <th>Employee Code</th>
-
                             <th>Employee Name</th>
-
                             <th>C/D Code</th>
-
                             <th>Demand From</th>
-
                             <th>Demand To</th>
-
                             <th>Demand Leave</th>
-
                             <th>Previous Days</th>
-
                             <th>Reason Code</th>
-
                             <th>Reason Remark</th>
-
                             <th>Charge To</th>
-
                             <th>Sanction From</th>
-
                             <th>Sanction To</th>
-
                             <th>Sanction Leave</th>
-
                             <th>Sanction Officer</th>
-
                             <th>Effect Pay Date</th>
-
                             <th>Operator</th>
-
                             <th>Status</th>
-
                             <th>Action</th>
-
                         </tr>
-
                     </thead>
-
 
                     <tbody>
 
-                        @if (Model != null &&
-                                                Model.Any())
+                        @if (Model != null && Model.Any())
                         {
                             foreach (var item in Model)
                             {
+                                // -------------------------------------------------
+                                // Support both database short codes and old text:
+                                // P / Pending  -> Pending
+                                // A / Approved -> Approved
+                                // R / Rejected -> Rejected
+                                // -------------------------------------------------
+                                var status = (item.Status ?? "").Trim().ToUpperInvariant();
+
+                                bool isApproved =
+                                status == "A" ||
+                                status == "APPROVED";
+
+                                bool isRejected =
+                                status == "R" ||
+                                status == "REJECTED";
+
+                                bool isPending =
+                                status == "P" ||
+                                status == "PENDING" ||
+                                string.IsNullOrWhiteSpace(status);
+
                                 <tr>
 
                                     <td>
                                         @item.LeaveApplicationId
                                     </td>
 
-
                                     <td>
                                         @item.EmployeeCode
                                     </td>
-
 
                                     <td>
                                         @item.EmployeeName
                                     </td>
 
-
                                     <td>
                                         @item.CDCode
                                     </td>
-
 
                                     <td>
                                         @(item.DemandFromDate?.ToString("dd-MM-yyyy"))
                                     </td>
 
-
                                     <td>
                                         @(item.DemandToDate?.ToString("dd-MM-yyyy"))
                                     </td>
-
 
                                     <td>
                                         @item.DemandLeaveCode
@@ -184,36 +150,29 @@
                                         @item.DemandLeaveName
                                     </td>
 
-
                                     <td>
                                         @item.PreviousDays
                                     </td>
-
 
                                     <td>
                                         @item.ReasonCode
                                     </td>
 
-
                                     <td>
                                         @item.ReasonRemark
                                     </td>
-
 
                                     <td>
                                         @item.ChargeTo
                                     </td>
 
-
                                     <td>
                                         @(item.SanctionFromDate?.ToString("dd-MM-yyyy"))
                                     </td>
 
-
                                     <td>
                                         @(item.SanctionToDate?.ToString("dd-MM-yyyy"))
                                     </td>
-
 
                                     <td>
                                         @item.SanctionLeaveCode
@@ -221,16 +180,13 @@
                                         @item.SanctionLeaveName
                                     </td>
 
-
                                     <td>
                                         @item.SanctionOfficer
                                     </td>
 
-
                                     <td>
                                         @(item.EffectPayDate?.ToString("dd-MM-yyyy"))
                                     </td>
-
 
                                     <td>
                                         @(string.IsNullOrWhiteSpace(item.Operator)
@@ -238,35 +194,44 @@
                                                                         : item.Operator)
                             </td>
 
-
-                                    <!-- STATUS -->
-
+                                    <!-- =========================================
+                                         STATUS
+                                    ========================================== -->
                                     <td>
 
-                                @if (item.Status == "Approved")
+                                @if (isApproved)
                                         {
                                             <span class="badge bg-success">
+                                                <i class="bi bi-check-circle-fill me-1"></i>
                                                 Approved
                                             </span>
                                         }
-                                        else if (item.Status == "Rejected")
+                                        else if (isRejected)
                                         {
                                             <span class="badge bg-danger">
+                                                <i class="bi bi-x-circle-fill me-1"></i>
                                                 Rejected
+                                            </span>
+                                        }
+                                        else if (isPending)
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-clock-fill me-1"></i>
+                                                Pending
                                             </span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-warning text-dark">
-                                                Pending
+                                            <span class="badge bg-secondary">
+                                                @item.Status
                                             </span>
                                         }
 
                                     </td>
 
-
-                                    <!-- VIEW -->
-
+                                    <!-- =========================================
+                                         VIEW
+                                    ========================================== -->
                                     <td>
 
                                         <a asp-controller="Leave"
@@ -275,7 +240,6 @@
                                            class="btn btn-sm btn-primary">
 
                                             <i class="bi bi-eye me-1"></i>
-
                                             View
 
                                         </a>
@@ -288,14 +252,10 @@
                         else
                         {
                             <tr>
-
                                 <td colspan="19"
                                     class="text-center text-muted py-4">
-
                                     No leave requests found.
-
                                 </td>
-
                             </tr>
                         }
 

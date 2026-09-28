@@ -1,0 +1,352 @@
+﻿@model Employee_Management_System.Models.PayCalculationViewModel
+@{
+    ViewData["Title"] = "Pay Calculation";
+    int currentYear = DateTime.Now.Year;
+}
+
+<style>
+    .pay-header {
+        background: #0d6efd;
+        color: white;
+    }
+
+    .branch-card {
+        width: 100%;
+        min-height: 62px;
+        border: 1px solid #d7dde5;
+        border-radius: 7px;
+        background: white;
+        padding: 15px;
+        text-align: left;
+        transition: .2s;
+    }
+
+        .branch-card:hover {
+            border-color: #0d6efd;
+            background: #f8fbff;
+        }
+
+        .branch-card.active {
+            border: 2px solid #0d6efd;
+            background: #f0f7ff;
+        }
+
+    .branch-number {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #e7f1ff;
+        color: #0d6efd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 18px;
+    }
+
+    .branch-name {
+        font-weight: 700;
+        font-size: 16px;
+    }
+
+    .employee-count {
+        color: #6c757d;
+        font-size: 14px;
+    }
+
+    #payTable th, #payTable td {
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .income-header {
+        background: #eaf7ee !important;
+    }
+
+    .deduction-header {
+        background: #fff1f1 !important;
+    }
+
+    .net-cell {
+        font-weight: 700;
+    }
+
+    #resultSection {
+        margin-top: 8px;
+        margin-bottom: 8px;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header pay-header">
+            <h3 class="mb-0"><i class="bi bi-calculator me-2"></i>Pay Calculation</h3>
+        </div>
+        <div class="card-body">
+            <div class="text-muted mb-3">Select year, month and then choose a branch to calculate employee salary.</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Selected Year <span class="text-danger">*</span></label>
+                    <select id="SelectedYear" class="form-select">
+                        @for (int year = currentYear - 10; year <= currentYear + 5; year++)
+                        {
+                            if (year == Model.SelectedYear)
+                            {
+                                <option value="@year" selected>@year</option>
+                            }
+                            else
+                            {
+                                <option value="@year">@year</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Selected Month <span class="text-danger">*</span></label>
+                    <select id="SelectedMonth" class="form-select">
+                        @for (int month = 1; month <= 12; month++)
+                        {
+                            string monthName = new DateTime(2000, month, 1).ToString("MMMM");
+                            if (month == Model.SelectedMonth)
+                            {
+                                <option value="@month" selected>@monthName</option>
+                            }
+                            else
+                            {
+                                <option value="@month">@monthName</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h4 class="mb-1"><i class="bi bi-building me-2"></i>Branch List</h4>
+            <div class="text-muted mb-4">Click on a branch to calculate salary for its employees.</div>
+            <div class="row g-2">
+                @foreach (var branch in Model.Branches)
+                {
+                    <div class="col-12 branch-row">
+                        <button type="button" class="branch-card" data-code="@branch.BranchCode" data-name="@branch.BranchName">
+                            <div class="d-flex align-items-center">
+                                <div class="branch-number me-3">@branch.BranchCode</div>
+                                <div class="branch-name flex-grow-1">@branch.BranchName</div>
+                                <div class="employee-count me-3"><i class="bi bi-people-fill me-1"></i>@branch.EmployeeCount Employees</div>
+                                <div class="text-primary fs-5"><i class="bi bi-chevron-down branch-arrow"></i></div>
+                            </div>
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div id="resultSection" class="card shadow-sm d-none">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <strong class="text-primary"><i class="bi bi-cash-stack me-2"></i>Salary Calculation - <span id="selectedBranch"></span><span id="selectedPeriod"></span></strong>
+                <span id="recordCount">Total Employees: 0</span>
+            </div>
+        </div>
+        <div id="messageBox" class="alert alert-info m-3 d-none"></div>
+        <div id="tableBox" class="table-responsive d-none">
+            <table id="payTable" class="table table-bordered table-hover align-middle mb-0">
+                <thead id="payTableHead"></thead>
+                <tbody id="payRows"></tbody>
+            </table>
+        </div>
+
+        <div id="saveBox" class="p-3 text-end d-none">
+            <button type="button" id="btnSavePayCalculation" class="btn btn-primary px-4">
+                <i class="bi bi-floppy me-2"></i>Save Pay Calculation
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            let selectedBranchCode = 0;
+            let selectedBranchName = "";
+            const esc = v => $("<div>").text(v ?? "").html();
+            const money = v => {
+                let n = Number(v ?? 0);
+                return isNaN(n) ? "0.00" : n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            };
+
+            function dictionaryValue(dictionary, key) {
+                if (!dictionary) return 0;
+                if (dictionary[key] !== undefined) return dictionary[key];
+                let found = Object.keys(dictionary).find(x => x.toLowerCase() === key.toLowerCase());
+                return found ? dictionary[found] : 0;
+            }
+
+            function buildHeader(allowances, deductions) {
+                let html = `<tr><th rowspan="2">Sr.</th><th rowspan="2">Employee Code</th><th rowspan="2">Employee Name</th><th rowspan="2">Grade</th><th rowspan="2" class="text-end">Basic</th>`;
+                html += `<th colspan="${allowances.length + 2}" class="text-center income-header">Income / Allowances</th>`;
+                html += `<th colspan="${deductions.length + 1}" class="text-center deduction-header">Deductions</th>`;
+                html += `<th rowspan="2" class="text-end">Net Salary</th></tr><tr>`;
+                allowances.forEach(n => html += `<th class="text-end income-header">${esc(n)}</th>`);
+                html += `<th class="text-end income-header">Total Allowance</th><th class="text-end income-header">Gross Salary</th>`;
+                deductions.forEach(n => html += `<th class="text-end deduction-header">${esc(n)}</th>`);
+                html += `<th class="text-end deduction-header">Total Deduction</th></tr>`;
+                $("#payTableHead").html(html);
+            }
+
+            function loadPayCalculation() {
+                let year = $("#SelectedYear").val();
+                let month = $("#SelectedMonth").val();
+                if (!selectedBranchCode) return;
+
+                $("#resultSection").removeClass("d-none");
+                $("#payRows,#payTableHead").empty();
+                $("#tableBox").addClass("d-none");
+                $("#saveBox").addClass("d-none");
+                $("#messageBox").addClass("d-none").text("");
+                $("#recordCount").text("Loading...");
+                $("#selectedBranch").text(selectedBranchName);
+                $("#selectedPeriod").text(` (${$("#SelectedMonth option:selected").text()} ${year})`);
+
+                $.get('@Url.Action("GetPayCalculation", "PayCalculation")', { year, month, branchCode: selectedBranchCode })
+                .done(function (response) {
+                    if (!response || response.success !== true) {
+                        if (response?.sessionExpired) {
+                            window.location.href = '@Url.Action("Login", "Account")';
+                            return;
+                        }
+                        $("#recordCount").text("Total Employees: 0");
+                        $("#messageBox").removeClass("d-none").text(response?.message ?? "Unable to load data.");
+                        return;
+                    }
+
+                    let data = response.data || [];
+                    let allowances = response.allowanceNames || [];
+                    let deductions = response.deductionNames || [];
+                    $("#recordCount").text("Total Employees: " + data.length);
+
+                    if (!data.length) {
+                        $("#messageBox").removeClass("d-none").text("No employees found for the selected branch.");
+                        return;
+                    }
+
+                    buildHeader(allowances, deductions);
+                    let html = "";
+                    data.forEach(function (item, index) {
+                        html += `<tr><td>${index + 1}</td><td class="fw-bold">${item.employeeCode}</td><td>${esc(item.employeeName)}</td><td>${esc(item.gradeName || item.gradeCode || "-")}</td><td class="text-end fw-bold">${money(item.basicSalary)}</td>`;
+                        allowances.forEach(name => html += `<td class="text-end">${money(dictionaryValue(item.allowances, name))}</td>`);
+                        html += `<td class="text-end fw-bold">${money(item.totalAllowance)}</td><td class="text-end fw-bold">${money(item.grossSalary)}</td>`;
+                        deductions.forEach(name => html += `<td class="text-end">${money(dictionaryValue(item.deductions, name))}</td>`);
+                        html += `<td class="text-end fw-bold">${money(item.totalDeduction)}</td><td class="text-end net-cell">${money(item.netSalary)}</td></tr>`;
+                    });
+
+                    $("#payRows").html(html);
+                    $("#tableBox").removeClass("d-none");
+                    $("#saveBox").removeClass("d-none");
+                })
+                .fail(function () {
+                    $("#recordCount").text("Total Employees: 0");
+                    $("#messageBox").removeClass("d-none").text("Unable to load Pay Calculation data.");
+                });
+            }
+
+            function savePayCalculation(forceSave) {
+                if (!selectedBranchCode) {
+                    alert("Please select a branch.");
+                    return;
+                }
+
+                const year = Number($("#SelectedYear").val());
+                const month = Number($("#SelectedMonth").val());
+                const monthName = $("#SelectedMonth option:selected").text();
+                const $button = $("#btnSavePayCalculation");
+
+                $button.prop("disabled", true)
+                       .html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
+
+                $.ajax({
+                    url: '@Url.Action("SavePayCalculation", "PayCalculation")',
+                    type: 'POST',
+                    data: {
+                        year: year,
+                        month: month,
+                        branchCode: selectedBranchCode,
+                        forceSave: forceSave
+                    }
+                })
+                .done(function (response) {
+                    if (response?.sessionExpired) {
+                        window.location.href = '@Url.Action("Login", "Account")';
+                        return;
+                    }
+
+                    if (response?.alreadyStored === true) {
+                        const saveAgain = confirm(
+                            "Already Stored!\\n\\n" +
+                            "Payroll data is already stored for " + monthName + " " + year + ".\\n" +
+                            "Do you want to store it again?"
+                        );
+
+                        if (saveAgain) {
+                            savePayCalculation(true);
+                        }
+                        return;
+                    }
+
+                    if (response?.success === true) {
+                        alert("Success!\\n\\n" + (response.message || "Pay calculation saved successfully."));
+                        return;
+                    }
+
+                    alert(response?.message || "Unable to save Pay Calculation.");
+                })
+                .fail(function () {
+                    alert("Unable to save Pay Calculation.");
+                })
+                .always(function () {
+                    $button.prop("disabled", false)
+                           .html('<i class="bi bi-floppy me-2"></i>Save Pay Calculation');
+                });
+            }
+
+            $("#btnSavePayCalculation").click(function () {
+                savePayCalculation(false);
+            });
+
+            $(".branch-card").click(function () {
+                const clickedCode = Number($(this).data("code"));
+                const clickedName = $(this).data("name") || "";
+
+                if (selectedBranchCode === clickedCode && !$("#resultSection").hasClass("d-none")) {
+                    $("#resultSection").addClass("d-none");
+                    $(this).removeClass("active");
+                    $(this).find(".branch-arrow").removeClass("bi-chevron-up").addClass("bi-chevron-down");
+                    selectedBranchCode = 0;
+                    selectedBranchName = "";
+                    return;
+                }
+
+                $(".branch-card").removeClass("active");
+                $(".branch-arrow").removeClass("bi-chevron-up").addClass("bi-chevron-down");
+
+                selectedBranchCode = clickedCode;
+                selectedBranchName = clickedName;
+                $(this).addClass("active");
+                $(this).find(".branch-arrow").removeClass("bi-chevron-down").addClass("bi-chevron-up");
+
+                // Move result immediately below the branch that was clicked.
+                const clickedBranchRow = $(this).closest(".branch-row");
+                $("#resultSection").insertAfter(clickedBranchRow).removeClass("d-none");
+
+                loadPayCalculation();
+            });
+
+            $("#SelectedYear,#SelectedMonth").change(function () {
+                if (selectedBranchCode) loadPayCalculation();
+            });
+        });
+    </script>
+}

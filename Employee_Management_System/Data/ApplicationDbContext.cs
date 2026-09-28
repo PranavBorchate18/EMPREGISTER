@@ -40,6 +40,8 @@ namespace Employee_Management_System.Data
 
         public DbSet<Section> Sections { get; set; }
 
+        public DbSet<LeaveMaster> LeaveMasters { get; set; }
+
 
 
         protected override void OnModelCreating(

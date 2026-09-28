@@ -7,21 +7,17 @@
 <div class="container-fluid py-3">
 
     <!-- =========================================================
-         PAGE TITLE
+         PAGE HEADER
     ========================================================== -->
-
-    <div class="mb-3">
+    <div class="mb-4">
 
         <h3 class="mb-1">
-
             <i class="bi bi-calendar2-check-fill me-2"></i>
-
             Leave Application
-
         </h3>
 
         <small class="text-muted">
-            Employee Leave & Sanction Entry
+            Employee Leave Application
         </small>
 
     </div>
@@ -67,6 +63,9 @@
     }
 
 
+    <!-- =========================================================
+         FORM
+    ========================================================== -->
     <form asp-controller="Leave"
           asp-action="Save"
           method="post"
@@ -76,18 +75,17 @@
 
 
         <!-- =====================================================
-             EMPLOYEE
+             1. EMPLOYEE INFORMATION
         ====================================================== -->
-
         <div class="card shadow-sm mb-4">
 
-            <div class="card-header bg-primary text-white">
+            <div class="card-header bg-light">
 
-                <strong>
+                <strong class="text-primary">
 
-                    <i class="bi bi-person-fill me-2"></i>
+                    <i class="bi bi-person-fill me-1"></i>
 
-                    Employee Information
+                    1. Employee Information
 
                 </strong>
 
@@ -96,15 +94,15 @@
 
             <div class="card-body">
 
-                <div class="row">
+                <div class="row g-3 align-items-end">
 
-                    <div class="col-md-4 mb-3">
 
-                        <label class="form-label">
+                    <!-- EMPLOYEE CODE -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
                             Employee Code
-                            <span class="text-danger">*</span>
                         </label>
-
 
                         <div class="input-group">
 
@@ -112,17 +110,13 @@
                                    id="EmployeeCode"
                                    type="number"
                                    class="form-control"
-                                   placeholder="Enter Employee Code"
-                                   autocomplete="off" />
-
+                                   placeholder="Employee Code" />
 
                             <button type="button"
                                     id="btnSearchEmployee"
                                     class="btn btn-primary">
 
                                 <i class="bi bi-search"></i>
-
-                                Search
 
                             </button>
 
@@ -131,17 +125,27 @@
                     </div>
 
 
-                    <div class="col-md-8 mb-3">
+                    <!-- EMPLOYEE NAME -->
+                    <div class="col-md-6">
 
-                        <label class="form-label">
+                        <label class="form-label fw-bold">
                             Employee Name
                         </label>
 
-
                         <input asp-for="EmployeeName"
                                id="EmployeeName"
+                               type="text"
                                class="form-control"
                                readonly />
+
+                    </div>
+
+
+                    <!-- SEARCH STATUS -->
+                    <div class="col-md-3">
+
+                        <div id="employeeSearchMessage">
+                        </div>
 
                     </div>
 
@@ -153,81 +157,76 @@
 
 
         <!-- =====================================================
-             1. LEAVE
+             2. LEAVE INFORMATION
         ====================================================== -->
-
         <div class="card shadow-sm mb-4">
 
-            <div class="card-header">
+            <div class="card-header bg-light">
 
-                <h5 class="mb-0 text-primary">
+                <strong class="text-primary">
 
-                    <i class="bi bi-file-earmark-text me-2"></i>
+                    <i class="bi bi-calendar-event me-1"></i>
 
-                    1. Leave
+                    2. Leave
 
-                </h5>
+                </strong>
 
             </div>
 
 
             <div class="card-body">
 
-                <div class="row">
+
+                <!-- =================================================
+                     ROW 1
+                ================================================== -->
+                <div class="row g-3 mb-3">
+
 
                     <!-- FROM DATE -->
+                    <div class="col-md-3">
 
-                    <div class="col-md-3 mb-3">
-
-                        <label class="form-label">
+                        <label class="form-label fw-bold">
                             From Date
                             <span class="text-danger">*</span>
                         </label>
 
-
                         <input asp-for="DemandFromDate"
                                id="DemandFromDate"
                                type="date"
-                               class="form-control"
-                               required />
+                               class="form-control" />
 
                     </div>
 
 
                     <!-- TO DATE -->
+                    <div class="col-md-3">
 
-                    <div class="col-md-3 mb-3">
-
-                        <label class="form-label">
+                        <label class="form-label fw-bold">
                             To Date
                             <span class="text-danger">*</span>
                         </label>
 
-
                         <input asp-for="DemandToDate"
                                id="DemandToDate"
                                type="date"
-                               class="form-control"
-                               required />
+                               class="form-control" />
 
                     </div>
 
 
                     <!-- LEAVE TYPE -->
+                    <div class="col-md-4">
 
-                    <div class="col-md-4 mb-3">
-
-                        <label class="form-label">
+                        <label class="form-label fw-bold">
                             Leave Type
                             <span class="text-danger">*</span>
                         </label>
 
-
                         <select asp-for="DemandLeaveCode"
                                 asp-items="Model.LeaveTypes"
                                 id="DemandLeaveCode"
-                                class="form-select"
-                                required>
+                                class="form-select">
 
                             <option value="">
                                 -- Select Leave Type --
@@ -239,55 +238,75 @@
 
 
                     <!-- PREVIOUS DAYS -->
+                    <div class="col-md-2">
 
-                    <div class="col-md-2 mb-3">
-
-                        <label class="form-label">
+                        <label class="form-label fw-bold">
                             Previous Days
                         </label>
 
-
                         <input asp-for="PreviousDays"
-                               id="PreviousDays"
                                type="number"
                                step="0.5"
-                               class="form-control" />
+                               min="0"
+                               class="form-control"
+                               placeholder="0" />
 
                     </div>
 
                 </div>
 
 
-                <div class="row">
+                <!-- =================================================
+                     ROW 2
+                ================================================== -->
+                <div class="row g-3">
 
-                    <!-- REASON CODE -->
 
-                    <div class="col-md-3 mb-3">
+                    <!-- =================================================
+                         REASON CODE DROPDOWN
 
-                        <label class="form-label">
+                         Source:
+                         dbo.resnmast
+
+                         Display:
+                         1 - POOJA
+                         2 - SICK
+                         3 - MARRIAGE
+                         ...
+
+                         Database:
+                         dbo.leavtrn.reason
+                         ONLY CODE WILL BE SAVED
+                    ================================================== -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
                             Reason Code
                         </label>
 
+                        <select asp-for="ReasonCode"
+                                asp-items="Model.ReasonTypes"
+                                id="ReasonCode"
+                                class="form-select">
 
-                        <input asp-for="ReasonCode"
-                               id="ReasonCode"
-                               type="number"
-                               class="form-control" />
+                            <option value="">
+                                -- Select Reason --
+                            </option>
+
+                        </select>
 
                     </div>
 
 
                     <!-- REASON REMARK -->
+                    <div class="col-md-4">
 
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
+                        <label class="form-label fw-bold">
                             Reason Remark
                         </label>
 
-
                         <input asp-for="ReasonRemark"
-                               id="ReasonRemark"
+                               type="text"
                                maxlength="80"
                                class="form-control"
                                placeholder="Enter reason remark" />
@@ -295,31 +314,52 @@
                     </div>
 
 
-                    <!-- CHARGE TO -->
+                    <!-- =================================================
+                         CHARGE TO TRANSFER
+                    ================================================== -->
+                    <div class="col-md-5">
 
-                    <div class="col-md-3 mb-3">
-
-                        <label class="form-label">
-                            Charge To
+                        <label class="form-label fw-bold">
+                            Charge To Transfer
                         </label>
 
+                        <div class="input-group">
 
-                        <input asp-for="ChargeTo"
-                               id="ChargeTo"
-                               type="number"
-                               class="form-control" />
+                            <input asp-for="ChargeTo"
+                                   id="ChargeTo"
+                                   type="number"
+                                   class="form-control"
+                                   placeholder="Employee Code" />
+
+                            <button type="button"
+                                    id="btnSearchChargeEmployee"
+                                    class="btn btn-outline-primary">
+
+                                <i class="bi bi-search"></i>
+
+                            </button>
+
+                        </div>
+
+
+                        <!-- CHARGE EMPLOYEE NAME -->
+                        <div class="mt-2">
+
+                            <input type="text"
+                                   id="ChargeToEmployeeName"
+                                   class="form-control"
+                                   placeholder="Employee Name"
+                                   readonly />
+
+                        </div>
+
+                        <div id="chargeEmployeeMessage"
+                             class="mt-1">
+                        </div>
 
                     </div>
 
                 </div>
-
-                <!--
-                    Leave Application ID removed
-                    Operator removed
-                    C/D Code removed
-
-                    C/D Code = 2 automatically in LeaveController
-                -->
 
             </div>
 
@@ -327,55 +367,50 @@
 
 
         <!-- =====================================================
-             2. SANCTION
+             3. SANCTION INFORMATION
         ====================================================== -->
-
         <div class="card shadow-sm mb-4">
 
-            <div class="card-header">
+            <div class="card-header bg-light">
 
-                <h5 class="mb-0 text-success">
+                <strong class="text-success">
 
-                    <i class="bi bi-check-circle me-2"></i>
+                    <i class="bi bi-check-circle-fill me-1"></i>
 
-                    2. Sanction
+                    3. Sanction
 
-                </h5>
+                </strong>
 
             </div>
 
 
             <div class="card-body">
 
-                <div class="row">
+                <div class="row g-3">
+
 
                     <!-- SANCTION FROM -->
+                    <div class="col-md-3">
 
-                    <div class="col-md-3 mb-3">
-
-                        <label class="form-label">
-                            Sanction From Date
+                        <label class="form-label fw-bold">
+                            Sanction From
                             <span class="text-danger">*</span>
                         </label>
-
 
                         <input asp-for="SanctionFromDate"
                                id="SanctionFromDate"
                                type="date"
-                               class="form-control"
-                               required />
+                               class="form-control" />
 
                     </div>
 
 
                     <!-- SANCTION TO -->
+                    <div class="col-md-3">
 
-                    <div class="col-md-3 mb-3">
-
-                        <label class="form-label">
-                            Sanction To Date
+                        <label class="form-label fw-bold">
+                            Sanction To
                         </label>
-
 
                         <input asp-for="SanctionToDate"
                                id="SanctionToDate"
@@ -386,23 +421,20 @@
 
 
                     <!-- SANCTION LEAVE -->
+                    <div class="col-md-3">
 
-                    <div class="col-md-3 mb-3">
-
-                        <label class="form-label">
+                        <label class="form-label fw-bold">
                             Sanction Leave
                             <span class="text-danger">*</span>
                         </label>
 
-
                         <select asp-for="SanctionLeaveCode"
                                 asp-items="Model.LeaveTypes"
                                 id="SanctionLeaveCode"
-                                class="form-select"
-                                required>
+                                class="form-select">
 
                             <option value="">
-                                -- Select Leave --
+                                -- Select Leave Type --
                             </option>
 
                         </select>
@@ -410,42 +442,38 @@
                     </div>
 
 
-                    <!-- SANCTION OFFICER -->
-
-                    <div class="col-md-3 mb-3">
-
-                        <label class="form-label">
-                            Sanction Officer
-                        </label>
-
-
-                        <input asp-for="SanctionOfficer"
-                               id="SanctionOfficer"
-                               type="number"
-                               class="form-control" />
-
-                    </div>
-
-                </div>
-
-
-                <div class="row">
-
                     <!-- EFFECT PAY DATE -->
+                    <div class="col-md-3">
 
-                    <div class="col-md-3 mb-3">
-
-                        <label class="form-label">
+                        <label class="form-label fw-bold">
                             Effect Pay Date
                         </label>
 
-
                         <input asp-for="EffectPayDate"
-                               id="EffectPayDate"
                                type="date"
                                class="form-control" />
 
                     </div>
+
+
+                    <!-- =================================================
+                         SANCTION OFFICER IS NOT DISPLAYED
+
+                         Controller automatically stores:
+                         sact_officer = EmployeeCode
+                    ================================================== -->
+                    <!-- =================================================
+                         C/D CODE IS NOT DISPLAYED
+
+                         Controller automatically stores:
+                         c_d_code = 2
+                    ================================================== -->
+                    <!-- =================================================
+                         OPERATOR IS NOT DISPLAYED
+
+                         Controller automatically stores:
+                         Operator = EmployeeCode
+                    ================================================== -->
 
                 </div>
 
@@ -457,24 +485,25 @@
         <!-- =====================================================
              BUTTONS
         ====================================================== -->
+        <div class="text-center mb-4">
 
-        <div class="text-end mb-4">
-
+            <!-- CLEAR -->
             <button type="reset"
-                    class="btn btn-secondary me-2">
+                    id="btnClear"
+                    class="btn btn-outline-secondary px-4 me-2">
 
-                <i class="bi bi-arrow-counterclockwise me-1"></i>
+                <i class="bi bi-arrow-clockwise me-1"></i>
 
                 Clear
 
             </button>
 
 
+            <!-- SAVE -->
             <button type="submit"
-                    class="btn btn-success"
-                    id="btnSaveLeave">
+                    class="btn btn-primary px-4">
 
-                <i class="bi bi-save me-1"></i>
+                <i class="bi bi-save-fill me-1"></i>
 
                 Save Leave
 
@@ -495,71 +524,127 @@
 
 
             // =====================================================
-            // EMPLOYEE SEARCH BUTTON
+            // SEARCH MAIN EMPLOYEE
             // =====================================================
-
             $("#btnSearchEmployee").click(function () {
 
-                searchEmployee();
+                searchMainEmployee();
 
             });
 
 
             // =====================================================
-            // ENTER KEY
+            // ENTER KEY - MAIN EMPLOYEE
             // =====================================================
+            $("#EmployeeCode").keypress(function (event) {
 
-            $("#EmployeeCode").keypress(function (e) {
+                if (event.which === 13) {
 
-                if (e.which === 13) {
+                    event.preventDefault();
 
-                    e.preventDefault();
+                    searchMainEmployee();
 
-                    searchEmployee();
                 }
 
             });
 
 
             // =====================================================
-            // SEARCH EMPLOYEE
+            // SEARCH CHARGE TO EMPLOYEE
             // =====================================================
+            $("#btnSearchChargeEmployee").click(function () {
 
-            function searchEmployee() {
+                searchChargeEmployee();
+
+            });
+
+
+            // =====================================================
+            // ENTER KEY - CHARGE EMPLOYEE
+            // =====================================================
+            $("#ChargeTo").keypress(function (event) {
+
+                if (event.which === 13) {
+
+                    event.preventDefault();
+
+                    searchChargeEmployee();
+
+                }
+
+            });
+
+
+            // =====================================================
+            // MAIN EMPLOYEE SEARCH FUNCTION
+            // =====================================================
+            // MATERNITY LEAVE - FEMALE ONLY
+            // =====================================================
+            var currentEmployeeGender = "";
+
+            function isFemaleGender(gender) {
+                var value = String(gender || "").trim().toUpperCase();
+                return value === "F" || value === "FEMALE";
+            }
+
+            function updateMaternityLeaveOptions() {
+                var allowMaternity = isFemaleGender(currentEmployeeGender);
+
+                $("#DemandLeaveCode option, #SanctionLeaveCode option").each(function () {
+                    var option = $(this);
+                    var text = String(option.text() || "").toUpperCase();
+
+                    if (text.indexOf("MATERNITY") >= 0) {
+                        option.prop("disabled", !allowMaternity);
+                        option.prop("hidden", !allowMaternity);
+                    }
+                });
+
+                if (!allowMaternity) {
+                    if ($("#DemandLeaveCode option:selected").text().toUpperCase().indexOf("MATERNITY") >= 0)
+                        $("#DemandLeaveCode").val("");
+
+                    if ($("#SanctionLeaveCode option:selected").text().toUpperCase().indexOf("MATERNITY") >= 0)
+                        $("#SanctionLeaveCode").val("");
+                }
+            }
+
+
+            // =====================================================
+            // MAIN EMPLOYEE SEARCH
+            // =====================================================
+            function searchMainEmployee() {
 
                 var employeeCode =
                     $("#EmployeeCode").val();
 
 
+                $("#EmployeeName").val("");
+
+                $("#employeeSearchMessage").html("");
+
+
                 if (!employeeCode ||
                     parseInt(employeeCode) <= 0) {
 
-                    alert(
-                        "Please enter valid Employee Code."
+                    $("#employeeSearchMessage").html(
+                        '<span class="text-danger">' +
+                        'Please enter Employee Code.' +
+                        '</span>'
                     );
-
-                    $("#EmployeeName").val("");
 
                     return;
                 }
 
 
-                $("#btnSearchEmployee")
-                    .prop("disabled", true);
-
-
                 $.ajax({
 
-                    url:
-                        '@Url.Action("GetEmployee", "Leave")',
+                    url: '@Url.Action("GetEmployee", "Leave")',
 
-                    type:
-                        "GET",
+                    type: 'GET',
 
-                    data:
-                    {
-                        employeeCode:
-                            employeeCode
+                    data: {
+                        employeeCode: employeeCode
                     },
 
 
@@ -567,21 +652,33 @@
 
                         if (response.success) {
 
-                            $("#EmployeeName")
-                                .val(
-                                    response.data.employeeName
-                                    ?? ""
-                                );
+                            $("#EmployeeName").val(
+                                response.data.employeeName
+                            );
+
+                            currentEmployeeGender = response.data.gender || "";
+                            updateMaternityLeaveOptions();
+
+
+                            $("#employeeSearchMessage").html(
+                                '<span class="text-success">' +
+                                '<i class="bi bi-check-circle-fill me-1"></i>' +
+                                'Employee Found' +
+                                '</span>'
+                            );
 
                         }
                         else {
 
-                            $("#EmployeeName")
-                                .val("");
+                            $("#EmployeeName").val("");
 
-                            alert(
-                                response.message
+
+                            $("#employeeSearchMessage").html(
+                                '<span class="text-danger">' +
+                                response.message +
+                                '</span>'
                             );
+
                         }
 
                     },
@@ -589,23 +686,14 @@
 
                     error: function () {
 
-                        $("#EmployeeName")
-                            .val("");
+                        $("#EmployeeName").val("");
 
-                        alert(
-                            "Unable to retrieve employee information."
+
+                        $("#employeeSearchMessage").html(
+                            '<span class="text-danger">' +
+                            'Unable to retrieve employee information.' +
+                            '</span>'
                         );
-
-                    },
-
-
-                    complete: function () {
-
-                        $("#btnSearchEmployee")
-                            .prop(
-                                "disabled",
-                                false
-                            );
 
                     }
 
@@ -615,100 +703,312 @@
 
 
             // =====================================================
-            // DEMAND FROM -> SANCTION FROM
+            // CHARGE TO EMPLOYEE SEARCH
             // =====================================================
+            function searchChargeEmployee() {
 
-            $("#DemandFromDate").change(function () {
-
-                if (!$("#SanctionFromDate").val()) {
-
-                    $("#SanctionFromDate")
-                        .val(
-                            $(this).val()
-                        );
-                }
-
-            });
+                var employeeCode =
+                    $("#ChargeTo").val();
 
 
-            // =====================================================
-            // DEMAND TO DATE
-            // =====================================================
+                $("#ChargeToEmployeeName").val("");
 
-            $("#DemandToDate").change(function () {
-
-                var fromDate =
-                    $("#DemandFromDate").val();
-
-                var toDate =
-                    $(this).val();
+                $("#chargeEmployeeMessage").html("");
 
 
-                if (fromDate &&
-                    toDate &&
-                    toDate < fromDate) {
+                if (!employeeCode ||
+                    parseInt(employeeCode) <= 0) {
 
-                    alert(
-                        "To Date cannot be less than From Date."
+                    $("#chargeEmployeeMessage").html(
+                        '<span class="text-danger">' +
+                        'Please enter Employee Code.' +
+                        '</span>'
                     );
-
-                    $(this).val("");
 
                     return;
                 }
 
 
-                if (!$("#SanctionToDate").val()) {
+                $.ajax({
 
-                    $("#SanctionToDate")
-                        .val(toDate);
+                    url: '@Url.Action("GetEmployee", "Leave")',
+
+                    type: 'GET',
+
+                    data: {
+                        employeeCode: employeeCode
+                    },
+
+
+                    success: function (response) {
+
+                        if (response.success) {
+
+                            $("#ChargeToEmployeeName").val(
+                                response.data.employeeName
+                            );
+
+
+                            $("#chargeEmployeeMessage").html(
+                                '<span class="text-success">' +
+                                '<i class="bi bi-check-circle-fill me-1"></i>' +
+                                response.data.employeeCode +
+                                ' - ' +
+                                response.data.employeeName +
+                                '</span>'
+                            );
+
+                        }
+                        else {
+
+                            $("#ChargeToEmployeeName").val("");
+
+
+                            $("#chargeEmployeeMessage").html(
+                                '<span class="text-danger">' +
+                                response.message +
+                                '</span>'
+                            );
+
+                        }
+
+                    },
+
+
+                    error: function () {
+
+                        $("#ChargeToEmployeeName").val("");
+
+
+                        $("#chargeEmployeeMessage").html(
+                            '<span class="text-danger">' +
+                            'Unable to retrieve employee information.' +
+                            '</span>'
+                        );
+
+                    }
+
+                });
+
+            }
+
+
+            // =====================================================
+            // COPY DEMAND FROM -> SANCTION FROM
+            // =====================================================
+            $("#DemandFromDate").change(function () {
+
+                if (!$("#SanctionFromDate").val()) {
+
+                    $("#SanctionFromDate").val(
+                        $(this).val()
+                    );
+
                 }
 
             });
 
 
             // =====================================================
-            // LEAVE TYPE -> SANCTION LEAVE
+            // COPY DEMAND TO -> SANCTION TO
             // =====================================================
+            $("#DemandToDate").change(function () {
 
+                if (!$("#SanctionToDate").val()) {
+
+                    $("#SanctionToDate").val(
+                        $(this).val()
+                    );
+
+                }
+
+            });
+
+
+            // =====================================================
+            // COPY LEAVE TYPE -> SANCTION LEAVE
+            // =====================================================
             $("#DemandLeaveCode").change(function () {
-
-                var leaveCode =
-                    $(this).val();
-
 
                 if (!$("#SanctionLeaveCode").val()) {
 
-                    $("#SanctionLeaveCode")
-                        .val(leaveCode);
+                    $("#SanctionLeaveCode").val(
+                        $(this).val()
+                    );
+
                 }
 
             });
 
 
             // =====================================================
-            // SANCTION DATE VALIDATION
+            // CLEAR BUTTON
             // =====================================================
+            $("#btnClear").click(function () {
 
-            $("#SanctionToDate").change(function () {
+                setTimeout(function () {
 
-                var fromDate =
+                    $("#EmployeeName").val("");
+
+                    $("#ChargeToEmployeeName").val("");
+
+                    $("#employeeSearchMessage").html("");
+
+                    $("#chargeEmployeeMessage").html("");
+
+                }, 10);
+
+            });
+
+
+            // =====================================================
+            // FORM VALIDATION
+            // =====================================================
+            $("#leaveForm").submit(function (event) {
+
+                var employeeCode =
+                    $("#EmployeeCode").val();
+
+                var employeeName =
+                    $("#EmployeeName").val();
+
+                var demandFrom =
+                    $("#DemandFromDate").val();
+
+                var demandTo =
+                    $("#DemandToDate").val();
+
+                var demandLeave =
+                    $("#DemandLeaveCode").val();
+
+                var sanctionFrom =
                     $("#SanctionFromDate").val();
 
-                var toDate =
-                    $(this).val();
+                var sanctionLeave =
+                    $("#SanctionLeaveCode").val();
 
 
-                if (fromDate &&
-                    toDate &&
-                    toDate < fromDate) {
+                // Maternity Leave client-side validation
+                var demandLeaveText =
+                    $("#DemandLeaveCode option:selected").text().toUpperCase();
+
+                var sanctionLeaveText =
+                    $("#SanctionLeaveCode option:selected").text().toUpperCase();
+
+                if ((demandLeaveText.indexOf("MATERNITY") >= 0 ||
+                     sanctionLeaveText.indexOf("MATERNITY") >= 0) &&
+                    !isFemaleGender(currentEmployeeGender)) {
+
+                    event.preventDefault();
+                    alert("Maternity Leave is only applicable for Female Employees.");
+                    return false;
+                }
+
+
+                // Employee
+                if (!employeeCode ||
+                    parseInt(employeeCode) <= 0) {
 
                     alert(
-                        "Sanction To Date cannot be less than Sanction From Date."
+                        "Please enter Employee Code."
                     );
 
-                    $(this).val("");
+                    event.preventDefault();
+
+                    return false;
                 }
+
+
+                if (!employeeName) {
+
+                    alert(
+                        "Please search and select valid Employee."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                // Demand From
+                if (!demandFrom) {
+
+                    alert(
+                        "Please select From Date."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                // Demand To
+                if (!demandTo) {
+
+                    alert(
+                        "Please select To Date."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                if (demandTo < demandFrom) {
+
+                    alert(
+                        "To Date cannot be less than From Date."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                // Leave Type
+                if (!demandLeave) {
+
+                    alert(
+                        "Please select Leave Type."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                // Sanction From
+                if (!sanctionFrom) {
+
+                    alert(
+                        "Please select Sanction From Date."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                // Sanction Leave
+                if (!sanctionLeave) {
+
+                    alert(
+                        "Please select Sanction Leave Type."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                return true;
 
             });
 
