@@ -6,6 +6,7 @@ namespace Employee_Management_System.Models
     {
         public int SelectedYear { get; set; }
         public int SelectedMonth { get; set; }
+        public double ProfessionalTax { get; set; }
         public List<PayCalculationBranchViewModel> Branches { get; set; } = new();
     }
 

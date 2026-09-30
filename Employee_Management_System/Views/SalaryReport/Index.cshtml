@@ -1,0 +1,608 @@
+﻿@model Employee_Management_System.Models.SalaryReportViewModel
+@{
+    ViewData["Title"] = "Salary Report";
+    int currentYear = DateTime.Now.Year;
+}
+<style>
+    .report-header {
+        background: #0d6efd;
+        color: #fff
+    }
+
+    .branch-card {
+        width: 100%;
+        min-height: 62px;
+        border: 1px solid #d7dde5;
+        border-radius: 7px;
+        background: #fff;
+        padding: 15px;
+        text-align: left
+    }
+
+        .branch-card.active {
+            border: 2px solid #0d6efd;
+            background: #f0f7ff
+        }
+
+    .branch-number {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #e7f1ff;
+        color: #0d6efd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700
+    }
+
+    .branch-name {
+        font-weight: 700
+    }
+
+    .employee-count {
+        color: #6c757d
+    }
+
+    .income-header, .earnings-row td {
+        background: #eaf7ee !important
+    }
+
+    .deduction-header, .deduction-row td {
+        background: #fff1f1 !important
+    }
+
+    .employee-info-cell {
+        background: #fff !important;
+        font-weight: 600
+    }
+
+    .employee-separator td {
+        border-bottom: 4px solid #24384d !important
+    }
+
+    .history-row td {
+        background: #f8f9fa !important
+    }
+
+    .basic-toggle {
+        cursor: pointer;
+        text-decoration: underline;
+        color: #0d6efd
+    }
+
+    .employee-name-toggle {
+        cursor: pointer;
+        color: #0d6efd;
+        font-weight: 600;
+    }
+
+    .table-responsive th, .table-responsive td {
+        white-space: nowrap;
+        vertical-align: middle
+    }
+
+    .row-type-allowance {
+        background: #d9f7df !important;
+        font-weight: 700
+    }
+
+    .row-type-deduction {
+        background: #ffdede !important;
+        font-weight: 700
+    }
+
+    .history-table {
+        width: 100%;
+        min-width: 100%;
+        margin: 0 !important;
+    }
+
+    .history-title {
+        background: #f8f9fa;
+    }
+
+    .history-table th,
+    .history-table td {
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    /* Single View history:
+                                       Sr. / Employee Code / Employee Name = blank
+                                       Grade = Month / Year
+                                       remaining values stay under their matching columns */
+    .history-table .history-blank {
+        background: #f8f9fa !important;
+    }
+
+    .history-table .history-month-year {
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .history-table .history-blank {
+        background: #f8f9fa !important;
+    }
+
+    .history-table .history-month-year {
+        min-width: 190px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    thead .basic-toggle {
+        cursor: pointer;
+        text-decoration: underline;
+        color: #0d6efd;
+    }
+
+
+    .salary-single-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .salary-single-table th,
+        .salary-single-table td {
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .salary-single-table .history-title {
+            background: #f8f9fa !important;
+            text-align: left;
+        }
+
+        .salary-single-table .history-blank {
+            background: #f8f9fa !important;
+        }
+
+        .salary-single-table .history-month-year {
+            background: #f8f9fa !important;
+            font-weight: 600;
+        }
+
+        .salary-single-table .history-column-head th {
+            font-weight: 700;
+        }
+
+
+    /* Professional branch summary - stays on the same line as branch name */
+    .branch-card .branch-main-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        width: 100%;
+    }
+
+    .branch-card .branch-summary {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+        color: #495057;
+    }
+
+    .branch-summary-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 9px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        background: #f8f9fa;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+        .branch-summary-item strong {
+            color: #212529;
+            font-weight: 600;
+        }
+
+        .branch-summary-item .summary-value {
+            color: #0d6efd;
+            font-weight: 700;
+        }
+
+    @@media (max-width: 1200px) {
+        .branch-card .branch-main-row {
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .branch-card .branch-summary {
+            margin-left: 56px;
+            width: calc(100% - 56px);
+            justify-content: flex-start;
+        }
+    }
+
+
+    .branch-row-wrap {
+        display: flex;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+        .branch-row-wrap .branch-card {
+            flex: 1 1 auto;
+        }
+
+    .branch-print-btn {
+        min-width: 92px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    @@media (max-width: 900px) {
+        .branch-row-wrap {
+            flex-direction: column;
+        }
+
+        .branch-print-btn {
+            width: 100%;
+        }
+    }
+
+    /* All Branches Total - Bootstrap-style professional summary */
+    .all-branches-total {
+        border: 1px solid #d7dde5;
+        border-radius: 8px;
+        background: #f8f9fa;
+    }
+
+    .all-branches-total-title {
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .all-total-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 7px 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        background: #fff;
+        white-space: nowrap;
+        font-size: 13px;
+    }
+
+        .all-total-item .all-total-value {
+            color: #0d6efd;
+            font-weight: 700;
+        }
+
+</style>
+<div class="container-fluid py-4">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header report-header"><h3 class="mb-0"><i class="bi bi-file-earmark-bar-graph me-2"></i>Salary Report</h3></div>
+        <div class="card-body">
+            <div class="text-muted mb-3">Select From Month/Year and To Month/Year, then choose a branch.</div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">From Month *</label><select id="FromMonth" class="form-select">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m" selected="@(m == Model.FromMonth)">@(new DateTime(2000, m, 1).ToString("MMMM"))</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">From Year *</label><select id="FromYear" class="form-select">
+                        @for (int y = currentYear - 10; y <= currentYear + 5; y++)
+                        {
+                            <option value="@y" selected="@(y == Model.FromYear)">@y</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">To Month *</label><select id="ToMonth" class="form-select">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m" selected="@(m == Model.ToMonth)">@(new DateTime(2000, m, 1).ToString("MMMM"))</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">To Year *</label><select id="ToYear" class="form-select">
+                        @for (int y = currentYear - 10; y <= currentYear + 5; y++)
+                        {
+                            <option value="@y" selected="@(y == Model.ToYear)">@y</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="mt-3 all-branches-total p-3">
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <div class="all-branches-total-title me-2">
+                        <i class="bi bi-buildings me-1"></i>All Branches Total
+                    </div>
+                    <span class="all-total-item">
+                        <i class="bi bi-people"></i><strong>Employees:</strong>
+                        <span id="allTotalEmployees" class="all-total-value">@Model.AllBranchesTotalEmployees</span>
+                    </span>
+                    <span class="all-total-item">
+                        <strong>Basic:</strong>
+                        <span class="all-total-value">₹<span id="allTotalBasic">@Model.AllBranchesTotalBasic.ToString("N2")</span></span>
+                    </span>
+                    <span class="all-total-item">
+                        <strong>Allowance:</strong>
+                        <span class="all-total-value">₹<span id="allTotalAllowance">@Model.AllBranchesTotalAllowance.ToString("N2")</span></span>
+                    </span>
+                    <span class="all-total-item">
+                        <strong>Deduction:</strong>
+                        <span class="all-total-value">₹<span id="allTotalDeduction">@Model.AllBranchesTotalDeduction.ToString("N2")</span></span>
+                    </span>
+                    <span class="all-total-item">
+                        <strong>Net Salary:</strong>
+                        <span class="all-total-value">₹<span id="allTotalNetSalary">@Model.AllBranchesTotalNetSalary.ToString("N2")</span></span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-3"><label class="form-label fw-bold">Report View</label><div class="border rounded bg-light p-3"><label class="me-4"><input type="radio" name="ReportView" value="single" checked> Single Row</label><label><input type="radio" name="ReportView" value="double"> Double Row</label></div></div>
+        </div>
+    </div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h4><i class="bi bi-building me-2"></i>Branch List</h4><div class="row g-2">
+                @foreach (var b in Model.Branches)
+                {
+                    <div class="col-12 branch-row">
+                        <div class="branch-row-wrap">
+                            <button type="button" class="branch-card" data-code="@b.BranchCode" data-name="@b.BranchName">
+                                <div class="branch-main-row">
+                                    <div class="branch-number">@b.BranchCode</div>
+                                    <div class="branch-name">@b.BranchName</div>
+
+                                    <div class="employee-count branch-summary" data-code="@b.BranchCode">
+                                        <span class="branch-summary-item">
+                                            <i class="bi bi-people"></i>
+                                            <strong>Employees:</strong>
+                                            <span class="summary-value summary-employees">@b.EmployeeCount</span>
+                                        </span>
+                                        <span class="branch-summary-item">
+                                            <strong>Basic:</strong>
+                                            <span class="summary-value">₹<span class="summary-basic">@b.TotalBasic.ToString("N2")</span></span>
+                                        </span>
+                                        <span class="branch-summary-item">
+                                            <strong>Allowance:</strong>
+                                            <span class="summary-value">₹<span class="summary-allowance">@b.TotalAllowance.ToString("N2")</span></span>
+                                        </span>
+                                        <span class="branch-summary-item">
+                                            <strong>Deduction:</strong>
+                                            <span class="summary-value">₹<span class="summary-deduction">@b.TotalDeduction.ToString("N2")</span></span>
+                                        </span>
+                                        <span class="branch-summary-item">
+                                            <strong>Net Salary:</strong>
+                                            <span class="summary-value">₹<span class="summary-net">@b.TotalNetSalary.ToString("N2")</span></span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </button>
+                            <button type="button"
+                                    class="btn btn-primary branch-print-btn"
+                                    data-code="@b.BranchCode"
+                                    data-name="@b.BranchName">
+                                <i class="bi bi-printer"></i> Print
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div id="resultSection" class="card shadow-sm d-none"><div class="card-header bg-light d-flex justify-content-between"><strong class="text-primary">Salary Report - <span id="selectedBranch"></span> <span id="selectedPeriod"></span></strong><span id="recordCount"></span></div><div id="messageBox" class="alert alert-info m-3 d-none"></div><div id="reportBox" class="table-responsive"></div></div>
+</div>
+@section Scripts {
+    <script>
+        $(function(){let branch=0,branchName='',data=[],allowances=[],deductions=[];const esc=v=>$('<div>').text(v??'').html();const money=v=>Number(v??0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});const dv=(d,k)=>d&&d[k]!==undefined?d[k]:0;
+        function historyHtml(item,colspan,doubleView){
+            /* Double View history only.
+               Single View is intentionally left unchanged.
+               The history rows use the SAME column structure as Double View:
+               Sr./Code/Name stay blank, Grade shows Month/Year,
+               then Basic, Type, totals and allowance/deduction components stay aligned. */
+            if(!doubleView) return '';
+
+            let c=Math.max(allowances.length,deductions.length);
+            let h=`<tr class="history-row d-none history-${item.employeeCode}">
+                    <td colspan="${colspan}" class="history-title px-2 py-2">
+                        <strong>Selected Period History (${esc(item.employeeName)})</strong>
+                    </td>
+                   </tr>`;
+
+            (item.history||[]).forEach(m=>{
+                h+=`<tr class="history-row d-none history-${item.employeeCode} earnings-row">
+                        <td class="history-blank"></td>
+                        <td class="history-blank"></td>
+                        <td class="history-blank"></td>
+                        <td rowspan="2" class="history-month-year employee-info-cell">${esc(m.monthName)} ${m.year}</td>
+                        <td rowspan="2" class="employee-info-cell text-end fw-bold">${money(m.basicSalary)}</td>
+                        <td class="row-type-allowance">Earnings</td>
+                        <td class="text-end fw-bold">${money(m.totalAllowance)}</td>
+                        <td class="text-end fw-bold">${money(m.grossSalary)}</td>
+                        <td class="text-end fw-bold">${money(m.netSalary)}</td>`;
+
+                for(let j=0;j<c;j++)
+                    h+=`<td class="text-end">${j<allowances.length?money(dv(m.allowances,allowances[j])):'-'}</td>`;
+
+                h+=`</tr><tr class="history-row d-none history-${item.employeeCode} deduction-row employee-separator">
+                        <td class="history-blank"></td>
+                        <td class="history-blank"></td>
+                        <td class="history-blank"></td>
+                        <td class="row-type-deduction">Deduction</td>
+                        <td class="text-end fw-bold">${money(m.totalDeduction)}</td>
+                        <td class="text-end fw-bold">${money(m.grossSalary)}</td>
+                        <td class="text-end">-</td>`;
+
+                for(let j=0;j<c;j++)
+                    h+=`<td class="text-end">${j<deductions.length?money(dv(m.deductions,deductions[j])):'-'}</td>`;
+
+                h+='</tr>';
+            });
+
+            return h;
+        }
+
+        function single(){
+            let h='<table class="table table-bordered table-hover mb-0 salary-single-table"><thead>';
+            h+='<tr><th rowspan="2">Sr.</th><th rowspan="2">Employee Code</th><th rowspan="2">Employee Name</th><th rowspan="2">Grade</th>';
+            h+=`<th class="income-header text-center" colspan="${1+allowances.length+2}">Allowances</th>`;
+            h+=`<th class="deduction-header text-center" colspan="${deductions.length+1}">Deductions</th>`;
+            h+='<th rowspan="2" class="text-end">Net Salary</th></tr>';
+            h+='<tr><th class="income-header text-end">Basic</th>';
+            allowances.forEach(n=>h+=`<th class="income-header text-end">${esc(n)}</th>`);
+            h+='<th class="income-header text-end">Total Allowance</th><th class="income-header text-end">Salary</th>';
+            deductions.forEach(n=>h+=`<th class="deduction-header text-end">${esc(n)}</th>`);
+            h+='<th class="deduction-header text-end">Total Deduction</th></tr></thead><tbody>';
+
+            let cols=4+1+allowances.length+2+deductions.length+1+1;
+
+            data.forEach((x,i)=>{
+                h+=`<tr>
+                    <td>${i+1}</td>
+                    <td class="fw-bold">${x.employeeCode}</td>
+                    <td class="employee-name-toggle" data-code="${x.employeeCode}" title="Show / Hide Selected Period History">${esc(x.employeeName)}</td>
+                    <td>${esc(x.gradeName||'-')}</td>
+                    <td class="text-end fw-bold">${money(x.basicSalary)}</td>`;
+
+                allowances.forEach(n=>h+=`<td class="text-end">${money(dv(x.allowances,n))}</td>`);
+                h+=`<td class="text-end fw-bold">${money(x.totalAllowance)}</td>
+                    <td class="text-end fw-bold">${money(x.grossSalary)}</td>`;
+                deductions.forEach(n=>h+=`<td class="text-end">${money(dv(x.deductions,n))}</td>`);
+                h+=`<td class="text-end fw-bold">${money(x.totalDeduction)}</td>
+                    <td class="text-end fw-bold">${money(x.netSalary)}</td>
+                </tr>`;
+
+                /* History stays inside the SAME parent table.
+                   Therefore every history value is exactly below its main heading:
+                   Sr/Code/Name blank, Grade -> Month/Year,
+                   Basic -> Basic, DA -> DA, HRA -> HRA, etc. */
+                h+=`<tr class="history-row d-none history-${x.employeeCode}">
+                        <td colspan="${cols}" class="history-title px-2 py-2">
+                            <strong>Selected Period History</strong>
+                        </td>
+                    </tr>`;
+
+                h+=`<tr class="history-row d-none history-${x.employeeCode} history-column-head">
+                        <td class="history-blank"></td>
+                        <td class="history-blank"></td>
+                        <td class="history-blank"></td>
+                        <th class="history-month-year">Month / Year</th>
+                        <th class="income-header text-end">Basic</th>`;
+                allowances.forEach(n=>h+=`<th class="income-header text-end">${esc(n)}</th>`);
+                h+=`<th class="income-header text-end">Total Allowance</th>
+                     <th class="income-header text-end">Salary</th>`;
+                deductions.forEach(n=>h+=`<th class="deduction-header text-end">${esc(n)}</th>`);
+                h+=`<th class="deduction-header text-end">Total Deduction</th>
+                     <th class="text-end">Net Salary</th>
+                     </tr>`;
+
+                (x.history||[]).forEach(m=>{
+                    h+=`<tr class="history-row d-none history-${x.employeeCode}">
+                            <td class="history-blank"></td>
+                            <td class="history-blank"></td>
+                            <td class="history-blank"></td>
+                            <td class="history-month-year">${esc(m.monthName)} ${m.year}</td>
+                            <td class="text-end">${money(m.basicSalary)}</td>`;
+                    allowances.forEach(n=>h+=`<td class="text-end">${money(dv(m.allowances,n))}</td>`);
+                    h+=`<td class="text-end fw-bold">${money(m.totalAllowance)}</td>
+                         <td class="text-end fw-bold">${money(m.grossSalary)}</td>`;
+                    deductions.forEach(n=>h+=`<td class="text-end">${money(dv(m.deductions,n))}</td>`);
+                    h+=`<td class="text-end fw-bold">${money(m.totalDeduction)}</td>
+                         <td class="text-end fw-bold">${money(m.netSalary)}</td>
+                         </tr>`;
+                });
+            });
+
+            $('#reportBox').html(h+'</tbody></table>');
+        }
+
+        function doubleRow(){
+            let c=Math.max(allowances.length,deductions.length),
+                cols=9+c,
+                h='<table class="table table-bordered table-hover mb-0"><thead><tr class="income-header"><th>Sr.</th><th>Employee Code</th><th>Employee Name</th><th>Grade</th><th>Basic</th><th>Type</th><th>Total</th><th>Salary</th><th>Net Salary</th>';
+
+            for(let i=0;i<c;i++)
+                h+=`<th>${esc(allowances[i]||('Component '+(i+1)))}</th>`;
+
+            h+='</tr><tr class="deduction-header"><th colspan="6">Deduction</th><th>Total Deduction</th><th>Salary</th><th>Net Salary</th>';
+
+            for(let i=0;i<c;i++)
+                h+=`<th>${i<deductions.length?esc(deductions[i]):'-'}</th>`;
+
+            h+='</tr></thead><tbody>';
+
+            data.forEach((x,i)=>{
+                h+=`<tr class="earnings-row">
+                    <td rowspan="2" class="employee-info-cell">${i+1}</td>
+                    <td rowspan="2" class="employee-info-cell fw-bold">${x.employeeCode}</td>
+                    <td rowspan="2"
+                        class="employee-info-cell employee-name-toggle"
+                        data-code="${x.employeeCode}"
+                        title="Show / Hide Selected Period History">${esc(x.employeeName)}</td>
+                    <td rowspan="2" class="employee-info-cell">${esc(x.gradeName||'-')}</td>
+                    <td rowspan="2" class="employee-info-cell text-end">${money(x.basicSalary)}</td>
+                    <td class="row-type-allowance">Earnings</td>
+                    <td class="text-end fw-bold">${money(x.totalAllowance)}</td>
+                    <td class="text-end fw-bold">${money(x.grossSalary)}</td>
+                    <td class="text-end fw-bold">${money(x.netSalary)}</td>`;
+
+                for(let j=0;j<c;j++)
+                    h+=`<td class="text-end">${j<allowances.length?money(dv(x.allowances,allowances[j])):'-'}</td>`;
+
+                h+='</tr><tr class="deduction-row employee-separator">';
+                h+='<td class="row-type-deduction">Deduction</td>';
+                h+='<td class="text-end fw-bold">'+money(x.totalDeduction)+'</td>';
+                h+='<td class="text-end fw-bold">'+money(x.grossSalary)+'</td>';
+                h+='<td class="text-end">-</td>';
+
+                for(let j=0;j<c;j++)
+                    h+=`<td class="text-end">${j<deductions.length?money(dv(x.deductions,deductions[j])):'-'}</td>`;
+
+                h+='</tr>'+historyHtml(x,cols,true);
+            });
+
+            $('#reportBox').html(h+'</tbody></table>');
+        }
+        function render(){if($('input[name=ReportView]:checked').val()==='double')doubleRow();else single()}
+        function load(){if(!branch)return;let fm=+$('#FromMonth').val(),fy=+$('#FromYear').val(),tm=+$('#ToMonth').val(),ty=+$('#ToYear').val();if(new Date(fy,fm-1,1)>new Date(ty,tm-1,1)){alert('From Month cannot be after To Month.');return}$('#resultSection').removeClass('d-none');$('#selectedBranch').text(branchName);$('#selectedPeriod').text(`(${$('#FromMonth option:selected').text()} ${fy} - ${$('#ToMonth option:selected').text()} ${ty})`);$('#recordCount').text('Loading...');$.get('@Url.Action("GetSalaryReportRange", "SalaryReport")',{fromYear:fy,fromMonth:fm,toYear:ty,toMonth:tm,branchCode:branch}).done(r=>{if(!r||r.success!==true){$('#messageBox').removeClass('d-none').text(r?.message||'Unable to load data.');return}data=r.data||[];allowances=r.allowanceNames||[];deductions=r.deductionNames||[];$('#messageBox').addClass('d-none');$('#recordCount').text('Total Employees: '+data.length);render()})}
+        function refreshBranchSummaries(){let fm=+$('#FromMonth').val(),fy=+$('#FromYear').val(),tm=+$('#ToMonth').val(),ty=+$('#ToYear').val();if(new Date(fy,fm-1,1)>new Date(ty,tm-1,1))return;$.get('@Url.Action("GetBranchSummaries", "SalaryReport")',{fromYear:fy,fromMonth:fm,toYear:ty,toMonth:tm}).done(r=>{if(!r||r.success!==true)return;(r.data||[]).forEach(b=>{let box=$('.branch-summary[data-code="'+b.branchCode+'"]');box.find('.summary-employees').text(b.employeeCount??0);box.find('.summary-basic').text(money(b.totalBasic));box.find('.summary-allowance').text(money(b.totalAllowance));box.find('.summary-deduction').text(money(b.totalDeduction));box.find('.summary-net').text(money(b.totalNetSalary));});let a=r.allBranchesTotal||{};$('#allTotalEmployees').text(a.totalEmployees??0);$('#allTotalBasic').text(money(a.totalBasic));$('#allTotalAllowance').text(money(a.totalAllowance));$('#allTotalDeduction').text(money(a.totalDeduction));$('#allTotalNetSalary').text(money(a.totalNetSalary));});}
+        $('.branch-print-btn').click(function(e){
+            e.preventDefault();
+            e.stopPropagation();
+
+            let fm=+$('#FromMonth').val(),
+                fy=+$('#FromYear').val(),
+                tm=+$('#ToMonth').val(),
+                ty=+$('#ToYear').val(),
+                bc=+$(this).data('code');
+
+            if(new Date(fy,fm-1,1)>new Date(ty,tm-1,1)){
+                alert('From Month cannot be after To Month.');
+                return;
+            }
+
+            let url='@Url.Action("Print", "SalaryReport")'
+                +'?fromYear='+fy
+                +'&fromMonth='+fm
+                +'&toYear='+ty
+                +'&toMonth='+tm
+                +'&branchCode='+bc;
+
+            window.open(url,'_blank');
+        });
+
+        $('.branch-card').click(function(){$('.branch-card').removeClass('active');$(this).addClass('active');branch=+$(this).data('code');branchName=$(this).data('name')||'';$('#resultSection').insertAfter($(this).closest('.branch-row'));load()});$('input[name=ReportView]').change(render);$('#FromMonth,#FromYear,#ToMonth,#ToYear').change(()=>{refreshBranchSummaries();if(branch)load()});$(document).on('click','.employee-name-toggle',function(){let code=$(this).data('code');$('.history-'+code).toggleClass('d-none')});refreshBranchSummaries()});
+    </script>
+}

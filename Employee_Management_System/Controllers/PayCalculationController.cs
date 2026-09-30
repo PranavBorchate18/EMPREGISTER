@@ -16,12 +16,94 @@ namespace Employee_Management_System.Controllers
         public async Task<IActionResult> Index()
         {
             if (!IsLoggedIn()) return RedirectToAction("Login", "Account");
+
+            double professionalTax = await LoadProfessionalTax();
+
             return View(new PayCalculationViewModel
             {
                 SelectedYear = DateTime.Now.Year,
                 SelectedMonth = DateTime.Now.Month,
+                ProfessionalTax = professionalTax,
                 Branches = await LoadBranches()
             });
+        }
+
+        // ==========================================
+        // PROFESSIONAL TAX - dbo.daptsys.from1
+        // ==========================================
+        private async Task<double> LoadProfessionalTax()
+        {
+            var connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+
+            try
+            {
+                if (close) await connection.OpenAsync();
+
+                using var command = connection.CreateCommand();
+                command.CommandText = @"SELECT TOP 1
+       ISNULL(TRY_CONVERT(FLOAT, [from1]), 0)
+FROM dbo.daptsys;";
+
+                var result = await command.ExecuteScalarAsync();
+                return result == null || result == DBNull.Value
+                    ? 0
+                    : Convert.ToDouble(result);
+            }
+            finally
+            {
+                if (close && connection.State == ConnectionState.Open)
+                    await connection.CloseAsync();
+            }
+        }
+
+        // ==========================================
+        // UPDATE PROFESSIONAL TAX - dbo.daptsys.from1
+        // ==========================================
+        [HttpPost]
+        public async Task<IActionResult> UpdateProfessionalTax(double professionalTax)
+        {
+            if (!IsLoggedIn())
+                return Json(new { success = false, sessionExpired = true, message = "Login session expired." });
+
+            if (professionalTax < 0)
+                return Json(new { success = false, message = "Please enter a valid Professional Tax value." });
+
+            var connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+
+            try
+            {
+                if (close) await connection.OpenAsync();
+
+                using var command = connection.CreateCommand();
+                command.CommandText = @"
+UPDATE dbo.daptsys
+SET [from1] = @ProfessionalTax;";
+
+                AddParameter(command, "@ProfessionalTax", professionalTax);
+
+                int affectedRows = await command.ExecuteNonQueryAsync();
+
+                if (affectedRows <= 0)
+                    return Json(new { success = false, message = "Professional Tax record was not found in dbo.daptsys." });
+
+                return Json(new
+                {
+                    success = true,
+                    value = professionalTax,
+                    message = "Professional Tax updated successfully."
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Unable to update Professional Tax. " + ex.Message });
+            }
+            finally
+            {
+                if (close && connection.State == ConnectionState.Open)
+                    await connection.CloseAsync();
+            }
         }
 
         private async Task<List<PayCalculationBranchViewModel>> LoadBranches()
@@ -120,6 +202,8 @@ ORDER BY p.code;";
                     }
                 }
 
+                double professionalTaxThreshold = await LoadProfessionalTax();
+
                 foreach (var employee in employees)
                 {
                     await LoadEmployeeAllowances(connection, employee, monthStart, monthEnd);
@@ -128,8 +212,9 @@ ORDER BY p.code;";
                     employee.TotalAllowance = Math.Round(employee.Allowances.Values.Sum(), 2);
                     employee.GrossSalary = Math.Round(employee.BasicSalary + employee.TotalAllowance, 2);
 
-                    // Professional Tax: April-February = 200, March = 300.
-                    SetProfessionalTax(employee, month);
+                    // Gross Salary below dbo.daptsys.from1 = 0
+                    // Gross Salary >= threshold: March = 300, all other months = 200
+                    SetProfessionalTax(employee, professionalTaxThreshold, month);
 
                     employee.TotalDeduction = Math.Round(employee.Deductions.Values.Sum(), 2);
                     employee.NetSalary = Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
@@ -172,8 +257,9 @@ ORDER BY p.code;";
             {
                 if (close) await connection.OpenAsync();
 
-                // If this branch/month already has stored employee payroll rows,
-                // first return a warning. Save Again calls this action with forceSave=true.
+                // Check by employees currently belonging to the selected branch.
+                // Do not depend on paytrn.brnc, because older rows may contain a different/null branch value.
+                // The paytrn primary key is based on Year + Month + Employee + Type.
                 if (!forceSave)
                 {
                     using var duplicateCommand = connection.CreateCommand();
@@ -184,7 +270,6 @@ INNER JOIN dbo.PayMast p
     ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
 WHERE TRY_CONVERT(INT,t.[year])=@Year
   AND TRY_CONVERT(INT,t.[month])=@Month
-  AND TRY_CONVERT(INT,t.brnc)=@BranchCode
   AND TRY_CONVERT(INT,p.brnc_code)=@BranchCode;";
                     AddParameter(duplicateCommand, "@Year", year);
                     AddParameter(duplicateCommand, "@Month", month);
@@ -247,6 +332,8 @@ ORDER BY p.code;";
                 if (employees.Count == 0)
                     return Json(new { success = false, message = "No employees found for the selected branch." });
 
+                double professionalTaxThreshold = await LoadProfessionalTax();
+
                 foreach (var employee in employees)
                 {
                     await LoadEmployeeAllowances(connection, employee, monthStart, monthEnd);
@@ -255,8 +342,9 @@ ORDER BY p.code;";
                     employee.TotalAllowance = Math.Round(employee.Allowances.Values.Sum(), 2);
                     employee.GrossSalary = Math.Round(employee.BasicSalary + employee.TotalAllowance, 2);
 
-                    // Professional Tax: April-February = 200, March = 300.
-                    SetProfessionalTax(employee, month);
+                    // Gross Salary below dbo.daptsys.from1 = 0
+                    // Gross Salary >= threshold: March = 300, all other months = 200
+                    SetProfessionalTax(employee, professionalTaxThreshold, month);
 
                     employee.TotalDeduction = Math.Round(employee.Deductions.Values.Sum(), 2);
                     employee.NetSalary = Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
@@ -264,11 +352,50 @@ ORDER BY p.code;";
 
                 transaction = await connection.BeginTransactionAsync();
 
+                // Save Again = replace only the selected Year/Month/Branch payroll.
+                // Delete detail rows first, then summary rows, to avoid duplicate primary-key errors.
+                if (forceSave)
+                {
+                    using (var deleteFootCommand = connection.CreateCommand())
+                    {
+                        deleteFootCommand.Transaction = transaction;
+                        deleteFootCommand.CommandText = @"
+DELETE ft
+FROM dbo.paytrnft ft
+INNER JOIN dbo.PayMast p
+    ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,ft.empl)
+WHERE TRY_CONVERT(INT,ft.[year])=@Year
+  AND TRY_CONVERT(INT,ft.[month])=@Month
+  AND TRY_CONVERT(INT,p.brnc_code)=@BranchCode;";
+                        AddParameter(deleteFootCommand, "@Year", year);
+                        AddParameter(deleteFootCommand, "@Month", month);
+                        AddParameter(deleteFootCommand, "@BranchCode", branchCode);
+                        await deleteFootCommand.ExecuteNonQueryAsync();
+                    }
+
+                    using (var deletePayCommand = connection.CreateCommand())
+                    {
+                        deletePayCommand.Transaction = transaction;
+                        deletePayCommand.CommandText = @"
+DELETE t
+FROM dbo.paytrn t
+INNER JOIN dbo.PayMast p
+    ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
+WHERE TRY_CONVERT(INT,t.[year])=@Year
+  AND TRY_CONVERT(INT,t.[month])=@Month
+  AND TRY_CONVERT(INT,p.brnc_code)=@BranchCode;";
+                        AddParameter(deletePayCommand, "@Year", year);
+                        AddParameter(deletePayCommand, "@Month", month);
+                        AddParameter(deletePayCommand, "@BranchCode", branchCode);
+                        await deletePayCommand.ExecuteNonQueryAsync();
+                    }
+                }
+
                 foreach (var employee in employees)
                 {
                     // paytrn stores DA and HRA separately.
-                    double da = FindComponentAmount(employee.Allowances, "DEARNESS ALLOWANCE");
-                    double hra = FindComponentAmount(employee.Allowances, "HOUSE RENT ALLOWANCE");
+                    double da = FindComponentAmount(employee.Allowances, "DA", "DEARNESS ALLOWANCE");
+                    double hra = FindComponentAmount(employee.Allowances, "HRA", "HOUSE RENT ALLOWANCE");
 
                     // type is NOT NULL in paytrn, so fetch the employee type from PayMast.
                     int employeeType;
@@ -326,7 +453,7 @@ VALUES
                 {
                     success = true,
                     savedCount = employees.Count,
-                    message = $"Pay calculation saved successfully for {employees.Count} employee(s)."
+                    message = $"Pay calculation saved successfully for {employees.Count} employee(s) for {new DateTime(year, month, 1):MMMM yyyy}."
                 });
             }
             catch (Exception ex)
@@ -348,14 +475,26 @@ VALUES
             }
         }
 
-        private static void SetProfessionalTax(EmployeeSalaryRowViewModel employee, int month)
+        private static void SetProfessionalTax(
+            EmployeeSalaryRowViewModel employee,
+            double professionalTaxThreshold,
+            int month)
         {
-            double professionalTax = month == 3 ? 300.0 : 200.0;
+            double professionalTax = 0;
+
+            if (professionalTaxThreshold > 0 &&
+                employee.GrossSalary >= professionalTaxThreshold)
+            {
+                professionalTax = month == 3 ? 300.0 : 200.0;
+            }
+
             string? key = employee.Deductions.Keys
                 .FirstOrDefault(x => x.Equals("PROFESSIONAL TAX", StringComparison.OrdinalIgnoreCase));
 
-            if (key != null) employee.Deductions[key] = professionalTax;
-            else employee.Deductions["PROFESSIONAL TAX"] = professionalTax;
+            if (key != null)
+                employee.Deductions[key] = professionalTax;
+            else
+                employee.Deductions["PROFESSIONAL TAX"] = professionalTax;
         }
 
         private async Task SavePayTrnFoot(DbConnection connection, DbTransaction transaction, int year, int month,
@@ -419,20 +558,42 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                         await InsertPayTrnFootRow(connection, transaction, year, month, employee.EmployeeCode, 2, employeeType, row.Code, row.Amount);
             }
 
-            int? ptCode = null;
-            using (var cmd = connection.CreateCommand())
-            {
-                cmd.Transaction = transaction;
-                cmd.CommandText = @"SELECT TOP 1 TRY_CONVERT(INT,code) FROM dbo.dedumast
-WHERE UPPER(LTRIM(RTRIM(ISNULL(name,''))))='PROFESSIONAL TAX' ORDER BY TRY_CONVERT(INT,code);";
-                var result = await cmd.ExecuteScalarAsync();
-                if (result != null && result != DBNull.Value) ptCode = Convert.ToInt32(result);
-            }
-            if (!ptCode.HasValue)
-                throw new InvalidOperationException("PROFESSIONAL TAX is not available in dbo.dedumast.");
+            // Save the exact Professional Tax amount already calculated above.
+            // Below threshold = 0, April-February = 200, March = 300.
+            string? professionalTaxKey = employee.Deductions.Keys
+                .FirstOrDefault(x => x.Equals("PROFESSIONAL TAX", StringComparison.OrdinalIgnoreCase));
 
-            await InsertPayTrnFootRow(connection, transaction, year, month, employee.EmployeeCode, 2, employeeType,
-                ptCode.Value, month == 3 ? 300.0 : 200.0);
+            double professionalTaxAmount = professionalTaxKey == null
+                ? 0
+                : employee.Deductions[professionalTaxKey];
+
+            if (professionalTaxAmount > 0)
+            {
+                int? ptCode = null;
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = @"SELECT TOP 1 TRY_CONVERT(INT,code) FROM dbo.dedumast
+WHERE UPPER(LTRIM(RTRIM(ISNULL(name,''))))='PROFESSIONAL TAX' ORDER BY TRY_CONVERT(INT,code);";
+                    var result = await cmd.ExecuteScalarAsync();
+                    if (result != null && result != DBNull.Value)
+                        ptCode = Convert.ToInt32(result);
+                }
+
+                if (!ptCode.HasValue)
+                    throw new InvalidOperationException("PROFESSIONAL TAX is not available in dbo.dedumast.");
+
+                await InsertPayTrnFootRow(
+                    connection,
+                    transaction,
+                    year,
+                    month,
+                    employee.EmployeeCode,
+                    2,
+                    employeeType,
+                    ptCode.Value,
+                    professionalTaxAmount);
+            }
         }
 
         private async Task InsertPayTrnFootRow(DbConnection connection, DbTransaction transaction, int year, int month,
@@ -453,12 +614,15 @@ VALUES (@Year,@Month,@EmployeeCode,@Flag,@Type,@ComponentCode,@Amount,@Amount,GE
             await cmd.ExecuteNonQueryAsync();
         }
 
-        private static double FindComponentAmount(Dictionary<string, double> components, string componentName)
+        private static double FindComponentAmount(Dictionary<string, double> components, params string[] componentNames)
         {
-            foreach (var item in components)
+            foreach (var componentName in componentNames)
             {
-                if (item.Key.Equals(componentName, StringComparison.OrdinalIgnoreCase))
-                    return Math.Round(item.Value, 2);
+                foreach (var item in components)
+                {
+                    if (item.Key.Equals(componentName, StringComparison.OrdinalIgnoreCase))
+                        return Math.Round(item.Value, 2);
+                }
             }
 
             return 0;
@@ -469,9 +633,9 @@ VALUES (@Year,@Month,@EmployeeCode,@Flag,@Type,@ComponentCode,@Amount,@Amount,GE
             var result = new List<string>();
             using var command = connection.CreateCommand();
             command.CommandText = @"
-SELECT LTRIM(RTRIM(ISNULL(name,''))) AllowanceName
+SELECT LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(short_name)),''),name))) AllowanceName
 FROM dbo.allwmast
-WHERE ISNULL(LTRIM(RTRIM(name)),'') <> ''
+WHERE ISNULL(LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(short_name)),''),name))),'') <> ''
 ORDER BY TRY_CONVERT(INT,code);";
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -506,7 +670,7 @@ ORDER BY TRY_CONVERT(INT,code);";
         {
             using var command = connection.CreateCommand();
             command.CommandText = @"
-SELECT LTRIM(RTRIM(ISNULL(am.name,''))) ComponentName,
+SELECT LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName,
        ISNULL(TRY_CONVERT(FLOAT,pf.amt),0) Amount,
        ISNULL(TRY_CONVERT(FLOAT,pf.[percent]),0) [Percent]
 FROM dbo.payfoot pf

@@ -117,6 +117,27 @@
                             }
                         }
                     </select>
+
+                    <div class="row align-items-center mt-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold mb-0">Professional Tax</label>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <input type="number"
+                                       id="ProfessionalTax"
+                                       class="form-control"
+                                       min="0"
+                                       step="0.01"
+                                       value="@Model.ProfessionalTax.ToString("0.##")" />
+                                <button type="button"
+                                        id="btnUpdateProfessionalTax"
+                                        class="btn btn-primary px-4">
+                                    <i class="bi bi-floppy me-1"></i>Update
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -259,9 +280,14 @@
                     return;
                 }
 
-                const year = Number($("#SelectedYear").val());
-                const month = Number($("#SelectedMonth").val());
+                const year = parseInt($("#SelectedYear").val(), 10);
+                const month = parseInt($("#SelectedMonth").val(), 10);
                 const monthName = $("#SelectedMonth option:selected").text();
+
+                if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+                    alert("Please select a valid Year and Month.");
+                    return;
+                }
                 const $button = $("#btnSavePayCalculation");
 
                 $button.prop("disabled", true)
@@ -311,6 +337,49 @@
                            .html('<i class="bi bi-floppy me-2"></i>Save Pay Calculation');
                 });
             }
+
+            $("#btnUpdateProfessionalTax").click(function () {
+                const professionalTax = Number($("#ProfessionalTax").val());
+                const $button = $(this);
+
+                if ($("#ProfessionalTax").val().trim() === "" || isNaN(professionalTax) || professionalTax < 0) {
+                    alert("Please enter a valid Professional Tax value.");
+                    $("#ProfessionalTax").focus();
+                    return;
+                }
+
+                $button.prop("disabled", true)
+                       .html('<span class="spinner-border spinner-border-sm me-2"></span>Updating...');
+
+                $.ajax({
+                    url: '@Url.Action("UpdateProfessionalTax", "PayCalculation")',
+                    type: 'POST',
+                    data: {
+                        professionalTax: professionalTax
+                    }
+                })
+                .done(function (response) {
+                    if (response?.sessionExpired) {
+                        window.location.href = '@Url.Action("Login", "Account")';
+                        return;
+                    }
+
+                    if (response?.success === true) {
+                        $("#ProfessionalTax").val(response.value);
+                        alert("Success!\\n\\n" + (response.message || "Professional Tax updated successfully."));
+                        return;
+                    }
+
+                    alert(response?.message || "Unable to update Professional Tax.");
+                })
+                .fail(function () {
+                    alert("Unable to update Professional Tax.");
+                })
+                .always(function () {
+                    $button.prop("disabled", false)
+                           .html('<i class="bi bi-floppy me-1"></i>Update');
+                });
+            });
 
             $("#btnSavePayCalculation").click(function () {
                 savePayCalculation(false);
