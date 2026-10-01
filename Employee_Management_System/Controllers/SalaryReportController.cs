@@ -37,6 +37,8 @@ namespace Employee_Management_System.Controllers
                 ToYear = currentYear,
                 ToMonth = currentMonth,
                 Branches = branches,
+                AllowanceOptions = await LoadComponentOptions(true),
+                DeductionOptions = await LoadComponentOptions(false),
 
                 // All Branches Total
                 AllBranchesTotalEmployees = branches.Sum(x => x.EmployeeCount),
@@ -453,7 +455,9 @@ ORDER BY p.code;";
         public async Task<IActionResult> Print(
             int fromYear, int fromMonth,
             int toYear, int toMonth,
-            int branchCode)
+            int branchCode,
+            List<string>? hiddenAllowanceNames = null,
+            List<string>? hiddenDeductionNames = null)
         {
             if (!IsLoggedIn())
                 return RedirectToAction("Login", "Account");
@@ -617,8 +621,25 @@ ORDER BY p.code;";
                 ViewBag.ToMonth = toMonth;
                 ViewBag.FromMonthName = from.ToString("MMMM");
                 ViewBag.ToMonthName = to.ToString("MMMM");
-                ViewBag.AllowanceNames = allowanceNames;
-                ViewBag.DeductionNames = deductionNames;
+                // Hide only the columns that were hidden in the currently printed branch.
+                var hiddenAllowanceSet = new HashSet<string>(
+                    hiddenAllowanceNames ?? new List<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+
+                var hiddenDeductionSet = new HashSet<string>(
+                    hiddenDeductionNames ?? new List<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+
+                var printableAllowanceNames = allowanceNames
+                    .Where(name => !hiddenAllowanceSet.Contains(name))
+                    .ToList();
+
+                var printableDeductionNames = deductionNames
+                    .Where(name => !hiddenDeductionSet.Contains(name))
+                    .ToList();
+
+                ViewBag.AllowanceNames = printableAllowanceNames;
+                ViewBag.DeductionNames = printableDeductionNames;
                 ViewBag.PrintDate = DateTime.Now;
 
                 return View("Print", employees);
@@ -928,6 +949,333 @@ FROM dbo.daptsys;";
                     : 0;
 
             return Math.Round(amount, 2);
+        }
+
+
+        // ============================================================
+        // READ ONLY: Selected Allowance / Deduction printable reports
+        // ============================================================
+        // ============================================================
+        // READ ONLY: Combined selected Allowance + Deduction print report
+        // ============================================================
+        [HttpGet]
+        public async Task<IActionResult> CombinedPrint(
+            int fromYear, int fromMonth, int toYear, int toMonth,
+            List<int> selectedAllowanceCodes,
+            List<int> selectedDeductionCodes)
+        {
+            if (!IsLoggedIn())
+                return RedirectToAction("Login", "Account");
+
+            if (fromYear < 1900 || toYear < 1900 ||
+                fromMonth < 1 || fromMonth > 12 ||
+                toMonth < 1 || toMonth > 12)
+                return BadRequest("Please select a valid From/To period.");
+
+            var from = new DateTime(fromYear, fromMonth, 1);
+            var to = new DateTime(toYear, toMonth, 1);
+
+            if (from > to)
+                return BadRequest("From Month cannot be after To Month.");
+
+            selectedAllowanceCodes ??= new List<int>();
+            selectedDeductionCodes ??= new List<int>();
+
+            if (selectedAllowanceCodes.Count == 0 && selectedDeductionCodes.Count == 0)
+                return BadRequest("Please select at least one Allowance or Deduction.");
+
+            bool showBasic = selectedAllowanceCodes.Contains(SalaryReportComponentViewModel.BasicCode);
+
+            var allowanceOptions = await LoadComponentOptions(true);
+            var deductionOptions = await LoadComponentOptions(false);
+
+            var selectedAllowances = allowanceOptions
+                .Where(x => x.Code != SalaryReportComponentViewModel.BasicCode &&
+                            selectedAllowanceCodes.Contains(x.Code))
+                .ToList();
+
+            var selectedDeductions = deductionOptions
+                .Where(x => selectedDeductionCodes.Contains(x.Code))
+                .ToList();
+
+            if (!showBasic && selectedAllowances.Count == 0 && selectedDeductions.Count == 0)
+                return BadRequest("No valid components selected.");
+
+            var connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+
+            try
+            {
+                if (close) await connection.OpenAsync();
+
+                var employees = new List<SalaryReportEmployeeRowViewModel>();
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = @"
+SELECT DISTINCT
+       p.code EmployeeCode,
+       ISNULL(p.name,'') EmployeeName
+FROM dbo.PayMast p
+INNER JOIN dbo.paytrn t
+   ON TRY_CONVERT(INT,t.code)=TRY_CONVERT(INT,p.code)
+  AND ((TRY_CONVERT(INT,t.[year])*12+TRY_CONVERT(INT,t.[month]))
+       BETWEEN (@FromYear*12+@FromMonth) AND (@ToYear*12+@ToMonth))
+ORDER BY p.code;";
+
+                    AddParameter(command, "@FromYear", fromYear);
+                    AddParameter(command, "@FromMonth", fromMonth);
+                    AddParameter(command, "@ToYear", toYear);
+                    AddParameter(command, "@ToMonth", toMonth);
+
+                    using var reader = await command.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        var employee = new SalaryReportEmployeeRowViewModel
+                        {
+                            EmployeeCode = Convert.ToInt32(reader["EmployeeCode"]),
+                            EmployeeName = Convert.ToString(reader["EmployeeName"])?.Trim() ?? ""
+                        };
+
+                        foreach (var item in selectedAllowances)
+                            employee.Allowances[item.Name] = 0;
+
+                        foreach (var item in selectedDeductions)
+                            employee.Deductions[item.Name] = 0;
+
+                        employees.Add(employee);
+                    }
+                }
+
+                foreach (var employee in employees)
+                {
+                    for (var cursor = from; cursor <= to; cursor = cursor.AddMonths(1))
+                    {
+                        if (showBasic)
+                        {
+                            employee.BasicSalary += await LoadSavedBasic(
+                                connection, employee.EmployeeCode, cursor.Year, cursor.Month);
+                        }
+
+                        if (selectedAllowances.Count > 0)
+                        {
+                            using var allowanceCommand = connection.CreateCommand();
+                            allowanceCommand.CommandText = @"
+SELECT TRY_CONVERT(INT,pt.allw_dedu_code) Code,
+       SUM(ISNULL(TRY_CONVERT(FLOAT,pt.amt),0)) Amount
+FROM dbo.paytrnft pt
+WHERE TRY_CONVERT(INT,pt.empl)=@Emp
+  AND TRY_CONVERT(INT,pt.[year])=@Year
+  AND TRY_CONVERT(INT,pt.[month])=@Month
+  AND TRY_CONVERT(INT,pt.flag)=1
+GROUP BY TRY_CONVERT(INT,pt.allw_dedu_code);";
+                            AddParameter(allowanceCommand, "@Emp", employee.EmployeeCode);
+                            AddParameter(allowanceCommand, "@Year", cursor.Year);
+                            AddParameter(allowanceCommand, "@Month", cursor.Month);
+
+                            using var reader = await allowanceCommand.ExecuteReaderAsync();
+                            while (await reader.ReadAsync())
+                            {
+                                int code = Convert.ToInt32(reader["Code"]);
+                                var option = selectedAllowances.FirstOrDefault(x => x.Code == code);
+                                if (option != null)
+                                    employee.Allowances[option.Name] += Number(reader["Amount"]);
+                            }
+                        }
+
+                        if (selectedDeductions.Count > 0)
+                        {
+                            using var deductionCommand = connection.CreateCommand();
+                            deductionCommand.CommandText = @"
+SELECT TRY_CONVERT(INT,pt.allw_dedu_code) Code,
+       SUM(ISNULL(TRY_CONVERT(FLOAT,pt.amt),0)) Amount
+FROM dbo.paytrnft pt
+WHERE TRY_CONVERT(INT,pt.empl)=@Emp
+  AND TRY_CONVERT(INT,pt.[year])=@Year
+  AND TRY_CONVERT(INT,pt.[month])=@Month
+  AND TRY_CONVERT(INT,pt.flag)=2
+GROUP BY TRY_CONVERT(INT,pt.allw_dedu_code);";
+                            AddParameter(deductionCommand, "@Emp", employee.EmployeeCode);
+                            AddParameter(deductionCommand, "@Year", cursor.Year);
+                            AddParameter(deductionCommand, "@Month", cursor.Month);
+
+                            using var reader = await deductionCommand.ExecuteReaderAsync();
+                            while (await reader.ReadAsync())
+                            {
+                                int code = Convert.ToInt32(reader["Code"]);
+                                var option = selectedDeductions.FirstOrDefault(x => x.Code == code);
+                                if (option != null)
+                                    employee.Deductions[option.Name] += Number(reader["Amount"]);
+                            }
+                        }
+                    }
+
+                    employee.BasicSalary = Math.Round(employee.BasicSalary, 2);
+                    foreach (var key in employee.Allowances.Keys.ToList())
+                        employee.Allowances[key] = Math.Round(employee.Allowances[key], 2);
+                    foreach (var key in employee.Deductions.Keys.ToList())
+                        employee.Deductions[key] = Math.Round(employee.Deductions[key], 2);
+                }
+
+                ViewBag.FromMonthName = from.ToString("MMMM");
+                ViewBag.FromYear = fromYear;
+                ViewBag.ToMonthName = to.ToString("MMMM");
+                ViewBag.ToYear = toYear;
+                ViewBag.ShowBasic = showBasic;
+                ViewBag.AllowanceNames = selectedAllowances.Select(x => x.Name).ToList();
+                ViewBag.DeductionNames = selectedDeductions.Select(x => x.Name).ToList();
+                ViewBag.PrintDate = DateTime.Now;
+
+                return View("CombinedPrint", employees);
+            }
+            finally
+            {
+                if (close && connection.State == ConnectionState.Open)
+                    await connection.CloseAsync();
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> AllowancePrint(int fromYear, int fromMonth, int toYear, int toMonth, List<int> selectedCodes)
+        {
+            return await SelectedComponentPrint(fromYear, fromMonth, toYear, toMonth, selectedCodes, true);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DeductionPrint(int fromYear, int fromMonth, int toYear, int toMonth, List<int> selectedCodes)
+        {
+            return await SelectedComponentPrint(fromYear, fromMonth, toYear, toMonth, selectedCodes, false);
+        }
+
+        private async Task<IActionResult> SelectedComponentPrint(int fromYear, int fromMonth, int toYear, int toMonth, List<int> selectedCodes, bool allowance)
+        {
+            if (!IsLoggedIn()) return RedirectToAction("Login", "Account");
+            if (fromYear < 1900 || toYear < 1900 || fromMonth < 1 || fromMonth > 12 || toMonth < 1 || toMonth > 12)
+                return BadRequest("Please select a valid From/To period.");
+            var from = new DateTime(fromYear, fromMonth, 1);
+            var to = new DateTime(toYear, toMonth, 1);
+            if (from > to) return BadRequest("From Month cannot be after To Month.");
+            if (selectedCodes == null || selectedCodes.Count == 0)
+                return BadRequest(allowance ? "Please select at least one Allowance." : "Please select at least one Deduction.");
+
+            // Basic is a virtual Allowance option. It does not come from dbo.allwmast.
+            bool showBasic = allowance && selectedCodes.Contains(SalaryReportComponentViewModel.BasicCode);
+
+            var allOptions = await LoadComponentOptions(allowance);
+            var selected = allOptions
+                .Where(x => x.Code != SalaryReportComponentViewModel.BasicCode &&
+                            selectedCodes.Contains(x.Code))
+                .ToList();
+
+            // For Allowance report, Basic by itself is also a valid selection.
+            if (!showBasic && selected.Count == 0)
+                return BadRequest("No valid components selected.");
+
+            var connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+            try
+            {
+                if (close) await connection.OpenAsync();
+                var employees = new List<SalaryReportEmployeeRowViewModel>();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = @"
+SELECT DISTINCT p.code EmployeeCode, ISNULL(p.name,'') EmployeeName,
+       TRY_CONVERT(INT,p.grad_Code) GradeCode, ISNULL(g.name,'') GradeName
+FROM dbo.PayMast p
+LEFT JOIN dbo.gradmast g ON TRY_CONVERT(INT,g.code)=TRY_CONVERT(INT,p.grad_Code)
+INNER JOIN dbo.paytrn t ON TRY_CONVERT(INT,t.code)=TRY_CONVERT(INT,p.code)
+ AND ((TRY_CONVERT(INT,t.[year])*12+TRY_CONVERT(INT,t.[month]))
+ BETWEEN (@FromYear*12+@FromMonth) AND (@ToYear*12+@ToMonth))
+ORDER BY p.code;";
+                    AddParameter(command, "@FromYear", fromYear); AddParameter(command, "@FromMonth", fromMonth);
+                    AddParameter(command, "@ToYear", toYear); AddParameter(command, "@ToMonth", toMonth);
+                    using var reader = await command.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        var e = new SalaryReportEmployeeRowViewModel
+                        {
+                            EmployeeCode = Convert.ToInt32(reader["EmployeeCode"]),
+                            EmployeeName = Convert.ToString(reader["EmployeeName"])?.Trim() ?? "",
+                            GradeCode = NullableInt(reader["GradeCode"]),
+                            GradeName = Convert.ToString(reader["GradeName"])?.Trim() ?? ""
+                        };
+                        foreach (var x in selected) { if (allowance) e.Allowances[x.Name] = 0; else e.Deductions[x.Name] = 0; }
+                        employees.Add(e);
+                    }
+                }
+
+                foreach (var e in employees)
+                {
+                    for (var cursor = from; cursor <= to; cursor = cursor.AddMonths(1))
+                    {
+                        // Fetch Basic only when admin selected Basic in Selected Allowances.
+                        if (showBasic)
+                        {
+                            e.BasicSalary += await LoadSavedBasic(
+                                connection, e.EmployeeCode, cursor.Year, cursor.Month);
+                        }
+
+                        using var cmd = connection.CreateCommand();
+                        cmd.CommandText = allowance ? @"
+SELECT TRY_CONVERT(INT,pt.allw_dedu_code) Code, SUM(ISNULL(TRY_CONVERT(FLOAT,pt.amt),0)) Amount
+FROM dbo.paytrnft pt WHERE TRY_CONVERT(INT,pt.empl)=@Emp AND TRY_CONVERT(INT,pt.[year])=@Year
+AND TRY_CONVERT(INT,pt.[month])=@Month AND TRY_CONVERT(INT,pt.flag)=1 GROUP BY TRY_CONVERT(INT,pt.allw_dedu_code);" : @"
+SELECT TRY_CONVERT(INT,pt.allw_dedu_code) Code, SUM(ISNULL(TRY_CONVERT(FLOAT,pt.amt),0)) Amount
+FROM dbo.paytrnft pt WHERE TRY_CONVERT(INT,pt.empl)=@Emp AND TRY_CONVERT(INT,pt.[year])=@Year
+AND TRY_CONVERT(INT,pt.[month])=@Month AND TRY_CONVERT(INT,pt.flag)=2 GROUP BY TRY_CONVERT(INT,pt.allw_dedu_code);";
+                        AddParameter(cmd, "@Emp", e.EmployeeCode); AddParameter(cmd, "@Year", cursor.Year); AddParameter(cmd, "@Month", cursor.Month);
+                        using var r = await cmd.ExecuteReaderAsync();
+                        while (await r.ReadAsync())
+                        {
+                            int code = Convert.ToInt32(r["Code"]); var opt = selected.FirstOrDefault(x => x.Code == code); if (opt == null) continue;
+                            if (allowance) e.Allowances[opt.Name] += Number(r["Amount"]); else e.Deductions[opt.Name] += Number(r["Amount"]);
+                        }
+                    }
+                    e.BasicSalary = Math.Round(e.BasicSalary, 2);
+                    e.TotalAllowance = Math.Round(e.Allowances.Values.Sum(), 2);
+                    e.TotalDeduction = Math.Round(e.Deductions.Values.Sum(), 2);
+                }
+
+                ViewBag.FromMonthName = from.ToString("MMMM"); ViewBag.FromYear = fromYear;
+                ViewBag.ToMonthName = to.ToString("MMMM"); ViewBag.ToYear = toYear;
+                ViewBag.ComponentNames = selected.Select(x => x.Name).ToList();
+                ViewBag.ShowBasic = showBasic;
+                ViewBag.PrintDate = DateTime.Now;
+                return View(allowance ? "AllowancePrint" : "DeductionPrint", employees);
+            }
+            finally { if (close && connection.State == ConnectionState.Open) await connection.CloseAsync(); }
+        }
+
+        private async Task<List<SalaryReportComponentViewModel>> LoadComponentOptions(bool allowance)
+        {
+            var result = new List<SalaryReportComponentViewModel>();
+
+            // Basic must appear FIRST in Selected Allowances.
+            // It is a virtual option; its amount is read from dbo.paytrn only when selected.
+            if (allowance)
+            {
+                result.Add(new SalaryReportComponentViewModel
+                {
+                    Code = SalaryReportComponentViewModel.BasicCode,
+                    Name = "Basic"
+                });
+            }
+
+            var connection = _context.Database.GetDbConnection(); bool close = connection.State != ConnectionState.Open;
+            try
+            {
+                if (close) await connection.OpenAsync(); using var command = connection.CreateCommand();
+                command.CommandText = allowance ? @"
+SELECT TRY_CONVERT(INT,code) Code, LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(short_name)),''),name))) Name
+FROM dbo.allwmast WHERE TRY_CONVERT(INT,code) IS NOT NULL ORDER BY TRY_CONVERT(INT,code);" : @"
+SELECT TRY_CONVERT(INT,code) Code, LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(short_name)),''),name))) Name
+FROM dbo.dedumast WHERE TRY_CONVERT(INT,code) IS NOT NULL ORDER BY TRY_CONVERT(INT,code);";
+                using var reader = await command.ExecuteReaderAsync(); while (await reader.ReadAsync())
+                { var name = Convert.ToString(reader["Name"])?.Trim() ?? ""; if (!string.IsNullOrWhiteSpace(name)) result.Add(new SalaryReportComponentViewModel { Code = Convert.ToInt32(reader["Code"]), Name = name }); }
+            }
+            finally { if (close && connection.State == ConnectionState.Open) await connection.CloseAsync(); }
+            return result;
         }
 
         private bool IsLoggedIn() =>

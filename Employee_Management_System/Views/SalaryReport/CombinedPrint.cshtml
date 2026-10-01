@@ -1,0 +1,491 @@
+﻿@model List<Employee_Management_System.Models.SalaryReportEmployeeRowViewModel>
+
+@{
+    Layout = null;
+
+    var allowanceNames =
+        ViewBag.AllowanceNames as List<string>
+        ?? new List<string>();
+
+    var deductionNames =
+        ViewBag.DeductionNames as List<string>
+        ?? new List<string>();
+
+    bool showBasic =
+        ViewBag.ShowBasic is bool showBasicValue
+        && showBasicValue;
+}
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <title>
+        Selected Allowance & Deduction Report
+    </title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 22px;
+            color: #222;
+        }
+
+        .top {
+            text-align: center;
+            margin-bottom: 14px;
+        }
+
+            .top h2 {
+                margin-bottom: 12px;
+            }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th,
+        td {
+            border: 1px solid #999;
+            padding: 6px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        th {
+            background: #f1f3f5;
+            font-weight: bold;
+        }
+
+        /* Allowance columns */
+        .allowance-head {
+            background: #eaf7ee;
+        }
+
+        /* Deduction columns */
+        .deduction-head {
+            background: #fff1f1;
+        }
+
+        /* Grand Total */
+        .grand-total th {
+            font-weight: bold;
+        }
+
+        .tools {
+            text-align: right;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: 0;
+            background: #0d6efd;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+            .btn:hover {
+                background: #0b5ed7;
+            }
+
+        @@media print {
+
+            .tools {
+                display: none;
+            }
+
+            body {
+                margin: 8px;
+            }
+
+            table {
+                page-break-inside: auto;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- ======================================= -->
+    <!-- PRINT BUTTON -->
+    <!-- ======================================= -->
+
+    <div class="tools">
+
+        <button class="btn"
+                type="button"
+                onclick="window.print()">
+
+            Print
+
+        </button>
+
+    </div>
+
+
+
+    <!-- ======================================= -->
+    <!-- REPORT HEADER -->
+    <!-- ======================================= -->
+
+    <div class="top">
+
+        <h2>
+            Selected Allowance &amp; Deduction Report
+        </h2>
+
+
+        <strong>
+            From:
+        </strong>
+
+        @ViewBag.FromMonthName
+        @ViewBag.FromYear
+
+
+        &nbsp; | &nbsp;
+
+
+        <strong>
+            To:
+        </strong>
+
+        @ViewBag.ToMonthName
+        @ViewBag.ToYear
+
+    </div>
+
+
+
+    <!-- ======================================= -->
+    <!-- REPORT TABLE -->
+    <!-- ======================================= -->
+
+    <table>
+
+
+        <!-- ======================================= -->
+        <!-- TABLE HEADER -->
+        <!-- ======================================= -->
+
+        <thead>
+
+            <tr>
+
+                <th>
+                    Sr.
+                </th>
+
+                <th>
+                    Employee Code
+                </th>
+
+                <th>
+                    Employee Name
+                </th>
+
+
+                <!-- BASIC -->
+                <!-- Basic दिसेल फक्त Admin ने Basic select केल्यास -->
+                @if (showBasic)
+                {
+                    <th class="allowance-head">
+                        Basic
+                    </th>
+                }
+
+
+                <!-- SELECTED ALLOWANCES -->
+                @foreach (var allowanceName in allowanceNames)
+                {
+                    <th class="allowance-head">
+
+                        @allowanceName
+
+                    </th>
+                }
+
+
+                <!-- SELECTED DEDUCTIONS -->
+                @foreach (var deductionName in deductionNames)
+                {
+                    <th class="deduction-head">
+
+                        @deductionName
+
+                    </th>
+                }
+
+            </tr>
+
+        </thead>
+
+
+
+        <!-- ======================================= -->
+        <!-- TABLE BODY -->
+        <!-- ======================================= -->
+
+        <tbody>
+
+
+            @{
+
+                int sr = 1;
+
+                double totalBasic = 0;
+
+            }
+
+
+            <!-- ======================================= -->
+            <!-- EMPLOYEE ROWS -->
+            <!-- ======================================= -->
+            @foreach (var employee in Model)
+            {
+
+                if (showBasic)
+                {
+                    totalBasic += employee.BasicSalary;
+                }
+
+
+                <tr>
+
+
+                    <!-- SR -->
+
+                    <td>
+                        @sr
+                    </td>
+
+
+                    <!-- EMPLOYEE CODE -->
+
+                    <td>
+                        @employee.EmployeeCode
+                    </td>
+
+
+                    <!-- EMPLOYEE NAME -->
+
+                    <td>
+                        @employee.EmployeeName
+                    </td>
+
+
+                    <!-- ======================================= -->
+                    <!-- BASIC -->
+                    <!-- ======================================= -->
+                    @if (showBasic)
+                    {
+
+                        <td>
+
+                            @employee.BasicSalary.ToString("N2")
+
+                        </td>
+
+                    }
+
+
+                    <!-- ======================================= -->
+                    <!-- ALLOWANCES -->
+                    <!-- ======================================= -->
+                    @foreach (var allowanceName in allowanceNames)
+                    {
+
+                        double allowanceAmount = 0;
+
+
+                        if (employee.Allowances.TryGetValue(
+                        allowanceName,
+                        out double allowanceValue))
+                        {
+
+                            allowanceAmount = allowanceValue;
+
+                        }
+
+
+                        <td>
+
+                            @allowanceAmount.ToString("N2")
+
+                        </td>
+
+                    }
+
+
+                    <!-- ======================================= -->
+                    <!-- DEDUCTIONS -->
+                    <!-- ======================================= -->
+                    @foreach (var deductionName in deductionNames)
+                    {
+
+                        double deductionAmount = 0;
+
+
+                        if (employee.Deductions.TryGetValue(
+                        deductionName,
+                        out double deductionValue))
+                        {
+
+                            deductionAmount = deductionValue;
+
+                        }
+
+
+                        <td>
+
+                            @deductionAmount.ToString("N2")
+
+                        </td>
+
+                    }
+
+
+                </tr>
+
+
+                sr++;
+
+            }
+
+
+
+            <!-- ======================================= -->
+            <!-- GRAND TOTAL -->
+            <!-- ======================================= -->
+
+            <tr class="grand-total">
+
+
+                <th colspan="3">
+
+                    Grand Total
+
+                </th>
+
+
+                <!-- ======================================= -->
+                <!-- BASIC TOTAL -->
+                <!-- ======================================= -->
+                @if (showBasic)
+                {
+
+                    <th class="allowance-head">
+
+                        @totalBasic.ToString("N2")
+
+                    </th>
+
+                }
+
+
+
+                <!-- ======================================= -->
+                <!-- ALLOWANCE TOTALS -->
+                <!-- ======================================= -->
+                @foreach (var allowanceName in allowanceNames)
+                {
+
+                    double allowanceGrandTotal = 0;
+
+
+                    foreach (var employeeItem in Model)
+                    {
+
+                        if (employeeItem.Allowances.TryGetValue(
+                        allowanceName,
+                        out double allowanceTotalValue))
+                        {
+
+                            allowanceGrandTotal +=
+                            allowanceTotalValue;
+
+                        }
+
+                    }
+
+
+                    <th class="allowance-head">
+
+                        @allowanceGrandTotal.ToString("N2")
+
+                    </th>
+
+                }
+
+
+
+                <!-- ======================================= -->
+                <!-- DEDUCTION TOTALS -->
+                <!-- ======================================= -->
+                @foreach (var deductionName in deductionNames)
+                {
+
+                    double deductionGrandTotal = 0;
+
+
+                    foreach (var employeeItem in Model)
+                    {
+
+                        if (employeeItem.Deductions.TryGetValue(
+                        deductionName,
+                        out double deductionTotalValue))
+                        {
+
+                            deductionGrandTotal +=
+                            deductionTotalValue;
+
+                        }
+
+                    }
+
+
+                    <th class="deduction-head">
+
+                        @deductionGrandTotal.ToString("N2")
+
+                    </th>
+
+                }
+
+
+            </tr>
+
+
+        </tbody>
+
+
+    </table>
+
+
+</body>
+
+</html>

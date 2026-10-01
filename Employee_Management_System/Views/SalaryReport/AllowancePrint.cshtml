@@ -1,0 +1,331 @@
+﻿@model List<Employee_Management_System.Models.SalaryReportEmployeeRowViewModel>
+
+@{
+    Layout = null;
+
+    var names = ViewBag.ComponentNames as List<string> ?? new List<string>();
+    bool showBasic = ViewBag.ShowBasic is bool value && value;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+
+    <title>Selected Allowance Report</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 22px;
+            color: #222;
+        }
+
+        .top {
+            text-align: center;
+            margin-bottom: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        /* =========================================
+                   ALL TABLE HEADINGS + DATA CENTER
+                   ========================================= */
+        th,
+        td {
+            border: 1px solid #999;
+            padding: 6px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        th {
+            background: #f1f3f5;
+            font-weight: bold;
+        }
+
+        /* Basic / Allowance amount columns also center */
+        .num {
+            text-align: center;
+        }
+
+        .tools {
+            text-align: right;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: 0;
+            background: #0d6efd;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .grand-total {
+            font-weight: bold;
+            background: #f1f3f5;
+        }
+
+        @@media print {
+
+            .tools {
+                display: none;
+            }
+
+            body {
+                margin: 8px;
+            }
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <!-- ============================= -->
+    <!-- PRINT BUTTON -->
+    <!-- ============================= -->
+
+    <div class="tools">
+
+        <button class="btn"
+                type="button"
+                onclick="window.print()">
+
+            Print
+
+        </button>
+
+    </div>
+
+
+    <!-- ============================= -->
+    <!-- REPORT HEADER -->
+    <!-- ============================= -->
+
+    <div class="top">
+
+        <h2>
+            Selected Allowance Report
+        </h2>
+
+        <strong>From:</strong>
+
+        @ViewBag.FromMonthName
+        @ViewBag.FromYear
+
+        &nbsp; | &nbsp;
+
+        <strong>To:</strong>
+
+        @ViewBag.ToMonthName
+        @ViewBag.ToYear
+
+    </div>
+
+
+    <!-- ============================= -->
+    <!-- ALLOWANCE REPORT TABLE -->
+    <!-- ============================= -->
+
+    <table>
+
+        <thead>
+
+            <tr>
+
+                <th>
+                    Sr.
+                </th>
+
+                <th>
+                    Employee Code
+                </th>
+
+                <th>
+                    Employee Name
+                </th>
+
+
+                <!-- ============================= -->
+                <!-- BASIC -->
+                <!-- Show only when Admin selects Basic -->
+                <!-- ============================= -->
+                @if (showBasic)
+                {
+                    <th class="num">
+                        Basic
+                    </th>
+                }
+
+
+                <!-- ============================= -->
+                <!-- SELECTED ALLOWANCES -->
+                <!-- ============================= -->
+                @foreach (var n in names)
+                {
+                    <th class="num">
+                        @n
+                    </th>
+                }
+
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            @{
+                int sr = 1;
+
+                double totalBasic = 0;
+            }
+
+
+            <!-- ============================= -->
+            <!-- EMPLOYEE DATA -->
+            <!-- ============================= -->
+            @foreach (var e in Model)
+            {
+
+                if (showBasic)
+                {
+                    totalBasic += e.BasicSalary;
+                }
+
+
+                <tr>
+
+                    <!-- SR -->
+
+                    <td>
+                        @sr
+                    </td>
+
+
+                    <!-- EMPLOYEE CODE -->
+
+                    <td>
+                        @e.EmployeeCode
+                    </td>
+
+
+                    <!-- EMPLOYEE NAME -->
+
+                    <td>
+                        @e.EmployeeName
+                    </td>
+
+
+                    <!-- ============================= -->
+                    <!-- BASIC -->
+                    <!-- ============================= -->
+                    @if (showBasic)
+                    {
+                        <td class="num">
+
+                            @e.BasicSalary.ToString("N2")
+
+                        </td>
+                    }
+
+
+                    <!-- ============================= -->
+                    <!-- SELECTED ALLOWANCES -->
+                    <!-- ============================= -->
+                    @foreach (var n in names)
+                    {
+
+                        double value =
+                        e.Allowances.TryGetValue(
+                        n,
+                        out var amount)
+                        ? amount
+                        : 0;
+
+
+                        <td class="num">
+
+                            @value.ToString("N2")
+
+                        </td>
+
+                    }
+
+                </tr>
+
+
+                sr++;
+
+            }
+
+
+            <!-- ============================= -->
+            <!-- GRAND TOTAL -->
+            <!-- ============================= -->
+
+            <tr class="grand-total">
+
+                <th colspan="3">
+
+                    Grand Total
+
+                </th>
+
+
+                <!-- ============================= -->
+                <!-- BASIC GRAND TOTAL -->
+                <!-- ============================= -->
+                @if (showBasic)
+                {
+
+                    <th class="num">
+
+                        @totalBasic.ToString("N2")
+
+                    </th>
+
+                }
+
+
+                <!-- ============================= -->
+                <!-- ALLOWANCE GRAND TOTAL -->
+                <!-- ============================= -->
+                @foreach (var n in names)
+                {
+
+                    double total =
+                    Model.Sum(e =>
+                    e.Allowances.TryGetValue(
+                    n,
+                    out var amount)
+                    ? amount
+                    : 0);
+
+
+                    <th class="num">
+
+                        @total.ToString("N2")
+
+                    </th>
+
+                }
+
+            </tr>
+
+        </tbody>
+
+    </table>
+
+</body>
+
+</html>

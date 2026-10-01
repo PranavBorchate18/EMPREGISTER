@@ -11,12 +11,23 @@ namespace Employee_Management_System.Models
         public int ToMonth { get; set; }
         public List<SalaryReportBranchViewModel> Branches { get; set; } = new();
 
-        // All Branches Total
         public int AllBranchesTotalEmployees { get; set; }
         public double AllBranchesTotalBasic { get; set; }
         public double AllBranchesTotalAllowance { get; set; }
         public double AllBranchesTotalDeduction { get; set; }
         public double AllBranchesTotalNetSalary { get; set; }
+
+        public List<int> SelectedAllowanceCodes { get; set; } = new();
+        public List<int> SelectedDeductionCodes { get; set; } = new();
+        public List<SalaryReportComponentViewModel> AllowanceOptions { get; set; } = new();
+        public List<SalaryReportComponentViewModel> DeductionOptions { get; set; } = new();
+    }
+
+    public class SalaryReportComponentViewModel
+    {
+        public const int BasicCode = -1;
+        public int Code { get; set; }
+        public string Name { get; set; } = "";
     }
 
     public class SalaryReportBranchViewModel

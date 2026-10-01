@@ -2,6 +2,8 @@
 @using System.Collections.Generic
 @{
     Layout = null;
+    // Controller sends only visible columns for the branch being printed.
+    // Any allowance/deduction hidden on Salary Report is excluded here.
     var allowanceNames = ViewBag.AllowanceNames as List<string> ?? new List<string>();
     var deductionNames = ViewBag.DeductionNames as List<string> ?? new List<string>();
     int branchCode = ViewBag.BranchCode;
