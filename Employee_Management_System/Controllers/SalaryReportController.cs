@@ -234,6 +234,24 @@ ORDER BY p.code;";
 
                 foreach (var employee in employees)
                 {
+                    // Approved WITHOUT PAY LEAVE for this exact month.
+                    employee.WithoutPayLeaveDays = await LoadWithoutPayLeaveDays(
+                        connection, employee.EmployeeCode, year, month);
+
+                    // Display value comes exactly from dbo.paytrn.orgn_basic.
+                    employee.OriginalBasicSalary = await LoadPayTrnOriginalBasic(
+                        connection, employee.EmployeeCode, year, month);
+
+                    // IMPORTANT: reduce the ORIGINAL monthly Basic only once.
+                    // Reduced Basic = Original Basic - ((Original Basic / calendar days) * WPL days)
+                    double originalBasic = employee.BasicSalary;
+                    int daysInMonth = DateTime.DaysInMonth(year, month);
+                    double payableDays = Math.Max(0, daysInMonth - employee.WithoutPayLeaveDays);
+
+                    employee.BasicSalary = originalBasic <= 0
+                        ? 0
+                        : Math.Round((originalBasic / daysInMonth) * payableDays, 2);
+
                     await LoadEmployeeAllowances(connection, employee, monthStart, monthEnd);
                     await LoadEmployeeDeductions(connection, employee, monthStart, monthEnd);
 
@@ -253,6 +271,18 @@ ORDER BY p.code;";
 
                     employee.NetSalary =
                         Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
+
+                    // Keep the saved monthly payroll summary in sync with Salary Report.
+                    // Only an existing dbo.paytrn row is updated; Salary Report does not create payroll rows.
+                    await UpdateSavedPayTrnSummary(
+                        connection, employee.EmployeeCode, year, month,
+                        employee.BasicSalary, employee.TotalAllowance, employee.TotalDeduction,
+                        employee.Allowances, daysInMonth, employee.WithoutPayLeaveDays);
+
+                    // Keep existing saved detail rows in dbo.paytrnft in sync too.
+                    await UpdateSavedPayTrnFtValues(
+                        connection, employee.EmployeeCode, year, month,
+                        employee.Allowances, employee.Deductions);
                 }
 
                 return Json(new
@@ -370,9 +400,31 @@ ORDER BY p.code;";
                         foreach (var name in deductionNames)
                             history.Deductions[name] = 0;
 
-                        // Saved Basic for this exact Employee + Year + Month.
-                        history.BasicSalary = await LoadSavedBasic(
+                        // IMPORTANT: always calculate WPL from the original monthly Basic.
+                        // paytrn.orgn_basic is preferred; PayMast.basic is the fallback.
+                        // This prevents the same WPL from reducing an already-reduced Basic again.
+                        double savedBasic = await LoadOriginalBasicForMonth(
                             connection, employee.EmployeeCode, cursor.Year, cursor.Month);
+
+                        // Approved WITHOUT PAY LEAVE:
+                        // dbo.leavtrn -> sact_code = 10 and Status = 'A'.
+                        history.WithoutPayLeaveDays = await LoadWithoutPayLeaveDays(
+                            connection, employee.EmployeeCode, cursor.Year, cursor.Month);
+
+                        // Display value comes exactly from dbo.paytrn.orgn_basic.
+                        history.OriginalBasicSalary = await LoadPayTrnOriginalBasic(
+                            connection, employee.EmployeeCode, cursor.Year, cursor.Month);
+
+                        // Reduce Basic month-wise according to WPL days.
+                        // Per-day Basic = saved monthly Basic / calendar days in that month.
+                        int daysInMonth = DateTime.DaysInMonth(cursor.Year, cursor.Month);
+                        double payableDays = Math.Max(0, daysInMonth - history.WithoutPayLeaveDays);
+
+                        history.BasicSalary = savedBasic <= 0
+                            ? 0
+                            : Math.Round((savedBasic / daysInMonth) * payableDays, 2);
+
+                        employee.WithoutPayLeaveDays += history.WithoutPayLeaveDays;
 
                         // Saved component values ONLY for this exact Employee + Year + Month.
                         await LoadSavedPayTrnFtAllowances(
@@ -393,10 +445,17 @@ ORDER BY p.code;";
                         history.NetSalary =
                             Math.Round(history.GrossSalary - history.TotalDeduction, 2);
 
+                        // Synchronize the Salary Report result back to the existing dbo.paytrn row.
+                        await UpdateSavedPayTrnSummary(
+                            connection, employee.EmployeeCode, cursor.Year, cursor.Month,
+                            history.BasicSalary, history.TotalAllowance, history.TotalDeduction,
+                            history.Allowances, daysInMonth, history.WithoutPayLeaveDays);
+
                         employee.History.Add(history);
 
                         // Main row = total summary of ONLY the selected period.
                         employee.BasicSalary += history.BasicSalary;
+                        employee.OriginalBasicSalary += history.OriginalBasicSalary;
                         employee.TotalAllowance += history.TotalAllowance;
                         employee.GrossSalary += history.GrossSalary;
                         employee.TotalDeduction += history.TotalDeduction;
@@ -571,8 +630,20 @@ ORDER BY p.code;";
                         foreach (var name in deductionNames)
                             history.Deductions[name] = 0;
 
-                        history.BasicSalary = await LoadSavedBasic(
+                        double savedBasic = await LoadSavedBasic(
                             connection, employee.EmployeeCode, cursor.Year, cursor.Month);
+
+                        history.WithoutPayLeaveDays = await LoadWithoutPayLeaveDays(
+                            connection, employee.EmployeeCode, cursor.Year, cursor.Month);
+
+                        int daysInMonth = DateTime.DaysInMonth(cursor.Year, cursor.Month);
+                        double payableDays = Math.Max(0, daysInMonth - history.WithoutPayLeaveDays);
+
+                        history.BasicSalary = savedBasic <= 0
+                            ? 0
+                            : Math.Round((savedBasic / daysInMonth) * payableDays, 2);
+
+                        employee.WithoutPayLeaveDays += history.WithoutPayLeaveDays;
 
                         await LoadSavedPayTrnFtAllowances(
                             connection, history, employee.EmployeeCode, cursor.Year, cursor.Month);
@@ -651,11 +722,235 @@ ORDER BY p.code;";
             }
         }
 
+        // ============================================================
+        // Approved WITHOUT PAY LEAVE for one exact Employee + Month.
+        // Source: dbo.leavtrn
+        // Leave type: sact_code = 10 (WITHOUT PAY LEAVE)
+        // Approved: Status = 'A'
+        //
+        // The calculation counts only the overlap between the sanctioned
+        // leave date range and the requested month. Num_of_days is used as
+        // a safety cap when it is available.
+        // ============================================================
+        private async Task<double> LoadWithoutPayLeaveDays(
+            DbConnection connection,
+            int employeeCode,
+            int year,
+            int month)
+        {
+            DateTime monthStart = new DateTime(year, month, 1);
+            DateTime monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+SELECT
+    ISNULL(SUM(
+        CASE
+            WHEN x.OverlapDays <= 0 THEN 0
+            WHEN x.NumDays IS NOT NULL AND x.NumDays > 0 AND x.OverlapDays > x.NumDays
+                THEN x.NumDays
+            ELSE x.OverlapDays
+        END
+    ), 0) AS WplDays
+FROM
+(
+    SELECT
+        ISNULL(TRY_CONVERT(FLOAT, Num_of_days), 0) AS NumDays,
+        DATEDIFF(
+            DAY,
+            CASE
+                WHEN TRY_CONVERT(DATE, sact_from_date) < @MonthStart
+                    THEN @MonthStart
+                ELSE TRY_CONVERT(DATE, sact_from_date)
+            END,
+            CASE
+                WHEN TRY_CONVERT(DATE, sact_to_date) > @MonthEnd
+                    THEN @MonthEnd
+                ELSE TRY_CONVERT(DATE, sact_to_date)
+            END
+        ) + 1 AS OverlapDays
+    FROM dbo.leavtrn
+    WHERE TRY_CONVERT(INT, empl) = @EmployeeCode
+      AND TRY_CONVERT(INT, sact_code) = 10
+      AND UPPER(LTRIM(RTRIM(ISNULL(Status, '')))) = 'A'
+      AND TRY_CONVERT(DATE, sact_from_date) <= @MonthEnd
+      AND TRY_CONVERT(DATE, sact_to_date) >= @MonthStart
+) x;";
+
+            AddParameter(command, "@EmployeeCode", employeeCode);
+            AddParameter(command, "@MonthStart", monthStart.Date);
+            AddParameter(command, "@MonthEnd", monthEnd.Date);
+
+            var value = await command.ExecuteScalarAsync();
+            double days = value == null || value == DBNull.Value
+                ? 0
+                : Convert.ToDouble(value);
+
+            // Never allow WPL to exceed the number of calendar days
+            // in the selected month.
+            return Math.Round(
+                Math.Min(Math.Max(days, 0), DateTime.DaysInMonth(year, month)),
+                2);
+        }
+
         private static double DictionaryAmount(
             Dictionary<string, double> values,
             string key)
         {
             return values.TryGetValue(key, out var value) ? value : 0;
+        }
+
+        // Original monthly Basic used as the WPL calculation base.
+        // Prefer paytrn.orgn_basic because paytrn.basic can already contain a WPL-reduced value.
+        // PayMast.basic is used as fallback for old payroll rows where orgn_basic is empty.
+        // Exact Original Basic saved in dbo.paytrn.orgn_basic.
+        // Used only for Salary Report display below WPL.
+        private async Task<double> LoadPayTrnOriginalBasic(
+            DbConnection connection, int employeeCode, int year, int month)
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+SELECT TOP 1 ISNULL(TRY_CONVERT(FLOAT,orgn_basic),0)
+FROM dbo.paytrn
+WHERE TRY_CONVERT(INT,code)=@EmployeeCode
+  AND TRY_CONVERT(INT,[year])=@Year
+  AND TRY_CONVERT(INT,[month])=@Month;";
+
+            AddParameter(command, "@EmployeeCode", employeeCode);
+            AddParameter(command, "@Year", year);
+            AddParameter(command, "@Month", month);
+
+            var value = await command.ExecuteScalarAsync();
+            return value == null || value == DBNull.Value ? 0 : Convert.ToDouble(value);
+        }
+
+        private async Task<double> LoadOriginalBasicForMonth(
+            DbConnection connection, int employeeCode, int year, int month)
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+SELECT TOP 1
+       COALESCE(
+           NULLIF(TRY_CONVERT(FLOAT,t.orgn_basic),0),
+           NULLIF(TRY_CONVERT(FLOAT,p.basic),0),
+           TRY_CONVERT(FLOAT,t.basic),
+           0
+       )
+FROM dbo.paytrn t
+LEFT JOIN dbo.PayMast p
+  ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
+WHERE TRY_CONVERT(INT,t.code)=@EmployeeCode
+  AND TRY_CONVERT(INT,t.[year])=@Year
+  AND TRY_CONVERT(INT,t.[month])=@Month;";
+
+            AddParameter(command, "@EmployeeCode", employeeCode);
+            AddParameter(command, "@Year", year);
+            AddParameter(command, "@Month", month);
+
+            var value = await command.ExecuteScalarAsync();
+            return value == null || value == DBNull.Value ? 0 : Convert.ToDouble(value);
+        }
+
+        // Update only an already-saved payroll row. Salary Report remains visually unchanged
+        // and does not insert a new payroll record.
+        private async Task UpdateSavedPayTrnSummary(
+            DbConnection connection,
+            int employeeCode, int year, int month,
+            double basic, double totalAllowance, double totalDeduction,
+            Dictionary<string, double> allowances,
+            int daysInMonth, double withoutPayLeaveDays)
+        {
+            double da = DictionaryAmountIgnoreCase(allowances, "DA", "DEARNESS ALLOWANCE");
+            double hra = DictionaryAmountIgnoreCase(allowances, "HRA", "HOUSE RENT ALLOWANCE");
+            double payableDays = Math.Max(0, daysInMonth - withoutPayLeaveDays);
+
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+UPDATE dbo.paytrn
+SET basic = @Basic,
+    da = @DA,
+    hra = @HRA,
+    tot_allw = @TotalAllowance,
+    tot_dedu = @TotalDeduction,
+    days = @Days
+WHERE TRY_CONVERT(INT,code)=@EmployeeCode
+  AND TRY_CONVERT(INT,[year])=@Year
+  AND TRY_CONVERT(INT,[month])=@Month;";
+
+            AddParameter(command, "@Basic", Math.Round(basic, 2));
+            AddParameter(command, "@DA", Math.Round(da, 2));
+            AddParameter(command, "@HRA", Math.Round(hra, 2));
+            AddParameter(command, "@TotalAllowance", Math.Round(totalAllowance, 2));
+            AddParameter(command, "@TotalDeduction", Math.Round(totalDeduction, 2));
+            AddParameter(command, "@Days", Math.Round(payableDays, 2));
+            AddParameter(command, "@EmployeeCode", employeeCode);
+            AddParameter(command, "@Year", year);
+            AddParameter(command, "@Month", month);
+
+            await command.ExecuteNonQueryAsync();
+        }
+
+        // Update existing monthly detail rows only; no new component rows are inserted here.
+        private async Task UpdateSavedPayTrnFtValues(
+            DbConnection connection, int employeeCode, int year, int month,
+            Dictionary<string, double> allowances, Dictionary<string, double> deductions)
+        {
+            foreach (var item in allowances)
+            {
+                using var command = connection.CreateCommand();
+                command.CommandText = @"
+UPDATE ft
+SET ft.amt = @Amount
+FROM dbo.paytrnft ft
+INNER JOIN dbo.allwmast am
+  ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,ft.allw_dedu_code)
+WHERE TRY_CONVERT(INT,ft.empl)=@EmployeeCode
+  AND TRY_CONVERT(INT,ft.[year])=@Year
+  AND TRY_CONVERT(INT,ft.[month])=@Month
+  AND TRY_CONVERT(INT,ft.flag)=1
+  AND UPPER(LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name)))) = UPPER(@ComponentName);";
+                AddParameter(command, "@Amount", Math.Round(item.Value, 2));
+                AddParameter(command, "@EmployeeCode", employeeCode);
+                AddParameter(command, "@Year", year);
+                AddParameter(command, "@Month", month);
+                AddParameter(command, "@ComponentName", item.Key.Trim());
+                await command.ExecuteNonQueryAsync();
+            }
+
+            foreach (var item in deductions)
+            {
+                using var command = connection.CreateCommand();
+                command.CommandText = @"
+UPDATE ft
+SET ft.amt = @Amount
+FROM dbo.paytrnft ft
+INNER JOIN dbo.dedumast dm
+  ON TRY_CONVERT(INT,dm.code)=TRY_CONVERT(INT,ft.allw_dedu_code)
+WHERE TRY_CONVERT(INT,ft.empl)=@EmployeeCode
+  AND TRY_CONVERT(INT,ft.[year])=@Year
+  AND TRY_CONVERT(INT,ft.[month])=@Month
+  AND TRY_CONVERT(INT,ft.flag)=2
+  AND UPPER(LTRIM(RTRIM(ISNULL(dm.name,'')))) = UPPER(@ComponentName);";
+                AddParameter(command, "@Amount", Math.Round(item.Value, 2));
+                AddParameter(command, "@EmployeeCode", employeeCode);
+                AddParameter(command, "@Year", year);
+                AddParameter(command, "@Month", month);
+                AddParameter(command, "@ComponentName", item.Key.Trim());
+                await command.ExecuteNonQueryAsync();
+            }
+        }
+
+        private static double DictionaryAmountIgnoreCase(
+            Dictionary<string, double> values, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                var item = values.FirstOrDefault(x =>
+                    x.Key.Equals(name, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrWhiteSpace(item.Key))
+                    return item.Value;
+            }
+            return 0;
         }
 
         // Saved Basic for exact month/year.

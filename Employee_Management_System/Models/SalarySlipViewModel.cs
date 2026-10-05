@@ -5,9 +5,7 @@ namespace Employee_Management_System.Models
 {
     public class SalarySlipViewModel
     {
-        // ==========================================
         // SEARCH
-        // ==========================================
         public int Year { get; set; }
         public int Month { get; set; }
         public int EmployeeCode { get; set; }
@@ -15,9 +13,7 @@ namespace Employee_Management_System.Models
         public bool IsGenerated { get; set; }
         public string Message { get; set; } = "";
 
-        // ==========================================
         // EMPLOYEE DETAILS - dbo.PayMast
-        // ==========================================
         public string EmployeeName { get; set; } = "";
         public string Designation { get; set; } = "";
         public string BranchName { get; set; } = "";
@@ -31,9 +27,8 @@ namespace Employee_Management_System.Models
         public string PANNumber { get; set; } = "";
         public string AadhaarNumber { get; set; } = "";
 
-        // ==========================================
-        // SALARY - dbo.paytrn
-        // ==========================================
+        // SALARY
+        public double OriginalBasicSalary { get; set; }
         public double BasicSalary { get; set; }
         public double DA { get; set; }
         public double HRA { get; set; }
@@ -44,18 +39,16 @@ namespace Employee_Management_System.Models
         public double TotalDeduction { get; set; }
         public double NetSalary { get; set; }
 
+        // WITHOUT PAY LEAVE
+        public double WithoutPayLeaveDays { get; set; }
+        public double TotalMonthDays { get; set; }
         public double PayableDays { get; set; }
 
-        // ==========================================
-        // DETAILS - dbo.paytrnft
-        // ==========================================
+        // DETAILS
         public List<SalarySlipComponentViewModel> Earnings { get; set; } = new();
-
         public List<SalarySlipComponentViewModel> Deductions { get; set; } = new();
 
-        // ==========================================
         // DISPLAY
-        // ==========================================
         public string MonthName { get; set; } = "";
         public string NetSalaryInWords { get; set; } = "";
     }

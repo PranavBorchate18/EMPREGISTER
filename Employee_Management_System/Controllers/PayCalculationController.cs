@@ -157,6 +157,11 @@ ORDER BY TRY_CONVERT(INT,b.code);";
             DateTime monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
             var employees = new List<EmployeeSalaryRowViewModel>();
+
+            // Employees having saved payroll for the selected Year + Month.
+            // Saved Basic/details are used directly, so WPL is not applied twice.
+            var savedPayrollEmployees = new HashSet<int>();
+
             var connection = _context.Database.GetDbConnection();
             bool close = connection.State != ConnectionState.Open;
 
@@ -176,13 +181,26 @@ SELECT p.code EmployeeCode,
        ISNULL(p.name,'') EmployeeName,
        TRY_CONVERT(INT,p.grad_Code) GradeCode,
        ISNULL(g.name,'') GradeName,
-       ISNULL(TRY_CONVERT(FLOAT,p.basic),0) BasicSalary
+       ISNULL(TRY_CONVERT(FLOAT,p.basic),0) OriginalBasicSalary,
+       CASE WHEN t.code IS NULL
+            THEN ISNULL(TRY_CONVERT(FLOAT,p.basic),0)
+            ELSE ISNULL(TRY_CONVERT(FLOAT,t.basic),0) END BasicSalary,
+       CASE WHEN t.code IS NULL THEN 0 ELSE 1 END HasSavedPayroll,
+       ISNULL(TRY_CONVERT(FLOAT,t.tot_allw),0) SavedTotalAllowance,
+       ISNULL(TRY_CONVERT(FLOAT,t.tot_dedu),0) SavedTotalDeduction,
+       ISNULL(TRY_CONVERT(FLOAT,t.days),0) SavedDays
 FROM dbo.PayMast p
 LEFT JOIN dbo.gradmast g
   ON TRY_CONVERT(INT,g.code)=TRY_CONVERT(INT,p.grad_Code)
+LEFT JOIN dbo.paytrn t
+  ON TRY_CONVERT(INT,t.code)=TRY_CONVERT(INT,p.code)
+ AND TRY_CONVERT(INT,t.[year])=@Year
+ AND TRY_CONVERT(INT,t.[month])=@Month
 WHERE TRY_CONVERT(INT,p.brnc_code)=@BranchCode
 ORDER BY p.code;";
                     AddParameter(command, "@BranchCode", branchCode);
+                    AddParameter(command, "@Year", year);
+                    AddParameter(command, "@Month", month);
                     using var reader = await command.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
@@ -192,8 +210,12 @@ ORDER BY p.code;";
                             EmployeeName = Convert.ToString(reader["EmployeeName"])?.Trim() ?? "",
                             GradeCode = NullableInt(reader["GradeCode"]),
                             GradeName = Convert.ToString(reader["GradeName"])?.Trim() ?? "",
+                            OriginalBasicSalary = Number(reader["OriginalBasicSalary"]),
                             BasicSalary = Number(reader["BasicSalary"])
                         };
+
+                        if (Convert.ToInt32(reader["HasSavedPayroll"]) == 1)
+                            savedPayrollEmployees.Add(employee.EmployeeCode);
 
                         // Pre-fill every master component with 0.00.
                         foreach (var name in allowanceNames) employee.Allowances[name] = 0;
@@ -206,18 +228,33 @@ ORDER BY p.code;";
 
                 foreach (var employee in employees)
                 {
-                    await LoadEmployeeAllowances(connection, employee, monthStart, monthEnd);
-                    await LoadEmployeeDeductions(connection, employee, monthStart, monthEnd);
+                    if (savedPayrollEmployees.Contains(employee.EmployeeCode))
+                    {
+                        // Saved month: show the exact payroll already stored by Salary Report/Pay Calculation.
+                        // Basic comes from dbo.paytrn; individual allowance/deduction values come from dbo.paytrnft.
+                        await LoadSavedPayTrnFtValues(connection, employee, year, month);
+                        employee.TotalAllowance = Math.Round(employee.Allowances.Values.Sum(), 2);
+                        employee.GrossSalary = Math.Round(employee.BasicSalary + employee.TotalAllowance, 2);
+                        employee.TotalDeduction = Math.Round(employee.Deductions.Values.Sum(), 2);
+                        employee.NetSalary = Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
+                    }
+                    else
+                    {
+                        // Unsaved month: keep the existing live Pay Calculation logic.
+                        ApplyWithoutPayLeave(
+                            employee,
+                            await LoadApprovedWithoutPayLeaveDays(connection, employee.EmployeeCode, monthStart, monthEnd),
+                            year, month);
 
-                    employee.TotalAllowance = Math.Round(employee.Allowances.Values.Sum(), 2);
-                    employee.GrossSalary = Math.Round(employee.BasicSalary + employee.TotalAllowance, 2);
+                        await LoadEmployeeAllowances(connection, employee, monthStart, monthEnd);
+                        await LoadEmployeeDeductions(connection, employee, monthStart, monthEnd);
 
-                    // Gross Salary below dbo.daptsys.from1 = 0
-                    // Gross Salary >= threshold: March = 300, all other months = 200
-                    SetProfessionalTax(employee, professionalTaxThreshold, month);
-
-                    employee.TotalDeduction = Math.Round(employee.Deductions.Values.Sum(), 2);
-                    employee.NetSalary = Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
+                        employee.TotalAllowance = Math.Round(employee.Allowances.Values.Sum(), 2);
+                        employee.GrossSalary = Math.Round(employee.BasicSalary + employee.TotalAllowance, 2);
+                        SetProfessionalTax(employee, professionalTaxThreshold, month);
+                        employee.TotalDeduction = Math.Round(employee.Deductions.Values.Sum(), 2);
+                        employee.NetSalary = Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
+                    }
                 }
 
                 return Json(new
@@ -320,6 +357,7 @@ ORDER BY p.code;";
                             EmployeeName = Convert.ToString(reader["EmployeeName"])?.Trim() ?? "",
                             GradeCode = NullableInt(reader["GradeCode"]),
                             GradeName = Convert.ToString(reader["GradeName"])?.Trim() ?? "",
+                            OriginalBasicSalary = Number(reader["BasicSalary"]),
                             BasicSalary = Number(reader["BasicSalary"])
                         };
 
@@ -336,6 +374,11 @@ ORDER BY p.code;";
 
                 foreach (var employee in employees)
                 {
+                    ApplyWithoutPayLeave(
+                        employee,
+                        await LoadApprovedWithoutPayLeaveDays(connection, employee.EmployeeCode, monthStart, monthEnd),
+                        year, month);
+
                     await LoadEmployeeAllowances(connection, employee, monthStart, monthEnd);
                     await LoadEmployeeDeductions(connection, employee, monthStart, monthEnd);
 
@@ -438,8 +481,8 @@ VALUES
                     AddParameter(insertCommand, "@TotalAllowance", employee.TotalAllowance);
                     AddParameter(insertCommand, "@TotalDeduction", employee.TotalDeduction);
                     AddParameter(insertCommand, "@IssueDate", monthEnd);
-                    AddParameter(insertCommand, "@OriginalBasic", employee.BasicSalary);
-                    AddParameter(insertCommand, "@Days", daysInMonth);
+                    AddParameter(insertCommand, "@OriginalBasic", employee.OriginalBasicSalary);
+                    AddParameter(insertCommand, "@Days", Math.Max(0, daysInMonth - employee.WithoutPayLeaveDays));
 
                     await insertCommand.ExecuteNonQueryAsync();
 
@@ -472,6 +515,60 @@ VALUES
 
                 if (close && connection.State == ConnectionState.Open)
                     await connection.CloseAsync();
+            }
+        }
+
+        // Load exact saved monthly allowance/deduction values from dbo.paytrnft.
+        // This is used only when dbo.paytrn already contains the selected Employee + Year + Month.
+        private async Task LoadSavedPayTrnFtValues(
+            DbConnection connection, EmployeeSalaryRowViewModel employee, int year, int month)
+        {
+            using (var cmd = connection.CreateCommand())
+            {
+                cmd.CommandText = @"
+SELECT LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName,
+       SUM(ISNULL(TRY_CONVERT(FLOAT,ft.amt),0)) Amount
+FROM dbo.paytrnft ft
+INNER JOIN dbo.allwmast am
+  ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,ft.allw_dedu_code)
+WHERE TRY_CONVERT(INT,ft.empl)=@EmployeeCode
+  AND TRY_CONVERT(INT,ft.[year])=@Year
+  AND TRY_CONVERT(INT,ft.[month])=@Month
+  AND TRY_CONVERT(INT,ft.flag)=1
+GROUP BY LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name)));";
+                AddParameter(cmd, "@EmployeeCode", employee.EmployeeCode);
+                AddParameter(cmd, "@Year", year);
+                AddParameter(cmd, "@Month", month);
+                using var r = await cmd.ExecuteReaderAsync();
+                while (await r.ReadAsync())
+                {
+                    string name = Convert.ToString(r["ComponentName"])?.Trim() ?? "";
+                    if (!string.IsNullOrWhiteSpace(name)) employee.Allowances[name] = Number(r["Amount"]);
+                }
+            }
+
+            using (var cmd = connection.CreateCommand())
+            {
+                cmd.CommandText = @"
+SELECT LTRIM(RTRIM(ISNULL(dm.name,''))) ComponentName,
+       SUM(ISNULL(TRY_CONVERT(FLOAT,ft.amt),0)) Amount
+FROM dbo.paytrnft ft
+INNER JOIN dbo.dedumast dm
+  ON TRY_CONVERT(INT,dm.code)=TRY_CONVERT(INT,ft.allw_dedu_code)
+WHERE TRY_CONVERT(INT,ft.empl)=@EmployeeCode
+  AND TRY_CONVERT(INT,ft.[year])=@Year
+  AND TRY_CONVERT(INT,ft.[month])=@Month
+  AND TRY_CONVERT(INT,ft.flag)=2
+GROUP BY LTRIM(RTRIM(ISNULL(dm.name,'')));";
+                AddParameter(cmd, "@EmployeeCode", employee.EmployeeCode);
+                AddParameter(cmd, "@Year", year);
+                AddParameter(cmd, "@Month", month);
+                using var r = await cmd.ExecuteReaderAsync();
+                while (await r.ReadAsync())
+                {
+                    string name = Convert.ToString(r["ComponentName"])?.Trim() ?? "";
+                    if (!string.IsNullOrWhiteSpace(name)) employee.Deductions[name] = Number(r["Amount"]);
+                }
             }
         }
 
@@ -664,6 +761,50 @@ ORDER BY TRY_CONVERT(INT,code);";
                     result.Add(name);
             }
             return result;
+        }
+
+        // ==========================================
+        // WITHOUT PAY LEAVE (leavmast code = 10)
+        // Only APPROVED leave (Status A/APPROVED) affects salary.
+        // ==========================================
+        private async Task<double> LoadApprovedWithoutPayLeaveDays(
+            DbConnection connection, int employeeCode, DateTime monthStart, DateTime monthEnd)
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+SELECT ISNULL(SUM(
+    CASE
+        WHEN CAST(sact_from_date AS date) >= @MonthStart
+         AND CAST(sact_to_date AS date) <= @MonthEnd
+         AND ISNULL(TRY_CONVERT(FLOAT,Num_of_days),0) > 0
+        THEN TRY_CONVERT(FLOAT,Num_of_days)
+        ELSE DATEDIFF(DAY,
+             CASE WHEN CAST(sact_from_date AS date) < @MonthStart THEN @MonthStart ELSE CAST(sact_from_date AS date) END,
+             CASE WHEN CAST(sact_to_date AS date) > @MonthEnd THEN @MonthEnd ELSE CAST(sact_to_date AS date) END) + 1
+    END),0)
+FROM dbo.leavtrn
+WHERE TRY_CONVERT(INT,empl)=@EmployeeCode
+  AND TRY_CONVERT(INT,sact_code)=10
+  AND UPPER(LTRIM(RTRIM(ISNULL(Status,'')))) IN ('A','APPROVED')
+  AND sact_from_date IS NOT NULL
+  AND sact_to_date IS NOT NULL
+  AND CAST(sact_from_date AS date) <= @MonthEnd
+  AND CAST(sact_to_date AS date) >= @MonthStart;";
+            AddParameter(command, "@EmployeeCode", employeeCode);
+            AddParameter(command, "@MonthStart", monthStart.Date);
+            AddParameter(command, "@MonthEnd", monthEnd.Date);
+            return Number(await command.ExecuteScalarAsync());
+        }
+
+        private static void ApplyWithoutPayLeave(EmployeeSalaryRowViewModel employee, double wplDays, int year, int month)
+        {
+            int daysInMonth = DateTime.DaysInMonth(year, month);
+            wplDays = Math.Max(0, Math.Min(wplDays, daysInMonth));
+            employee.WithoutPayLeaveDays = Math.Round(wplDays, 2);
+            double original = employee.OriginalBasicSalary;
+            double perDay = daysInMonth > 0 ? original / daysInMonth : 0;
+            employee.WithoutPayLeaveAmount = Math.Round(perDay * wplDays, 2);
+            employee.BasicSalary = Math.Round(Math.Max(0, original - employee.WithoutPayLeaveAmount), 2);
         }
 
         private async Task LoadEmployeeAllowances(DbConnection connection, EmployeeSalaryRowViewModel employee, DateTime monthStart, DateTime monthEnd)

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
+using System.Linq;
 
 namespace Employee_Management_System.Controllers
 {
@@ -486,7 +487,72 @@ ORDER BY
                 }
 
                 // ==========================================
-                // STEP 5 - FINAL CALCULATION
+                // STEP 5 - WITHOUT PAY LEAVE (WPL)
+                // leavtrn: sact_code = 10, Status = A
+                // Reduce Basic day-wise for selected month.
+                // ==========================================
+                double withoutPayLeaveDays = 0;
+
+                using (var command = connection.CreateCommand())
+                {
+                    var monthStart = new DateTime(year, month, 1);
+                    var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+                    command.CommandText = @"
+SELECT ISNULL(SUM(
+    CASE
+        WHEN sact_from_date IS NULL OR sact_to_date IS NULL THEN 0
+        ELSE DATEDIFF(
+            DAY,
+            CASE WHEN sact_from_date < @MonthStart THEN @MonthStart ELSE sact_from_date END,
+            CASE WHEN sact_to_date > @MonthEnd THEN @MonthEnd ELSE sact_to_date END
+        ) + 1
+    END
+), 0)
+FROM dbo.leavtrn
+WHERE TRY_CONVERT(INT, empl) = @EmployeeCode
+  AND TRY_CONVERT(INT, sact_code) = 10
+  AND UPPER(LTRIM(RTRIM(ISNULL(Status,'')))) = 'A'
+  AND sact_from_date <= @MonthEnd
+  AND sact_to_date >= @MonthStart;";
+
+                    AddParameter(command, "@EmployeeCode", employeeCode);
+                    AddParameter(command, "@MonthStart", monthStart);
+                    AddParameter(command, "@MonthEnd", monthEnd);
+
+                    var result = await command.ExecuteScalarAsync();
+                    withoutPayLeaveDays = Number(result ?? 0);
+                }
+
+                // paytrn.basic is treated as the original monthly Basic.
+                // Example: Basic 3750 / 30 days * 4 WPL = 500 reduction => 3250.
+                int totalDaysInMonth = DateTime.DaysInMonth(year, month);
+                double originalBasic = model.BasicSalary;
+
+                if (withoutPayLeaveDays > 0 && originalBasic > 0 && totalDaysInMonth > 0)
+                {
+                    // Never deduct more days than the selected month contains.
+                    withoutPayLeaveDays = Math.Min(withoutPayLeaveDays, totalDaysInMonth);
+
+                    double perDayBasic = originalBasic / totalDaysInMonth;
+                    double wplBasicReduction = perDayBasic * withoutPayLeaveDays;
+
+                    model.BasicSalary = Math.Round(
+                        Math.Max(0, originalBasic - wplBasicReduction),
+                        2);
+
+                    model.PayableDays = Math.Max(0, totalDaysInMonth - withoutPayLeaveDays);
+
+                    // Keep Basic earning in sync when a Basic row exists in paytrnft.
+                    var basicEarning = model.Earnings.FirstOrDefault(x =>
+                        x.Name.Equals("BASIC", StringComparison.OrdinalIgnoreCase));
+
+                    if (basicEarning != null)
+                        basicEarning.Amount = model.BasicSalary;
+                }
+
+                // ==========================================
+                // STEP 6 - FINAL CALCULATION
                 // ==========================================
 
                 model.GrossSalary =

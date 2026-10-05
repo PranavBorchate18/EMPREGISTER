@@ -48,6 +48,11 @@ namespace Employee_Management_System.Models
         public int? GradeCode { get; set; }
         public string GradeName { get; set; } = "";
         public double BasicSalary { get; set; }
+
+        // Original Basic saved in dbo.paytrn.orgn_basic for the selected month.
+        public double OriginalBasicSalary { get; set; }
+
+        public double WithoutPayLeaveDays { get; set; }
         public Dictionary<string, double> Allowances { get; set; } = new();
         public double TotalAllowance { get; set; }
         public double GrossSalary { get; set; }
@@ -63,6 +68,11 @@ namespace Employee_Management_System.Models
         public int Month { get; set; }
         public string MonthName { get; set; } = "";
         public double BasicSalary { get; set; }
+
+        // Original Basic saved in dbo.paytrn.orgn_basic for this exact month.
+        public double OriginalBasicSalary { get; set; }
+
+        public double WithoutPayLeaveDays { get; set; }
         public Dictionary<string, double> Allowances { get; set; } = new();
         public double TotalAllowance { get; set; }
         public double GrossSalary { get; set; }

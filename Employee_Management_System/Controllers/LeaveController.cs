@@ -863,6 +863,9 @@ WHERE l.Leave_App_ID = @id;";
             }
 
 
+            // Admin can choose the final sanction leave type while the request is Pending.
+            ViewBag.SanctionLeaveTypes = await LoadSanctionLeaveTypes();
+
             return View(model);
         }
 
@@ -952,6 +955,14 @@ WHERE l.Leave_App_ID = @id;";
                     });
             }
 
+            if (!model.SanctionLeaveCode.HasValue ||
+                model.SanctionLeaveCode.Value <= 0 ||
+                !await LeaveCodeExists(model.SanctionLeaveCode.Value))
+            {
+                TempData["Error"] = "Please select a valid Sanction Leave Type.";
+                return RedirectToAction(nameof(ViewLeave), new { id = leaveApplicationId });
+            }
+
 
             DbConnection connection =
                 _context.Database.GetDbConnection();
@@ -978,6 +989,7 @@ UPDATE dbo.leavtrn
 SET
     sact_from_date = @sact_from_date,
     sact_to_date   = @sact_to_date,
+    sact_code      = @sact_code,
     Num_of_days    = @Num_of_days,
     Status         = @Status,
     Operator       = @Operator
@@ -998,6 +1010,14 @@ WHERE Leave_App_ID = @Leave_App_ID
                     "@sact_to_date",
                     model.SanctionToDate.Value,
                     DbType.DateTime);
+
+
+                // Final leave type selected by Admin (10 = WITHOUT PAY LEAVE).
+                AddParameter(
+                    command,
+                    "@sact_code",
+                    model.SanctionLeaveCode.Value,
+                    DbType.Int32);
 
 
                 // =============================================
@@ -1393,6 +1413,40 @@ WHERE Leave_App_ID = @id
                         : Convert.ToString(
                             reader["Status"])
             };
+        }
+
+
+        // =========================================================
+        // LOAD SANCTION LEAVE TYPES FOR ADMIN
+        // Includes active dbo.leavmast rows, including code 10 WPL.
+        // =========================================================
+        private async Task<List<SelectListItem>> LoadSanctionLeaveTypes()
+        {
+            var list = new List<SelectListItem>();
+            DbConnection connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+            try
+            {
+                if (close) await connection.OpenAsync();
+                using DbCommand command = connection.CreateCommand();
+                command.CommandText = @"
+SELECT code, ISNULL(name,'') name
+FROM dbo.leavmast
+WHERE ISNULL(Active,'N')='Y'
+ORDER BY TRY_CONVERT(INT,code);";
+                using DbDataReader reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    int code = Convert.ToInt32(reader["code"]);
+                    string name = Convert.ToString(reader["name"])?.Trim() ?? "";
+                    list.Add(new SelectListItem { Value = code.ToString(), Text = $"{code} - {name}" });
+                }
+            }
+            finally
+            {
+                if (close && connection.State == ConnectionState.Open) await connection.CloseAsync();
+            }
+            return list;
         }
 
 

@@ -311,7 +311,7 @@
                            Model.DemandLeaveCode.HasValue
                                ? $"{Model.DemandLeaveCode} - {Model.DemandLeaveName}"
                                : ""
-                                                                                                            )"
+                                                                                                                                                                                                                        )"
                            readonly />
 
                 </div>
@@ -388,10 +388,10 @@
                     <input type="text"
                            class="form-control"
                            value="@(
-                                                                                     Model.ChargeTo.HasValue
-                                                                                         ? $"{Model.ChargeTo} - {Model.ChargeToEmployeeName}"
-                                                                                         : ""
-                                                                                                            )"
+                                                                                                                Model.ChargeTo.HasValue
+                                                                                                                    ? $"{Model.ChargeTo} - {Model.ChargeToEmployeeName}"
+                                                                                                                    : ""
+                                                                                                                                                                                                                        )"
                            readonly />
 
                 </div>
@@ -575,14 +575,23 @@
                             Sanction Leave
                         </label>
 
-                        <input type="text"
-                               class="form-control"
-                               value="@(
-                               Model.SanctionLeaveCode.HasValue
-                                   ? $"{Model.SanctionLeaveCode} - {Model.SanctionLeaveName}"
-                                   : ""
-                                                                                                                            )"
-                               readonly />
+                        @if (isPending)
+                        {
+                            <select asp-for="SanctionLeaveCode"
+                                    class="form-select"
+                                    asp-items="@(ViewBag.SanctionLeaveTypes as System.Collections.Generic.IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)"
+                                    required>
+                                <option value="">-- Select Sanction Leave --</option>
+                            </select>
+                            <small class="text-muted">Select <strong>10 - WITHOUT PAY LEAVE</strong> when the approved leave must reduce salary.</small>
+                        }
+                        else
+                        {
+                            <input type="text"
+                                   class="form-control"
+                                   value="@(Model.SanctionLeaveCode.HasValue ? $"{Model.SanctionLeaveCode} - {Model.SanctionLeaveName}" : "")"
+                                   readonly />
+                        }
 
                     </div>
 
@@ -616,10 +625,10 @@
                         <input type="text"
                                class="form-control"
                                value="@(
-                                                                                                 string.IsNullOrWhiteSpace(Model.Operator)
-                                                                                                     ? ""
-                                                                                                     : Model.Operator
-                                                                                                                            )"
+                               string.IsNullOrWhiteSpace(Model.Operator)
+                                   ? ""
+                                   : Model.Operator
+                                                                                                                                                                                                                                                        )"
                                readonly />
 
                     </div>

@@ -109,9 +109,9 @@
     }
 
     /* Single View history:
-                                                                       Sr. / Employee Code / Employee Name = blank
-                                                                       Grade = Month / Year
-                                                                       remaining values stay under their matching columns */
+                                                                                       Sr. / Employee Code / Employee Name = blank
+                                                                                       Grade = Month / Year
+                                                                                       remaining values stay under their matching columns */
     .history-table .history-blank {
         background: #f8f9fa !important;
     }
@@ -667,7 +667,10 @@
                         <td class="history-blank"></td>
                         <td class="history-blank"></td>
                         <td class="history-blank"></td>
-                        <td rowspan="2" class="history-month-year employee-info-cell">${esc(m.monthName)} ${m.year}</td>
+                        <td rowspan="2" class="history-month-year employee-info-cell">
+                            ${esc(m.monthName)} ${m.year}
+                            ${Number(m.withoutPayLeaveDays||0)>0 ? `<div class="small text-danger fw-semibold mt-1">WPL: ${Number(m.withoutPayLeaveDays).toFixed(1).replace(/\.0$/, '')} Day(s)</div><div class="small text-muted fw-semibold">Original Basic: ₹${money(m.originalBasicSalary)}</div>` : ''}
+                        </td>
                         <td rowspan="2" class="employee-info-cell text-end fw-bold">${money(m.basicSalary)}</td>
                         <td class="row-type-allowance">Earnings</td>
                         <td class="text-end fw-bold">${money(m.totalAllowance)}</td>
@@ -819,7 +822,10 @@
                 h+=`<tr>
                     <td>${i+1}</td>
                     <td class="fw-bold">${x.employeeCode}</td>
-                    <td class="employee-name-toggle" data-code="${x.employeeCode}" title="Show / Hide Selected Period History">${esc(x.employeeName)}</td>
+                    <td class="employee-name-toggle" data-code="${x.employeeCode}" title="Show / Hide Selected Period History">
+                        ${esc(x.employeeName)}
+                        ${Number(x.withoutPayLeaveDays||0)>0 ? `<div class="small text-danger fw-semibold mt-1">WPL: ${Number(x.withoutPayLeaveDays).toFixed(1).replace(/\.0$/, '')} Day(s)</div><div class="small text-muted fw-semibold">Original Basic: ₹${money(x.originalBasicSalary)}</div>` : ''}
+                    </td>
                     <td>${esc(x.gradeName||'-')}</td>
                     <td class="text-end fw-bold">${money(x.basicSalary)}</td>`;
 
@@ -867,7 +873,10 @@
                             <td class="history-blank"></td>
                             <td class="history-blank"></td>
                             <td class="history-blank"></td>
-                            <td class="history-month-year">${esc(m.monthName)} ${m.year}</td>
+                            <td class="history-month-year">
+                                ${esc(m.monthName)} ${m.year}
+                                ${Number(m.withoutPayLeaveDays||0)>0 ? `<div class="small text-danger fw-semibold mt-1">WPL: ${Number(m.withoutPayLeaveDays).toFixed(1).replace(/\.0$/, '')} Day(s)</div><div class="small text-muted fw-semibold">Original Basic: ₹${money(m.originalBasicSalary)}</div>` : ''}
+                            </td>
                             <td class="text-end">${money(m.basicSalary)}</td>`;
 
                     allowances.forEach(n=>
@@ -931,7 +940,10 @@
                     <td rowspan="2"
                         class="employee-info-cell employee-name-toggle"
                         data-code="${x.employeeCode}"
-                        title="Show / Hide Selected Period History">${esc(x.employeeName)}</td>
+                        title="Show / Hide Selected Period History">
+                        ${esc(x.employeeName)}
+                        ${Number(x.withoutPayLeaveDays||0)>0 ? `<div class="small text-danger fw-semibold mt-1">WPL: ${Number(x.withoutPayLeaveDays).toFixed(1).replace(/\.0$/, '')} Day(s)</div><div class="small text-muted fw-semibold">Original Basic: ₹${money(x.originalBasicSalary)}</div>` : ''}
+                    </td>
                     <td rowspan="2" class="employee-info-cell">${esc(x.gradeName||'-')}</td>
                     <td rowspan="2" class="employee-info-cell text-end">${money(x.basicSalary)}</td>
                     <td class="row-type-allowance">Earnings</td>

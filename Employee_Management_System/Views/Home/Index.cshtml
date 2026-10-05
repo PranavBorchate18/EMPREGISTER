@@ -1,8 +1,793 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model Employee_Management_System.Models.EmployeeDashboardViewModel
+
+@{
+    ViewData["Title"] = "Employee Management Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<div class="employee-dashboard py-3">
+    <div class="dashboard-heading mb-3">
+        <div>
+            <h4 class="mb-1">Employee Management Dashboard</h4>
+            <div class="text-muted small">Human Resource Workforce Overview</div>
+        </div>
+        <span class="live-badge">
+            ● LIVE
+            <div class="mt-2 small fw-semibold text-secondary">
+                <i class="bi bi-calendar-date me-1"></i>
+                Working Date:
+                <span class="text-dark">
+                    @(Model.WorkingDate?.ToString("dd-MM-yyyy") ?? "-")
+                </span>
+            </div>
+        </span>
+    </div>
+
+    <div class="row g-3 mb-3 dashboard-summary-row">
+        <div class="col-6 col-md-4 dashboard-summary-col">
+            <div class="summary-card active-card">
+                <div class="summary-label">ACTIVE</div>
+                <div class="summary-value">@Model.ActiveEmployees</div>
+                <div class="summary-note">Type 1, 2, 3, 4, 5</div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 dashboard-summary-col">
+            <div class="summary-card male-card">
+                <div class="summary-label">MALE</div>
+                <div class="summary-value">@Model.MaleEmployees</div>
+                <div class="summary-note">Active Male Employees</div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 dashboard-summary-col">
+            <div class="summary-card female-card">
+                <div class="summary-label">FEMALE</div>
+                <div class="summary-value">@Model.FemaleEmployees</div>
+                <div class="summary-note">Active Female Employees</div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 dashboard-summary-col">
+            <div class="summary-card present-card">
+                <div class="summary-label">TODAY'S PRESENT</div>
+                <div class="summary-value">@Model.TodayPresentEmployees</div>
+                <div class="summary-note">Working Date Present</div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-4 dashboard-summary-col">
+            <div class="summary-card absent-card">
+                <div class="summary-label">TODAY'S ABSENT</div>
+                <div class="summary-value">@Model.TodayAbsentEmployees</div>
+                <div class="summary-note">Working Date Leave</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="get" asp-controller="Home" asp-action="Index" class="filter-panel mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">DIVISION</label>
+                <select class="form-select" name="divisionCode">
+                    <option value="">-- Select Division --</option>
+                    @foreach (var division in Model.Divisions)
+                    {
+                        if (Model.SelectedDivision == division.Value)
+                        {
+                            <option value="@division.Value" selected>@division.Text</option>
+                        }
+                        else
+                        {
+                            <option value="@division.Value">@division.Text</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">GRADE</label>
+                <select class="form-select" name="gradeCode">
+                    <option value="">-- Select Grade --</option>
+                    @foreach (var grade in Model.Grades)
+                    {
+                        if (Model.SelectedGrade == grade.Value)
+                        {
+                            <option value="@grade.Value" selected>@grade.Text</option>
+                        }
+                        else
+                        {
+                            <option value="@grade.Value">@grade.Text</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label d-block">GENDER</label>
+                <div class="gender-filter">
+                    <label>
+                        <input type="radio" name="gender" value=""
+                               @(string.IsNullOrWhiteSpace(Model.SelectedGender) ? "checked" : "") />
+                        Both
+                    </label>
+
+                    <label>
+                        <input type="radio" name="gender" value="M"
+                               @(Model.SelectedGender == "M" ? "checked" : "") />
+                        Male
+                    </label>
+
+                    <label>
+                        <input type="radio" name="gender" value="F"
+                               @(Model.SelectedGender == "F" ? "checked" : "") />
+                        Female
+                    </label>
+                </div>
+            </div>
+
+            <div class="col-md-1 d-grid">
+                <button type="submit" class="btn btn-primary">Apply</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="chart-title">Division/Branch Wise Employee</div>
+
+                <div class="chart-container">
+                    <canvas id="branchEmployeeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="chart-card">
+
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                    <div class="chart-title mb-0">Division/Branch Wise Salary</div>
+
+                    <form method="get"
+                          asp-controller="Home"
+                          asp-action="Index"
+                          id="salaryMonthForm"
+                          class="salary-month-filter">
+
+                        <input type="hidden" name="divisionCode" value="@Model.SelectedDivision" />
+                        <input type="hidden" name="gradeCode" value="@Model.SelectedGrade" />
+                        <input type="hidden" name="gender" value="@Model.SelectedGender" />
+                        <input type="hidden" name="salaryYear" value="@Model.SelectedSalaryYear" />
+
+                        <label for="salaryMonth">Selected Month</label>
+
+                        <select id="salaryMonth"
+                                name="salaryMonth"
+                                class="form-select form-select-sm"
+                                onchange="this.form.submit()">
+                            @for (int month = 1; month <= 12; month++)
+                            {
+                                string monthName =
+                                System.Globalization.CultureInfo.CurrentCulture
+                                .DateTimeFormat.GetMonthName(month);
+
+                                if (Model.SelectedSalaryMonth == month)
+                                {
+                                    <option value="@month" selected>@monthName @Model.SelectedSalaryYear</option>
+                                }
+                                else
+                                {
+                                    <option value="@month">@monthName @Model.SelectedSalaryYear</option>
+                                }
+                            }
+                        </select>
+                    </form>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="branchSalaryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Branch Wise Total Gross Salary - independent Branch + From/To Date filter -->
+    <div class="chart-card gross-salary-card mt-3">
+        <div class="chart-title">Month Wise Total Gross Salary (Pay Calculation)</div>
+
+        <form method="get"
+              asp-controller="Home"
+              asp-action="Index"
+              class="gross-salary-filter mb-3">
+
+            <!-- Preserve existing dashboard / pie-chart selections -->
+            <input type="hidden" name="divisionCode" value="@Model.SelectedDivision" />
+            <input type="hidden" name="gradeCode" value="@Model.SelectedGrade" />
+            <input type="hidden" name="gender" value="@Model.SelectedGender" />
+            <input type="hidden" name="salaryYear" value="@Model.SelectedSalaryYear" />
+            <input type="hidden" name="salaryMonth" value="@Model.SelectedSalaryMonth" />
+
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Select Branch</label>
+                    <select class="form-select" name="grossBranchCode">
+                        @if (!Model.SelectedGrossSalaryBranch.HasValue)
+                        {
+                            <option value="" selected>All Branches</option>
+                        }
+                        else
+                        {
+                            <option value="">All Branches</option>
+                        }
+
+                        @foreach (var branch in Model.Branches)
+                        {
+                            if (Model.SelectedGrossSalaryBranch == branch.Value)
+                            {
+                                <option value="@branch.Value" selected>@branch.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@branch.Value">@branch.Text</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date"
+                           class="form-control"
+                           name="grossFromDate"
+                           value="@Model.GrossSalaryFromDate.ToString("yyyy-MM-dd")"
+                           required />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date"
+                           class="form-control"
+                           name="grossToDate"
+                           value="@Model.GrossSalaryToDate.ToString("yyyy-MM-dd")"
+                           required />
+                </div>
+
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </div>
+            </div>
+        </form>
+
+        @if (Model.MonthlyGrossSalaries.Any())
+        {
+            <div class="gross-chart-container">
+                <canvas id="employeeGrossSalaryChart"></canvas>
+            </div>
+
+            <div class="gross-total-summary mt-3">
+                <div>
+                    <div class="gross-total-label">Selected Branch</div>
+                    <div class="gross-total-value">
+                        @(Model.SelectedGrossSalaryBranch.HasValue
+                                            ? Model.Branches.FirstOrDefault(x => x.Value == Model.SelectedGrossSalaryBranch.Value)?.Text
+                                            : "All Branches")
+                </div>
+            </div>
+
+                <div>
+                    <div class="gross-total-label">From Date</div>
+                    <div class="gross-total-value">@Model.GrossSalaryFromDate.ToString("dd-MM-yyyy")</div>
+                </div>
+
+                <div>
+                    <div class="gross-total-label">To Date</div>
+                    <div class="gross-total-value">@Model.GrossSalaryToDate.ToString("dd-MM-yyyy")</div>
+                </div>
+
+                <div class="gross-total-amount-box">
+                    <div class="gross-total-label">Total Gross Salary</div>
+                    <div class="gross-total-amount">
+                        ₹@Model.TotalGrossSalary.ToString("N2", new System.Globalization.CultureInfo("en-IN"))
+                    </div>
+                </div>
+            </div>
+
+            <div class="monthly-gross-breakdown mt-3">
+            @foreach (var item in Model.MonthlyGrossSalaries)
+                {
+                    <div class="monthly-gross-item">
+                        <span>@item.MonthName</span>
+                        <strong>
+                            ₹@item.GrossSalary.ToString("N2", new System.Globalization.CultureInfo("en-IN"))
+                        </strong>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-muted text-center py-5">
+                No Gross Salary data found for the selected Branch and Date Range.
+            </div>
+        }
+    </div>
+
+    <style>
+        .employee-dashboard {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .dashboard-heading {
+            background: #fff;
+            border: 1px solid #e4e7ec;
+            border-radius: 10px;
+            padding: 15px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,.04);
+        }
+
+            .dashboard-heading h4 {
+                font-weight: 700;
+                color: #263238;
+            }
+
+        .live-badge {
+            background: #e8f5e9;
+            color: #198754;
+            border: 1px solid #b7dfc3;
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .dashboard-summary-row {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-summary-col {
+            flex: 0 0 20%;
+            max-width: 20%;
+        }
+
+        .summary-card {
+            position: relative;
+            min-height: 125px;
+            background: #fff;
+            border: 1px solid #e1e5ea;
+            border-radius: 8px;
+            padding: 18px 14px;
+            text-align: center;
+            box-shadow: 0 2px 7px rgba(0,0,0,.05);
+            overflow: hidden;
+        }
+
+            .summary-card::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: #6c757d;
+            }
+
+        .active-card::before {
+            background: #198754;
+        }
+
+        .present-card::before {
+            background: #20c997;
+        }
+
+        .absent-card::before {
+            background: #dc3545;
+        }
+
+        .male-card::before {
+            background: #6f42c1;
+        }
+
+        .female-card::before {
+            background: #d63384;
+        }
+
+
+        .summary-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .6px;
+            color: #6c757d;
+        }
+
+        .summary-value {
+            margin-top: 5px;
+            font-size: 31px;
+            line-height: 1.1;
+            font-weight: 700;
+            color: #20262d;
+        }
+
+        .summary-note {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #9aa0a6;
+        }
+
+        .filter-panel,
+        .chart-card {
+            background: #fff;
+            border: 1px solid #e1e5ea;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.04);
+        }
+
+        .filter-panel {
+            padding: 14px;
+        }
+
+            .filter-panel .form-label {
+                font-size: 11px;
+                font-weight: 700;
+                color: #6c757d;
+                margin-bottom: 5px;
+            }
+
+        .gender-filter {
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            flex-wrap: wrap;
+        }
+
+            .gender-filter label {
+                font-size: 13px;
+                cursor: pointer;
+            }
+
+        .chart-card {
+            min-height: 390px;
+            padding: 16px;
+        }
+
+        .chart-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #343a40;
+            margin-bottom: 12px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 315px;
+            width: 100%;
+        }
+
+
+        .salary-month-filter {
+            min-width: 180px;
+        }
+
+            .salary-month-filter label {
+                display: block;
+                font-size: 11px;
+                font-weight: 700;
+                color: #6c757d;
+                margin-bottom: 4px;
+            }
+
+        .gross-salary-card {
+            min-height: 470px;
+        }
+
+        .gross-salary-filter {
+            border: 1px solid #e1e5ea;
+            border-radius: 6px;
+            padding: 12px;
+            background: #fff;
+        }
+
+            .gross-salary-filter .form-label {
+                font-size: 11px;
+                font-weight: 700;
+                color: #6c757d;
+                margin-bottom: 5px;
+            }
+
+        .gross-chart-container {
+            position: relative;
+            height: 360px;
+            width: 100%;
+            overflow-x: auto;
+        }
+
+            .gross-chart-container canvas {
+                min-width: 900px;
+            }
+
+
+        .gross-total-summary {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr 1.4fr;
+            gap: 12px;
+            align-items: stretch;
+            border: 1px solid #dbe5f0;
+            border-left: 4px solid #0d6efd;
+            border-radius: 8px;
+            padding: 14px 16px;
+            background: #f8fbff;
+        }
+
+        .gross-total-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .gross-total-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #20262d;
+        }
+
+        .gross-total-amount-box {
+            text-align: center;
+            background: #eaf8ee;
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+
+        .gross-total-amount {
+            font-size: 24px;
+            font-weight: 800;
+            color: #198754;
+        }
+
+
+        .monthly-gross-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 10px;
+        }
+
+        .monthly-gross-item {
+            border: 1px solid #e1e5ea;
+            border-radius: 7px;
+            padding: 10px 12px;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+            .monthly-gross-item strong {
+                color: #198754;
+                white-space: nowrap;
+            }
+
+        @@media (max-width: 991.98px) {
+            .dashboard-summary-col {
+                flex: 0 0 33.333333%;
+                max-width: 33.333333%;
+            }
+        }
+
+        @@media (max-width: 767.98px) {
+            .dashboard-heading {
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .dashboard-summary-col {
+                flex: 0 0 50%;
+                max-width: 50%;
+            }
+
+            .summary-card {
+                min-height: 112px;
+            }
+
+            .summary-value {
+                font-size: 26px;
+            }
+        }
+    </style>
+
+@section Scripts {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+        <script>
+                                document.addEventListener('DOMContentLoaded', function () {
+
+                                    const employeeLabels =
+                                        @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                                            Model.BranchWiseEmployees.Select(x => x.BranchName)));
+
+            const employeeValues =
+                @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Model.BranchWiseEmployees.Select(x => x.EmployeeCount)));
+
+            const salaryLabels =
+                @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Model.BranchWiseSalaries.Select(x => x.BranchName)));
+
+            const salaryValues =
+                @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Model.BranchWiseSalaries.Select(x => x.Salary)));
+
+            const grossSalaryLabels =
+                @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                                                                                                                                                                Model.MonthlyGrossSalaries.Select(x => x.MonthName)));
+
+            const grossSalaryValues =
+                @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                                                                                                                                                                Model.MonthlyGrossSalaries.Select(x => x.GrossSalary)));
+
+            const chartColors = [
+                '#0d6efd',
+                '#dc3545',
+                '#20c997',
+                '#fd7e14',
+                '#6f42c1',
+                '#0dcaf0',
+                '#ffc107',
+                '#198754',
+                '#d63384',
+                '#6c757d',
+                '#6610f2',
+                '#0d9488'
+            ];
+
+            const employeeCanvas =
+                document.getElementById('branchEmployeeChart');
+
+            if (employeeCanvas) {
+                new Chart(employeeCanvas, {
+                    type: 'pie',
+                    data: {
+                        labels: employeeLabels,
+                        datasets: [{
+                            data: employeeValues,
+                            backgroundColor:
+                                employeeLabels.map(
+                                    (_, i) => chartColors[i % chartColors.length]),
+                            borderColor: '#ffffff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return context.label + ': ' + context.raw;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            const salaryCanvas =
+                document.getElementById('branchSalaryChart');
+
+            if (salaryCanvas) {
+                new Chart(salaryCanvas, {
+                    type: 'pie',
+                    data: {
+                        labels: salaryLabels,
+                        datasets: [{
+                            data: salaryValues,
+                            backgroundColor:
+                                salaryLabels.map(
+                                    (_, i) => chartColors[i % chartColors.length]),
+                            borderColor: '#ffffff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        const value =
+                                            Number(context.raw || 0);
+
+                                        return context.label +
+                                            ': ₹' +
+                                            value.toLocaleString('en-IN', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2
+                                            });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            const grossSalaryCanvas =
+                document.getElementById('employeeGrossSalaryChart');
+
+            if (grossSalaryCanvas) {
+                new Chart(grossSalaryCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: grossSalaryLabels,
+                        datasets: [{
+                            label: 'Total Gross Salary',
+                            data: grossSalaryValues,
+                            backgroundColor: '#0d6efd',
+                            borderColor: '#0d6efd',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                ticks: {
+                                    autoSkip: false,
+                                    maxRotation: 45,
+                                    minRotation: 0
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Month'
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Total Gross Salary (₹)'
+                                },
+                                ticks: {
+                                    callback: function (value) {
+                                        return '₹' + Number(value).toLocaleString('en-IN');
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        const value = Number(context.raw || 0);
+                                        return 'Total Gross Salary: ₹' +
+                                            value.toLocaleString('en-IN', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2
+                                            });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+    }
