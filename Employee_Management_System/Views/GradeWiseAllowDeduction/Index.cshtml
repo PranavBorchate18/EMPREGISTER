@@ -233,8 +233,8 @@
                                                             <div class="card-header bg-primary text-white">
 
                                                                 <div class="d-flex justify-content-between
-                                                                                                                                                                                                                            align-items-center
-                                                                                                                                                                                                                            flex-wrap gap-2">
+                                                                                                                                                                                                                                                                                        align-items-center
+                                                                                                                                                                                                                                                                                        flex-wrap gap-2">
 
                                                                     <h6 class="mb-0">
 
@@ -277,11 +277,11 @@
                                                                     <div class="table-responsive">
 
                                                                         <table class="table
-                                                                                                                                                                                                                                                                                      table-bordered
-                                                                                                                                                                                                                                                                                      table-striped
-                                                                                                                                                                                                                                                                                      table-hover
-                                                                                                                                                                                                                                                                                      align-middle
-                                                                                                                                                                                                                                                                                      mb-0">
+                                                                                                                                                                                                                                                                                                                                                                      table-bordered
+                                                                                                                                                                                                                                                                                                                                                                      table-striped
+                                                                                                                                                                                                                                                                                                                                                                      table-hover
+                                                                                                                                                                                                                                                                                                                                                                      align-middle
+                                                                                                                                                                                                                                                                                                                                                                      mb-0">
 
                                                                             <thead class="table-primary">
 
@@ -441,7 +441,8 @@
                                                                                                     data-percent="@detail.Percent"
                                                                                                     data-min="@detail.MinLimit"
                                                                                                     data-max="@detail.MaxLimit"
-                                                                                                    data-days="@detail.MinDays">
+                                                                                                    data-days="@detail.MinDays"
+                                                                                                    data-formula="@detail.Formula">
 
                                                                                                 <i class="bi bi-pencil-square"></i>
                                                                                                 Edit
@@ -674,8 +675,8 @@
                                                             <div class="card-header bg-danger text-white">
 
                                                                 <div class="d-flex justify-content-between
-                                                                                                                                                                                                                align-items-center
-                                                                                                                                                                                                                flex-wrap gap-2">
+                                                                                                                                                                                                                                                                            align-items-center
+                                                                                                                                                                                                                                                                            flex-wrap gap-2">
 
                                                                     <h6 class="mb-0">
 
@@ -716,11 +717,11 @@
                                                                     <div class="table-responsive">
 
                                                                         <table class="table
-                                                                                                                                                                                                                                                                      table-bordered
-                                                                                                                                                                                                                                                                      table-striped
-                                                                                                                                                                                                                                                                      table-hover
-                                                                                                                                                                                                                                                                      align-middle
-                                                                                                                                                                                                                                                                      mb-0">
+                                                                                                                                                                                                                                                                                                                                                      table-bordered
+                                                                                                                                                                                                                                                                                                                                                      table-striped
+                                                                                                                                                                                                                                                                                                                                                      table-hover
+                                                                                                                                                                                                                                                                                                                                                      align-middle
+                                                                                                                                                                                                                                                                                                                                                      mb-0">
 
                                                                             <thead class="table-danger">
 
@@ -1986,8 +1987,7 @@
                                                            name="allowanceAmountType"
                                                            id="AllowanceTypeFix"
                                                            value="fix" />
-                                                    <label class="form-check-label"
-                                                           for="AllowanceTypeFix">
+                                                    <label class="form-check-label" for="AllowanceTypeFix">
                                                         Fix Amount
                                                     </label>
                                                 </div>
@@ -1998,10 +1998,42 @@
                                                            name="allowanceAmountType"
                                                            id="AllowanceTypePercent"
                                                            value="percent" />
-                                                    <label class="form-check-label"
-                                                           for="AllowanceTypePercent">
+                                                    <label class="form-check-label" for="AllowanceTypePercent">
                                                         Percentage
                                                     </label>
+                                                </div>
+
+                                                <div class="form-check">
+                                                    <input class="form-check-input"
+                                                           type="radio"
+                                                           name="allowanceAmountType"
+                                                           id="AllowanceTypeSpecialFormula"
+                                                           value="formula" />
+                                                    <label class="form-check-label" for="AllowanceTypeSpecialFormula">
+                                                        Special Formula
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12" id="SpecialAllowanceFormulaBox" style="display:none;">
+                                            <label class="form-label fw-bold">Special Formula</label>
+                                            <div class="row align-items-center g-2">
+                                                <div class="col-md-2">
+                                                    <label for="UpdateFormula" class="form-label mb-0">
+                                                        Formula <span class="text-danger">*</span>
+                                                    </label>
+                                                </div>
+                                                <div class="col-md-10">
+                                                    <input type="text"
+                                                           id="UpdateFormula"
+                                                           name="formula"
+                                                           class="form-control"
+                                                           placeholder="Example: BASIC+DA+HRA-500"
+                                                           disabled />
+                                                    <div class="form-text">
+                                                        Allowed: BASIC, DA, HRA, numbers and + - * / ( ) — no spaces
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -2145,198 +2177,202 @@
 
                 <script>
 
-                    document.addEventListener(
-                        "DOMContentLoaded",
-                        function () {
+                        document.addEventListener(
+                            "DOMContentLoaded",
+                            function () {
 
 
-                            const updateButtons =
-                                document.querySelectorAll(
-                                    ".btnUpdateAllowance"
-                                );
+                                const updateButtons =
+                                    document.querySelectorAll(
+                                        ".btnUpdateAllowance"
+                                    );
 
 
-                            updateButtons.forEach(
-                                function (button) {
+                                updateButtons.forEach(
+                                    function (button) {
 
 
-                                    button.addEventListener(
-                                        "click",
-                                        function () {
+                                        button.addEventListener(
+                                            "click",
+                                            function () {
 
 
-                                            document.getElementById(
-                                                "UpdateGradeCode"
-                                            ).value =
-                                                this.dataset.code || "";
+                                                document.getElementById(
+                                                    "UpdateGradeCode"
+                                                ).value =
+                                                    this.dataset.code || "";
 
 
-                                            document.getElementById(
-                                                "UpdateGradeCodeDisplay"
-                                            ).value =
-                                                this.dataset.code || "";
+                                                document.getElementById(
+                                                    "UpdateGradeCodeDisplay"
+                                                ).value =
+                                                    this.dataset.code || "";
 
 
-                                            document.getElementById(
-                                                "UpdateGradeName"
-                                            ).value =
-                                                this.dataset.name || "";
+                                                document.getElementById(
+                                                    "UpdateGradeName"
+                                                ).value =
+                                                    this.dataset.name || "";
 
 
-                                            document.getElementById(
-                                                "UpdatePayDiv"
-                                            ).value =
-                                                this.dataset.paydiv || "";
+                                                document.getElementById(
+                                                    "UpdatePayDiv"
+                                                ).value =
+                                                    this.dataset.paydiv || "";
 
 
-                                            document.getElementById(
-                                                "UpdateFixAmount"
-                                            ).value =
-                                                this.dataset.fix || "";
+                                                document.getElementById(
+                                                    "UpdateFixAmount"
+                                                ).value =
+                                                    this.dataset.fix || "";
 
 
-                                            document.getElementById(
-                                                "UpdateCalcCode"
-                                            ).value =
-                                                this.dataset.calc || "";
+                                                document.getElementById(
+                                                    "UpdateCalcCode"
+                                                ).value =
+                                                    this.dataset.calc || "";
 
 
-                                            document.getElementById(
-                                                "UpdatePercent"
-                                            ).value =
-                                                this.dataset.percent || "";
+                                                document.getElementById(
+                                                    "UpdatePercent"
+                                                ).value =
+                                                    this.dataset.percent || "";
 
 
-                                            document.getElementById(
-                                                "UpdateMinLimit"
-                                            ).value =
-                                                this.dataset.min || "";
+                                                document.getElementById(
+                                                    "UpdateMinLimit"
+                                                ).value =
+                                                    this.dataset.min || "";
 
 
-                                            document.getElementById(
-                                                "UpdateMaxLimit"
-                                            ).value =
-                                                this.dataset.max || "";
+                                                document.getElementById(
+                                                    "UpdateMaxLimit"
+                                                ).value =
+                                                    this.dataset.max || "";
 
 
-                                            document.getElementById(
-                                                "UpdateMinDays"
-                                            ).value =
-                                                this.dataset.days || "";
+                                                document.getElementById(
+                                                    "UpdateMinDays"
+                                                ).value =
+                                                    this.dataset.days || "";
 
-                                            const fixValue =
-                                                this.dataset.fix || "";
+                                                const formulaInput =
+                                                    document.getElementById("UpdateFormula");
 
-                                            const calcValue =
-                                                this.dataset.calc || "";
+                                                const formulaBox =
+                                                    document.getElementById("SpecialAllowanceFormulaBox");
 
-                                            const percentValue =
-                                                this.dataset.percent || "";
+                                                const formulaValue =
+                                                    this.dataset.formula || "";
 
-                                            const fixRadio =
-                                                document.getElementById("AllowanceTypeFix");
+                                                if (formulaInput) {
+                                                    formulaInput.value = formulaValue;
+                                                }
 
-                                            const percentRadio =
-                                                document.getElementById("AllowanceTypePercent");
+                                                const fixValue = this.dataset.fix || "";
+                                                const calcValue = this.dataset.calc || "";
+                                                const percentValue = this.dataset.percent || "";
 
-                                            const fixBox =
-                                                document.getElementById("AllowanceFixAmountBox");
+                                                const fixRadio =
+                                                    document.getElementById("AllowanceTypeFix");
 
-                                            const calcBox =
-                                                document.getElementById("AllowanceCalcCodeBox");
+                                                const percentRadio =
+                                                    document.getElementById("AllowanceTypePercent");
 
-                                            const percentBox =
-                                                document.getElementById("AllowancePercentBox");
+                                                const formulaRadio =
+                                                    document.getElementById("AllowanceTypeSpecialFormula");
 
-                                            const fixInput =
-                                                document.getElementById("UpdateFixAmount");
+                                                const fixBox =
+                                                    document.getElementById("AllowanceFixAmountBox");
 
-                                            const calcInput =
-                                                document.getElementById("UpdateCalcCode");
+                                                const calcBox =
+                                                    document.getElementById("AllowanceCalcCodeBox");
 
-                                            const percentInput =
-                                                document.getElementById("UpdatePercent");
+                                                const percentBox =
+                                                    document.getElementById("AllowancePercentBox");
 
-                                            const usePercentage =
-                                                (
-                                                    String(calcValue).trim() !== "" &&
-                                                    Number(calcValue) !== 0
-                                                )
-                                                ||
-                                                (
-                                                    String(percentValue).trim() !== "" &&
-                                                    Number(percentValue) !== 0
+                                                const fixInput =
+                                                    document.getElementById("UpdateFixAmount");
+
+                                                const calcInput =
+                                                    document.getElementById("UpdateCalcCode");
+
+                                                const percentInput =
+                                                    document.getElementById("UpdatePercent");
+
+                                                const useFormula =
+                                                    String(formulaValue).trim() !== "";
+
+                                                const usePercentage =
+                                                    !useFormula &&
+                                                    (
+                                                        (
+                                                            String(calcValue).trim() !== "" &&
+                                                            Number(calcValue) !== 0
+                                                        )
+                                                        ||
+                                                        (
+                                                            String(percentValue).trim() !== "" &&
+                                                            Number(percentValue) !== 0
+                                                        )
+                                                    );
+
+                                                function setAllowanceMode(mode) {
+
+                                                    if (fixRadio) fixRadio.checked = mode === "fix";
+                                                    if (percentRadio) percentRadio.checked = mode === "percent";
+                                                    if (formulaRadio) formulaRadio.checked = mode === "formula";
+
+                                                    if (fixBox) fixBox.style.display = mode === "fix" ? "" : "none";
+                                                    if (calcBox) calcBox.style.display = mode === "percent" ? "" : "none";
+                                                    if (percentBox) percentBox.style.display = mode === "percent" ? "" : "none";
+                                                    if (formulaBox) formulaBox.style.display = mode === "formula" ? "" : "none";
+
+                                                    if (fixInput) {
+                                                        fixInput.disabled = mode !== "fix";
+                                                        if (mode === "fix") fixInput.value = fixValue;
+                                                    }
+
+                                                    if (calcInput) {
+                                                        calcInput.disabled = mode !== "percent";
+                                                        if (mode === "percent") calcInput.value = calcValue;
+                                                    }
+
+                                                    if (percentInput) {
+                                                        percentInput.disabled = mode !== "percent";
+                                                        if (mode === "percent") percentInput.value = percentValue;
+                                                    }
+
+                                                    if (formulaInput) {
+                                                        formulaInput.disabled = mode !== "formula";
+                                                        formulaInput.required = mode === "formula";
+                                                        if (mode === "formula") formulaInput.value = formulaValue;
+                                                    }
+                                                }
+
+                                                setAllowanceMode(
+                                                    useFormula
+                                                        ? "formula"
+                                                        : (usePercentage ? "percent" : "fix")
                                                 );
 
-                                            function setAllowanceMode(mode) {
-
-                                                if (mode === "fix") {
-
-                                                    if (fixRadio) fixRadio.checked = true;
-                                                    if (percentRadio) percentRadio.checked = false;
-
-                                                    if (fixBox) fixBox.style.display = "";
-                                                    if (calcBox) calcBox.style.display = "none";
-                                                    if (percentBox) percentBox.style.display = "none";
-
-                                                    if (fixInput) {
-                                                        fixInput.disabled = false;
-                                                    }
-
-                                                    if (calcInput) {
-                                                        calcInput.disabled = true;
-                                                        calcInput.value = "";
-                                                    }
-
-                                                    if (percentInput) {
-                                                        percentInput.disabled = true;
-                                                        percentInput.value = "";
-                                                    }
+                                                if (fixRadio) {
+                                                    fixRadio.onchange = function () {
+                                                        if (this.checked) setAllowanceMode("fix");
+                                                    };
                                                 }
-                                                else {
 
-                                                    if (fixRadio) fixRadio.checked = false;
-                                                    if (percentRadio) percentRadio.checked = true;
-
-                                                    if (fixBox) fixBox.style.display = "none";
-                                                    if (calcBox) calcBox.style.display = "";
-                                                    if (percentBox) percentBox.style.display = "";
-
-                                                    if (fixInput) {
-                                                        fixInput.disabled = true;
-                                                    }
-
-                                                    if (calcInput) {
-                                                        calcInput.disabled = false;
-                                                        calcInput.value = calcValue;
-                                                    }
-
-                                                    if (percentInput) {
-                                                        percentInput.disabled = false;
-                                                        percentInput.value = percentValue;
-                                                    }
+                                                if (percentRadio) {
+                                                    percentRadio.onchange = function () {
+                                                        if (this.checked) setAllowanceMode("percent");
+                                                    };
                                                 }
-                                            }
 
-                                            setAllowanceMode(
-                                                usePercentage ? "percent" : "fix"
-                                            );
-
-                                            if (fixRadio) {
-                                                fixRadio.onchange = function () {
-                                                    if (this.checked) {
-                                                        setAllowanceMode("fix");
-                                                    }
-                                                };
-                                            }
-
-                                            if (percentRadio) {
-                                                percentRadio.onchange = function () {
-                                                    if (this.checked) {
-                                                        setAllowanceMode("percent");
-                                                    }
-                                                };
-                                            }
+                                                if (formulaRadio) {
+                                                    formulaRadio.onchange = function () {
+                                                        if (this.checked) setAllowanceMode("formula");
+                                                    };
+                                                }
 
                                         }
                                     );
@@ -2346,6 +2382,118 @@
 
                         }
                     );
+
+                                    // ============================================================
+                    // SPECIAL FORMULA STRICT INPUT
+                    // Admin can type only:
+                    // B -> BASIC, D -> DA, H -> HRA
+                    // numbers 0-9 and + - * / ( ) -- NO SPACES
+                    // ============================================================
+                    const specialFormulaInput = document.getElementById("UpdateFormula");
+
+                    if (specialFormulaInput) {
+
+                        function expandFormulaToken(character) {
+                            const upper = String(character || "").toUpperCase();
+                            if (upper === "B") return "BASIC";
+                            if (upper === "D") return "DA";
+                            if (upper === "H") return "HRA";
+                            return "";
+                        }
+
+                        function sanitizeFormulaValue(value) {
+                            // Keep already generated BASIC / DA / HRA tokens, digits,
+                            // and the allowed mathematical symbols only. Spaces are removed.
+                            const tokens = String(value || "")
+                                .toUpperCase()
+                                .match(/BASIC|DA|HRA|[0-9]+(?:\.[0-9]+)?|[+\-*/()]/g);
+
+                            return tokens ? tokens.join("") : "";
+                        }
+
+                        specialFormulaInput.addEventListener("beforeinput", function (event) {
+                            // Allow deletion, cursor movement, undo/redo etc.
+                            if (!event.inputType || !event.inputType.startsWith("insert")) {
+                                return;
+                            }
+
+                            // Paste is handled by the paste event below.
+                            if (event.inputType === "insertFromPaste") {
+                                return;
+                            }
+
+                            const typed = event.data;
+                            if (typed === null) {
+                                return;
+                            }
+
+                            // Numbers, decimal point and allowed operators. Space is NOT allowed.
+                            if (/^[0-9.+\-*/()]$/.test(typed)) {
+                                return;
+                            }
+
+                            const replacement = expandFormulaToken(typed);
+
+                            // Every other letter/symbol is blocked.
+                            event.preventDefault();
+
+                            if (!replacement) {
+                                return;
+                            }
+
+                            const input = event.target;
+                            const start = input.selectionStart ?? input.value.length;
+                            const end = input.selectionEnd ?? start;
+
+                            // B/D/H is accepted only at the beginning of a token.
+                            const previous = start > 0 ? input.value.charAt(start - 1) : "";
+                            const isTokenStart =
+                                start === 0 || /[\s+\-*/(]/.test(previous);
+
+                            if (!isTokenStart) {
+                                return;
+                            }
+
+                            input.value =
+                                input.value.substring(0, start) +
+                                replacement +
+                                input.value.substring(end);
+
+                            const newCaret = start + replacement.length;
+                            input.setSelectionRange(newCaret, newCaret);
+                            input.dispatchEvent(new Event("change", { bubbles: true }));
+                        });
+
+                        specialFormulaInput.addEventListener("paste", function (event) {
+                            event.preventDefault();
+
+                            const input = event.target;
+                            const pastedText =
+                                (event.clipboardData || window.clipboardData)
+                                    .getData("text") || "";
+
+                            const cleanText = sanitizeFormulaValue(pastedText);
+                            const start = input.selectionStart ?? input.value.length;
+                            const end = input.selectionEnd ?? start;
+
+                            input.value =
+                                input.value.substring(0, start) +
+                                cleanText +
+                                input.value.substring(end);
+
+                            const newCaret = start + cleanText.length;
+                            input.setSelectionRange(newCaret, newCaret);
+                        });
+
+                        // Final safety check for drag/drop, browser autofill or other input.
+                        specialFormulaInput.addEventListener("input", function () {
+                            const cleanValue = sanitizeFormulaValue(this.value);
+                            if (this.value !== cleanValue) {
+                                this.value = cleanValue;
+                                this.setSelectionRange(cleanValue.length, cleanValue.length);
+                            }
+                        });
+                    }
 
                 </script>
             }

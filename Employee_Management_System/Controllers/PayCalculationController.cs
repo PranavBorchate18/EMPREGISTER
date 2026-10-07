@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Employee_Management_System.Controllers
 {
@@ -603,9 +605,10 @@ GROUP BY LTRIM(RTRIM(ISNULL(dm.name,'')));";
                 cmd.Transaction = transaction;
                 cmd.CommandText = @"
 SELECT TRY_CONVERT(INT,pf.allw_dedu) ComponentCode,
-       ISNULL(TRY_CONVERT(FLOAT,pf.amt),0) FixedAmount,
-       ISNULL(TRY_CONVERT(FLOAT,pf.[percent]),0) [Percent]
+       LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName
 FROM dbo.payfoot pf
+INNER JOIN dbo.allwmast am
+    ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,pf.allw_dedu)
 WHERE TRY_CONVERT(INT,pf.empl_code)=@EmployeeCode
   AND TRY_CONVERT(INT,pf.flag)=1
   AND (pf.[date] IS NULL OR pf.[date] <= @MonthEnd)
@@ -614,15 +617,56 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                 AddParameter(cmd, "@EmployeeCode", employee.EmployeeCode);
                 AddParameter(cmd, "@MonthStart", monthStart);
                 AddParameter(cmd, "@MonthEnd", monthEnd);
-                var rows = new List<(int Code, double Amount)>();
+
+                // IMPORTANT:
+                // Save the exact allowance amount already calculated by
+                // LoadEmployeeAllowances(). This includes Special Formula
+                // allowances such as SP. Do not calculate again from payfoot,
+                // otherwise the formula result would be lost while saving.
+                var rows = new List<(int Code, string Name, double Amount)>();
+
                 using (var r = await cmd.ExecuteReaderAsync())
+                {
                     while (await r.ReadAsync())
                     {
                         if (r["ComponentCode"] == DBNull.Value) continue;
-                        rows.Add((Convert.ToInt32(r["ComponentCode"]), Calculate(employee.BasicSalary, Number(r["FixedAmount"]), Number(r["Percent"]))));
+
+                        int componentCode = Convert.ToInt32(r["ComponentCode"]);
+                        string componentName =
+                            Convert.ToString(r["ComponentName"])?.Trim() ?? "";
+
+                        double calculatedAmount = 0;
+
+                        if (!string.IsNullOrWhiteSpace(componentName))
+                        {
+                            var allowanceKey = employee.Allowances.Keys
+                                .FirstOrDefault(x =>
+                                    x.Equals(componentName, StringComparison.OrdinalIgnoreCase));
+
+                            if (allowanceKey != null)
+                                calculatedAmount = employee.Allowances[allowanceKey];
+                        }
+
+                        rows.Add((
+                            componentCode,
+                            componentName,
+                            Math.Round(calculatedAmount, 2)));
                     }
+                }
+
                 foreach (var row in rows)
-                    await InsertPayTrnFootRow(connection, transaction, year, month, employee.EmployeeCode, 1, employeeType, row.Code, row.Amount);
+                {
+                    await InsertPayTrnFootRow(
+                        connection,
+                        transaction,
+                        year,
+                        month,
+                        employee.EmployeeCode,
+                        1,
+                        employeeType,
+                        row.Code,
+                        row.Amount);
+                }
             }
 
             // Deductions from payfoot (flag=2), except Professional Tax which is automatic.
@@ -811,35 +855,133 @@ WHERE TRY_CONVERT(INT,empl)=@EmployeeCode
         {
             using var command = connection.CreateCommand();
             command.CommandText = @"
-SELECT LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName,
+SELECT TRY_CONVERT(INT,pf.allw_dedu) ComponentCode,
+       LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName,
+       LTRIM(RTRIM(ISNULL(am.name,''))) MasterName,
        ISNULL(TRY_CONVERT(FLOAT,pf.amt),0) Amount,
-       ISNULL(TRY_CONVERT(FLOAT,pf.[percent]),0) [Percent]
+       ISNULL(TRY_CONVERT(FLOAT,pf.[percent]),0) [Percent],
+       ISNULL(CONVERT(NVARCHAR(MAX),af.formula),'') Formula
 FROM dbo.payfoot pf
 INNER JOIN dbo.allwmast am
   ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,pf.allw_dedu)
+LEFT JOIN dbo.allwfoot af
+  ON TRY_CONVERT(INT,af.allw_code)=TRY_CONVERT(INT,pf.allw_dedu)
+ AND TRY_CONVERT(INT,af.grad_code)=@GradeCode
+ AND ISNULL(TRY_CONVERT(INT,af.Apply),0)=1
 WHERE TRY_CONVERT(INT,pf.empl_code)=@EmployeeCode
   AND TRY_CONVERT(INT,pf.flag)=1
   AND (pf.[date] IS NULL OR pf.[date] <= @MonthEnd)
   AND (pf.cancel_date IS NULL OR pf.cancel_date >= @MonthStart)
 ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
             AddParameter(command, "@EmployeeCode", employee.EmployeeCode);
+            AddParameter(command, "@GradeCode", employee.GradeCode);
             AddParameter(command, "@MonthStart", monthStart);
             AddParameter(command, "@MonthEnd", monthEnd);
 
-            using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            var rows = new List<(string Name, string MasterName, double FixedAmount, double Percent, string Formula)>();
+
+            using (var reader = await command.ExecuteReaderAsync())
             {
-                string name = Convert.ToString(reader["ComponentName"])?.Trim() ?? "";
-                if (string.IsNullOrWhiteSpace(name)) continue;
+                while (await reader.ReadAsync())
+                {
+                    string name = Convert.ToString(reader["ComponentName"])?.Trim() ?? "";
+                    if (string.IsNullOrWhiteSpace(name)) continue;
 
-                double fixedAmount = Number(reader["Amount"]);
-                double percent = Number(reader["Percent"]);
-                double amount = Calculate(employee.BasicSalary, fixedAmount, percent);
+                    rows.Add((
+                        name,
+                        Convert.ToString(reader["MasterName"])?.Trim() ?? "",
+                        Number(reader["Amount"]),
+                        Number(reader["Percent"]),
+                        Convert.ToString(reader["Formula"])?.Trim() ?? ""));
+                }
+            }
 
-                if (employee.Allowances.ContainsKey(name))
-                    employee.Allowances[name] += amount;
-                else
-                    employee.Allowances[name] = amount;
+            // Pass 1: calculate allowances that do not use a Special Formula.
+            // This makes DA/HRA available before formula-based allowances are evaluated.
+            foreach (var row in rows.Where(x => string.IsNullOrWhiteSpace(x.Formula)))
+            {
+                double amount = Calculate(employee.BasicSalary, row.FixedAmount, row.Percent);
+                AddAllowanceAmount(employee, row.Name, amount);
+            }
+
+            // Pass 2: any allowance can use dbo.allwfoot.formula.
+            foreach (var row in rows.Where(x => !string.IsNullOrWhiteSpace(x.Formula)))
+            {
+                double da = FindComponentAmount(employee.Allowances, "DA", "DEARNESS ALLOWANCE");
+                double hra = FindComponentAmount(employee.Allowances, "HRA", "HOUSE RENT ALLOWANCE");
+
+                double amount = EvaluateAllowanceFormula(
+                    row.Formula,
+                    employee.BasicSalary,
+                    da,
+                    hra);
+
+                AddAllowanceAmount(employee, row.Name, amount);
+            }
+        }
+
+        private static void AddAllowanceAmount(
+                    EmployeeSalaryRowViewModel employee,
+                    string name,
+                    double amount)
+        {
+            if (employee.Allowances.ContainsKey(name))
+                employee.Allowances[name] += Math.Round(amount, 2);
+            else
+                employee.Allowances[name] = Math.Round(amount, 2);
+        }
+
+        private static double EvaluateAllowanceFormula(
+            string formula,
+            double basic,
+            double da,
+            double hra)
+        {
+            if (string.IsNullOrWhiteSpace(formula)) return 0;
+
+            string expression = formula.Trim();
+
+            expression = Regex.Replace(
+                expression, @"\bBASIC\b",
+                basic.ToString(CultureInfo.InvariantCulture),
+                RegexOptions.IgnoreCase);
+
+            expression = Regex.Replace(
+                expression, @"\bHRA\b",
+                hra.ToString(CultureInfo.InvariantCulture),
+                RegexOptions.IgnoreCase);
+
+            expression = Regex.Replace(
+                expression, @"\bDA\b",
+                da.ToString(CultureInfo.InvariantCulture),
+                RegexOptions.IgnoreCase);
+
+            // Do not execute arbitrary SQL/code. After replacing supported names,
+            // only arithmetic characters are accepted.
+            if (!Regex.IsMatch(expression, @"^[0-9\.\+\-\*\/\(\)]+$"))
+                throw new InvalidOperationException(
+                    "Allowance formula contains an unsupported value. " +
+                    "Use only BASIC, DA, HRA, numbers and + - * / ( ).");
+
+            try
+            {
+                var table = new DataTable
+                {
+                    Locale = CultureInfo.InvariantCulture
+                };
+
+                object value = table.Compute(expression, string.Empty);
+                double result = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+
+                if (double.IsNaN(result) || double.IsInfinity(result))
+                    throw new InvalidOperationException("Formula result is invalid.");
+
+                return Math.Round(result, 2);
+            }
+            catch (Exception ex) when (ex is not InvalidOperationException)
+            {
+                throw new InvalidOperationException(
+                    "Unable to calculate allowance formula: " + formula, ex);
             }
         }
 

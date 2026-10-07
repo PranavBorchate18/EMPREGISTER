@@ -28,10 +28,12 @@ namespace Employee_Management_System.Controllers
 
             var branches = await LoadBranches(
                 currentYear, currentMonth,
-                currentYear, currentMonth);
+                currentYear, currentMonth,
+                0);
 
             return View(new SalaryReportViewModel
             {
+                SelectedEmployeeType = 0,
                 FromYear = currentYear,
                 FromMonth = currentMonth,
                 ToYear = currentYear,
@@ -53,7 +55,7 @@ namespace Employee_Management_System.Controllers
         // Branch master comes from dbo.brncmast.
         // EmployeeCount is ONLY from dbo.paytrn for the selected From/To period.
         // PayMast is used to map saved payroll employees to their branch.
-        private async Task<List<SalaryReportBranchViewModel>> LoadBranches(int fromYear, int fromMonth, int toYear, int toMonth)
+        private async Task<List<SalaryReportBranchViewModel>> LoadBranches(int fromYear, int fromMonth, int toYear, int toMonth, int employeeType = 0)
         {
             var result = new List<SalaryReportBranchViewModel>();
             var connection = _context.Database.GetDbConnection();
@@ -84,6 +86,12 @@ LEFT JOIN dbo.paytrn t
   ON TRY_CONVERT(INT,t.code)=TRY_CONVERT(INT,p.code)
  AND ((TRY_CONVERT(INT,t.[year]) * 12 + TRY_CONVERT(INT,t.[month]))
       BETWEEN (@FromYear * 12 + @FromMonth) AND (@ToYear * 12 + @ToMonth))
+ AND (
+       @EmployeeType = 0
+       OR (@EmployeeType = 1 AND TRY_CONVERT(INT,t.[type]) IN (1,2,3,4,5))
+       OR (@EmployeeType = 6 AND TRY_CONVERT(INT,t.[type]) = 6)
+       OR (@EmployeeType = 7 AND TRY_CONVERT(INT,t.[type]) = 7)
+     )
 GROUP BY b.code,b.name
 ORDER BY TRY_CONVERT(INT,b.code);";
 
@@ -91,6 +99,7 @@ ORDER BY TRY_CONVERT(INT,b.code);";
                 AddParameter(command, "@FromMonth", fromMonth);
                 AddParameter(command, "@ToYear", toYear);
                 AddParameter(command, "@ToMonth", toMonth);
+                AddParameter(command, "@EmployeeType", employeeType);
 
                 using var reader = await command.ExecuteReaderAsync();
 
@@ -122,7 +131,7 @@ ORDER BY TRY_CONVERT(INT,b.code);";
         // READ ONLY: Refresh branch totals for selected From/To period.
         [HttpGet]
         public async Task<IActionResult> GetBranchSummaries(
-            int fromYear, int fromMonth, int toYear, int toMonth)
+            int fromYear, int fromMonth, int toYear, int toMonth, int employeeType = 0)
         {
             if (!IsLoggedIn())
                 return Json(new { success = false, sessionExpired = true, message = "Login session expired." });
@@ -138,7 +147,7 @@ ORDER BY TRY_CONVERT(INT,b.code);";
 
             try
             {
-                var branches = await LoadBranches(fromYear, fromMonth, toYear, toMonth);
+                var branches = await LoadBranches(fromYear, fromMonth, toYear, toMonth, employeeType);
 
                 var allBranchesTotal = new
                 {
@@ -166,7 +175,7 @@ ORDER BY TRY_CONVERT(INT,b.code);";
         // Same calculation/fetch logic as Pay Calculation.
         // No INSERT / UPDATE / DELETE / SAVE.
         [HttpGet]
-        public async Task<IActionResult> GetSalaryReport(int year, int month, int branchCode)
+        public async Task<IActionResult> GetSalaryReport(int year, int month, int branchCode, int employeeType = 0)
         {
             if (!IsLoggedIn())
                 return Json(new { success = false, sessionExpired = true, message = "Login session expired." });
@@ -203,9 +212,26 @@ FROM dbo.PayMast p
 LEFT JOIN dbo.gradmast g
   ON TRY_CONVERT(INT,g.code)=TRY_CONVERT(INT,p.grad_Code)
 WHERE TRY_CONVERT(INT,p.brnc_code)=@BranchCode
+  AND EXISTS
+  (
+      SELECT 1
+      FROM dbo.paytrn et
+      WHERE TRY_CONVERT(INT,et.code)=TRY_CONVERT(INT,p.code)
+        AND TRY_CONVERT(INT,et.[year])=@Year
+        AND TRY_CONVERT(INT,et.[month])=@Month
+        AND (
+            @EmployeeType = 0
+            OR (@EmployeeType = 1 AND TRY_CONVERT(INT,et.[type]) IN (1,2,3,4,5))
+            OR (@EmployeeType = 6 AND TRY_CONVERT(INT,et.[type]) = 6)
+            OR (@EmployeeType = 7 AND TRY_CONVERT(INT,et.[type]) = 7)
+        )
+  )
 ORDER BY p.code;";
 
                     AddParameter(command, "@BranchCode", branchCode);
+                    AddParameter(command, "@Year", year);
+                    AddParameter(command, "@Month", month);
+                    AddParameter(command, "@EmployeeType", employeeType);
 
                     using var reader = await command.ExecuteReaderAsync();
 
@@ -314,7 +340,7 @@ ORDER BY p.code;";
         // for the exact Employee + Year + Month. Missing component = 0.00.
         [HttpGet]
         public async Task<IActionResult> GetSalaryReportRange(
-            int fromYear, int fromMonth, int toYear, int toMonth, int branchCode)
+            int fromYear, int fromMonth, int toYear, int toMonth, int branchCode, int employeeType = 0)
         {
             if (!IsLoggedIn())
                 return Json(new { success = false, sessionExpired = true, message = "Login session expired." });
@@ -356,9 +382,29 @@ FROM dbo.PayMast p
 LEFT JOIN dbo.gradmast g
   ON TRY_CONVERT(INT,g.code)=TRY_CONVERT(INT,p.grad_Code)
 WHERE TRY_CONVERT(INT,p.brnc_code)=@BranchCode
+  AND EXISTS
+  (
+      SELECT 1
+      FROM dbo.paytrn et
+      WHERE TRY_CONVERT(INT,et.code)=TRY_CONVERT(INT,p.code)
+        AND ((TRY_CONVERT(INT,et.[year]) * 12 + TRY_CONVERT(INT,et.[month]))
+             BETWEEN (@FromYear * 12 + @FromMonth)
+                 AND (@ToYear * 12 + @ToMonth))
+        AND (
+            @EmployeeType = 0
+            OR (@EmployeeType = 1 AND TRY_CONVERT(INT,et.[type]) IN (1,2,3,4,5))
+            OR (@EmployeeType = 6 AND TRY_CONVERT(INT,et.[type]) = 6)
+            OR (@EmployeeType = 7 AND TRY_CONVERT(INT,et.[type]) = 7)
+        )
+  )
 ORDER BY p.code;";
 
                     AddParameter(command, "@BranchCode", branchCode);
+                    AddParameter(command, "@FromYear", fromYear);
+                    AddParameter(command, "@FromMonth", fromMonth);
+                    AddParameter(command, "@ToYear", toYear);
+                    AddParameter(command, "@ToMonth", toMonth);
+                    AddParameter(command, "@EmployeeType", employeeType);
 
                     using var reader = await command.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
@@ -515,6 +561,7 @@ ORDER BY p.code;";
             int fromYear, int fromMonth,
             int toYear, int toMonth,
             int branchCode,
+            int employeeType = 0,
             List<string>? hiddenAllowanceNames = null,
             List<string>? hiddenDeductionNames = null)
         {
@@ -584,6 +631,12 @@ INNER JOIN dbo.paytrn t
       BETWEEN (@FromYear * 12 + @FromMonth)
           AND (@ToYear * 12 + @ToMonth))
 WHERE TRY_CONVERT(INT,p.brnc_code)=@BranchCode
+  AND (
+            @EmployeeType = 0
+            OR (@EmployeeType = 1 AND TRY_CONVERT(INT,t.[type]) IN (1,2,3,4,5))
+            OR (@EmployeeType = 6 AND TRY_CONVERT(INT,t.[type]) = 6)
+            OR (@EmployeeType = 7 AND TRY_CONVERT(INT,t.[type]) = 7)
+        )
 ORDER BY p.code;";
 
                     AddParameter(command, "@FromYear", fromYear);
@@ -591,6 +644,7 @@ ORDER BY p.code;";
                     AddParameter(command, "@ToYear", toYear);
                     AddParameter(command, "@ToMonth", toMonth);
                     AddParameter(command, "@BranchCode", branchCode);
+                    AddParameter(command, "@EmployeeType", employeeType);
 
                     using var reader = await command.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
@@ -1257,7 +1311,8 @@ FROM dbo.daptsys;";
         public async Task<IActionResult> CombinedPrint(
             int fromYear, int fromMonth, int toYear, int toMonth,
             List<int> selectedAllowanceCodes,
-            List<int> selectedDeductionCodes)
+            List<int> selectedDeductionCodes,
+            int employeeType = 0)
         {
             if (!IsLoggedIn())
                 return RedirectToAction("Login", "Account");
@@ -1316,12 +1371,19 @@ INNER JOIN dbo.paytrn t
    ON TRY_CONVERT(INT,t.code)=TRY_CONVERT(INT,p.code)
   AND ((TRY_CONVERT(INT,t.[year])*12+TRY_CONVERT(INT,t.[month]))
        BETWEEN (@FromYear*12+@FromMonth) AND (@ToYear*12+@ToMonth))
+  AND (
+            @EmployeeType = 0
+            OR (@EmployeeType = 1 AND TRY_CONVERT(INT,t.[type]) IN (1,2,3,4,5))
+            OR (@EmployeeType = 6 AND TRY_CONVERT(INT,t.[type]) = 6)
+            OR (@EmployeeType = 7 AND TRY_CONVERT(INT,t.[type]) = 7)
+        )
 ORDER BY p.code;";
 
                     AddParameter(command, "@FromYear", fromYear);
                     AddParameter(command, "@FromMonth", fromMonth);
                     AddParameter(command, "@ToYear", toYear);
                     AddParameter(command, "@ToMonth", toMonth);
+                    AddParameter(command, "@EmployeeType", employeeType);
 
                     using var reader = await command.ExecuteReaderAsync();
                     while (await reader.ReadAsync())

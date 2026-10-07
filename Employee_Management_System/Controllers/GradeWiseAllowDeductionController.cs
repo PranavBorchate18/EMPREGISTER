@@ -2,6 +2,8 @@
 using Employee_Management_System.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
+using System.Data.Common;
 
 namespace Employee_Management_System.Controllers
 {
@@ -205,6 +207,15 @@ namespace Employee_Management_System.Controllers
                             }
 
                         ).ToListAsync();
+
+                    // Formula is available for every allowance.
+                    // It is stored directly in dbo.allwfoot.formula.
+                    var formulas = await LoadAllowanceFormulasAsync(selectedCode);
+                    foreach (var row in model.AllowanceDetails)
+                    {
+                        if (formulas.TryGetValue(row.Code, out var formula))
+                            row.Formula = formula;
+                    }
                 }
             }
 
@@ -302,7 +313,8 @@ namespace Employee_Management_System.Controllers
                 decimal? percent,
                 decimal? minLimit,
                 decimal? maxLimit,
-                decimal? minDays)
+                decimal? minDays,
+                string? formula = null)
         {
             try
             {
@@ -451,6 +463,9 @@ namespace Employee_Management_System.Controllers
 
                 await _context.SaveChangesAsync();
 
+                await SaveAllowanceFormulaAsync(
+                    selectedAllowanceCode, selectedGradeCode, formula);
+
 
                 TempData["Success"] =
                     "Allowance grade detail inserted successfully.";
@@ -495,7 +510,8 @@ namespace Employee_Management_System.Controllers
                 decimal? percent,
                 decimal? minLimit,
                 decimal? maxLimit,
-                decimal? minDays)
+                decimal? minDays,
+                string? formula = null)
         {
             try
             {
@@ -633,6 +649,10 @@ namespace Employee_Management_System.Controllers
 
 
                 await _context.SaveChangesAsync();
+
+                // Save formula for the selected allowance + grade. Blank means no special formula.
+                await SaveAllowanceFormulaAsync(
+                    selectedAllowanceCode, selectedGradeCode, formula);
 
 
                 TempData["Success"] =
@@ -1180,5 +1200,90 @@ namespace Employee_Management_System.Controllers
                     section = "deduction"
                 });
         }
+
+        // ============================================================
+        // ALLOWANCE FORMULA HELPERS
+        // Formula is available for every allowance and is read/written with raw SQL because
+        // dbo.allwfoot.formula was added directly in SQL Server.
+        // No AllwFoot entity change is required.
+        // ============================================================
+        private async Task<Dictionary<int, string>> LoadAllowanceFormulasAsync(decimal allowanceCode)
+        {
+            var result = new Dictionary<int, string>();
+            var connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+
+            try
+            {
+                if (close) await connection.OpenAsync();
+
+                using var command = connection.CreateCommand();
+                command.CommandText = @"
+SELECT TRY_CONVERT(INT, grad_code) AS GradeCode,
+       ISNULL(CONVERT(NVARCHAR(MAX), formula), '') AS Formula
+FROM dbo.allwfoot
+WHERE TRY_CONVERT(DECIMAL(18,4), allw_code) = @AllowanceCode;";
+
+                AddDbParameter(command, "@AllowanceCode", allowanceCode);
+
+                using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    if (reader["GradeCode"] == DBNull.Value) continue;
+                    int gradeCode = Convert.ToInt32(reader["GradeCode"]);
+                    string formula = Convert.ToString(reader["Formula"])?.Trim() ?? string.Empty;
+                    result[gradeCode] = formula;
+                }
+            }
+            finally
+            {
+                if (close && connection.State == ConnectionState.Open)
+                    await connection.CloseAsync();
+            }
+
+            return result;
+        }
+
+        private async Task SaveAllowanceFormulaAsync(
+            decimal allowanceCode,
+            decimal gradeCode,
+            string? formula)
+        {
+            var connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+
+            try
+            {
+                if (close) await connection.OpenAsync();
+
+                using var command = connection.CreateCommand();
+                command.CommandText = @"
+UPDATE dbo.allwfoot
+SET formula = @Formula
+WHERE TRY_CONVERT(DECIMAL(18,4), allw_code) = @AllowanceCode
+  AND TRY_CONVERT(DECIMAL(18,4), grad_code) = @GradeCode;";
+
+                AddDbParameter(command, "@Formula",
+                    string.IsNullOrWhiteSpace(formula) ? DBNull.Value : formula.Trim());
+                AddDbParameter(command, "@AllowanceCode", allowanceCode);
+                AddDbParameter(command, "@GradeCode", gradeCode);
+
+                await command.ExecuteNonQueryAsync();
+            }
+            finally
+            {
+                if (close && connection.State == ConnectionState.Open)
+                    await connection.CloseAsync();
+            }
+        }
+
+        private static void AddDbParameter(DbCommand command, string name, object? value)
+        {
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.Value = value ?? DBNull.Value;
+            command.Parameters.Add(parameter);
+        }
+
     }
 }

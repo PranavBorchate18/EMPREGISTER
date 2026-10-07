@@ -109,9 +109,9 @@
     }
 
     /* Single View history:
-                                                                                       Sr. / Employee Code / Employee Name = blank
-                                                                                       Grade = Month / Year
-                                                                                       remaining values stay under their matching columns */
+                                                                                               Sr. / Employee Code / Employee Name = blank
+                                                                                               Grade = Month / Year
+                                                                                               remaining values stay under their matching columns */
     .history-table .history-blank {
         background: #f8f9fa !important;
     }
@@ -447,7 +447,20 @@
     <div class="card shadow-sm mb-4">
         <div class="card-header report-header"><h3 class="mb-0"><i class="bi bi-file-earmark-bar-graph me-2"></i>Salary Report</h3></div>
         <div class="card-body">
-            <div class="text-muted mb-3">Select From Month/Year and To Month/Year, then choose a branch.</div>
+            <div class="text-muted mb-3">Select Employee Type, From Month/Year and To Month/Year, then choose a branch.</div>
+
+            <div class="row g-3 mb-1">
+                <div class="col-12">
+                    <label class="form-label fw-bold">Select Employee Type</label>
+                    <select id="EmployeeType" class="form-select">
+                        <option value="0" selected="@(Model.SelectedEmployeeType == 0)">Select All</option>
+                        <option value="1" selected="@(Model.SelectedEmployeeType == 1)">Permanent</option>
+                        <option value="7" selected="@(Model.SelectedEmployeeType == 7)">Temporary</option>
+                        <option value="6" selected="@(Model.SelectedEmployeeType == 6)">Contract</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label fw-bold">From Month *</label><select id="FromMonth" class="form-select">
@@ -982,8 +995,8 @@
         }
 
         function render(){if($('input[name=ReportView]:checked').val()==='double')doubleRow();else single()}
-        function load(){if(!branch)return;let fm=+$('#FromMonth').val(),fy=+$('#FromYear').val(),tm=+$('#ToMonth').val(),ty=+$('#ToYear').val();if(new Date(fy,fm-1,1)>new Date(ty,tm-1,1)){alert('From Month cannot be after To Month.');return}$('#resultSection').removeClass('d-none');$('#selectedBranch').text(branchName);$('#selectedPeriod').text(`(${$('#FromMonth option:selected').text()} ${fy} - ${$('#ToMonth option:selected').text()} ${ty})`);$('#recordCount').text('Loading...');$.get('@Url.Action("GetSalaryReportRange", "SalaryReport")',{fromYear:fy,fromMonth:fm,toYear:ty,toMonth:tm,branchCode:branch}).done(r=>{if(!r||r.success!==true){$('#messageBox').removeClass('d-none').text(r?.message||'Unable to load data.');return}data=r.data||[];allowances=r.allowanceNames||[];deductions=r.deductionNames||[];$('#messageBox').addClass('d-none');$('#recordCount').text('Total Employees: '+data.length);render()})}
-        function refreshBranchSummaries(){let fm=+$('#FromMonth').val(),fy=+$('#FromYear').val(),tm=+$('#ToMonth').val(),ty=+$('#ToYear').val();if(new Date(fy,fm-1,1)>new Date(ty,tm-1,1))return;$.get('@Url.Action("GetBranchSummaries", "SalaryReport")',{fromYear:fy,fromMonth:fm,toYear:ty,toMonth:tm}).done(r=>{if(!r||r.success!==true)return;(r.data||[]).forEach(b=>{let box=$('.branch-summary[data-code="'+b.branchCode+'"]');box.find('.summary-employees').text(b.employeeCount??0);box.find('.summary-basic').text(money(b.totalBasic));box.find('.summary-allowance').text(money(b.totalAllowance));box.find('.summary-deduction').text(money(b.totalDeduction));box.find('.summary-net').text(money(b.totalNetSalary));});let a=r.allBranchesTotal||{};$('#allTotalEmployees').text(a.totalEmployees??0);$('#allTotalBasic').text(money(a.totalBasic));$('#allTotalAllowance').text(money(a.totalAllowance));$('#allTotalDeduction').text(money(a.totalDeduction));$('#allTotalNetSalary').text(money(a.totalNetSalary));});}
+        function load(){if(!branch)return;let fm=+$('#FromMonth').val(),fy=+$('#FromYear').val(),tm=+$('#ToMonth').val(),ty=+$('#ToYear').val();if(new Date(fy,fm-1,1)>new Date(ty,tm-1,1)){alert('From Month cannot be after To Month.');return}$('#resultSection').removeClass('d-none');$('#selectedBranch').text(branchName);$('#selectedPeriod').text(`(${$('#FromMonth option:selected').text()} ${fy} - ${$('#ToMonth option:selected').text()} ${ty})`);$('#recordCount').text('Loading...');$.get('@Url.Action("GetSalaryReportRange", "SalaryReport")',{fromYear:fy,fromMonth:fm,toYear:ty,toMonth:tm,branchCode:branch,employeeType:+$('#EmployeeType').val()}).done(r=>{if(!r||r.success!==true){$('#messageBox').removeClass('d-none').text(r?.message||'Unable to load data.');return}data=r.data||[];allowances=r.allowanceNames||[];deductions=r.deductionNames||[];$('#messageBox').addClass('d-none');$('#recordCount').text('Total Employees: '+data.length);render()})}
+        function refreshBranchSummaries(){let fm=+$('#FromMonth').val(),fy=+$('#FromYear').val(),tm=+$('#ToMonth').val(),ty=+$('#ToYear').val();if(new Date(fy,fm-1,1)>new Date(ty,tm-1,1))return;$.get('@Url.Action("GetBranchSummaries", "SalaryReport")',{fromYear:fy,fromMonth:fm,toYear:ty,toMonth:tm,employeeType:+$('#EmployeeType').val()}).done(r=>{if(!r||r.success!==true)return;(r.data||[]).forEach(b=>{let box=$('.branch-summary[data-code="'+b.branchCode+'"]');box.find('.summary-employees').text(b.employeeCount??0);box.find('.summary-basic').text(money(b.totalBasic));box.find('.summary-allowance').text(money(b.totalAllowance));box.find('.summary-deduction').text(money(b.totalDeduction));box.find('.summary-net').text(money(b.totalNetSalary));});let a=r.allBranchesTotal||{};$('#allTotalEmployees').text(a.totalEmployees??0);$('#allTotalBasic').text(money(a.totalBasic));$('#allTotalAllowance').text(money(a.totalAllowance));$('#allTotalDeduction').text(money(a.totalDeduction));$('#allTotalNetSalary').text(money(a.totalNetSalary));});}
 
         function selectedCodes(pickerId){
             return $(pickerId+' .component-check:checked').map(function(){ return $(this).val(); }).get();
@@ -1022,7 +1035,7 @@
             if(codes.length===0){ alert(emptyMessage); return; }
             let fm=+$('#FromMonth').val(), fy=+$('#FromYear').val(), tm=+$('#ToMonth').val(), ty=+$('#ToYear').val();
             if(new Date(fy,fm-1,1)>new Date(ty,tm-1,1)){ alert('From Month cannot be after To Month.'); return; }
-            let url=action+'?fromYear='+fy+'&fromMonth='+fm+'&toYear='+ty+'&toMonth='+tm;
+            let url=action+'?fromYear='+fy+'&fromMonth='+fm+'&toYear='+ty+'&toMonth='+tm+'&employeeType='+encodeURIComponent($('#EmployeeType').val());
             codes.forEach(c=>url+='&selectedCodes='+encodeURIComponent(c));
             window.open(url,'_blank');
         }
@@ -1072,7 +1085,8 @@
                 +'&fromMonth='+fm
                 +'&toYear='+ty
                 +'&toMonth='+tm
-                +'&branchCode='+bc;
+                +'&branchCode='+bc
+                +'&employeeType='+encodeURIComponent($('#EmployeeType').val());
 
             // Send only the columns hidden for THIS branch.
             const hiddenAllowanceNames =
@@ -1120,6 +1134,6 @@
             }
         });
 
-        $('.branch-card').click(function(){$('.branch-card').removeClass('active');$(this).addClass('active');branch=+$(this).data('code');branchName=$(this).data('name')||'';$('#resultSection').insertAfter($(this).closest('.branch-row'));load()});$('input[name=ReportView]').change(render);$('#FromMonth,#FromYear,#ToMonth,#ToYear').change(()=>{refreshBranchSummaries();if(branch)load()});$(document).on('click','.employee-name-toggle',function(){let code=$(this).data('code');$('.history-'+code).toggleClass('d-none')});refreshBranchSummaries()});
+        $('.branch-card').click(function(){$('.branch-card').removeClass('active');$(this).addClass('active');branch=+$(this).data('code');branchName=$(this).data('name')||'';$('#resultSection').insertAfter($(this).closest('.branch-row'));load()});$('input[name=ReportView]').change(render);$('#EmployeeType,#FromMonth,#FromYear,#ToMonth,#ToYear').change(()=>{refreshBranchSummaries();if(branch)load()});$(document).on('click','.employee-name-toggle',function(){let code=$(this).data('code');$('.history-'+code).toggleClass('d-none')});refreshBranchSummaries()});
     </script>
 }

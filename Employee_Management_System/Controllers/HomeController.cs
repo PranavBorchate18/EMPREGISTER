@@ -221,45 +221,47 @@ ORDER BY name, code;";
                     }
                 }
 
-                // 5. Division/Branch Wise Active Employee chart
+                // 5. Division Wise Active Employee chart
+                // Existing chart model is reused:
+                // BranchCode = DivisionCode, BranchName = DivisionName.
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 120;
                     command.CommandText = @"
 SELECT
-    CAST(B.code AS INT) AS BranchCode,
-    ISNULL(B.name,'') AS BranchName,
+    TRY_CONVERT(INT,D.code) AS DivisionCode,
+    ISNULL(D.name,'') AS DivisionName,
     COUNT(P.code) AS EmployeeCount
-FROM dbo.brncmast B
-INNER JOIN dbo.PayMast P
-    ON P.brnc_code = B.code
-WHERE P.[type] IN (1,2,3,4,5)
-  AND (@DivisionCode IS NULL
-       OR TRY_CONVERT(INT,B.Tcode)=@DivisionCode)
-  AND (@GradeCode IS NULL OR P.grad_Code = @GradeCode)
-  AND (@Gender = '' OR UPPER(LTRIM(RTRIM(ISNULL(P.sex,'')))) = @Gender)
-GROUP BY B.code, B.name
-HAVING COUNT(P.code) > 0
-ORDER BY B.name;";
+FROM dbo.Division_Master D
+LEFT JOIN dbo.brncmast B
+    ON TRY_CONVERT(INT,B.Tcode)=TRY_CONVERT(INT,D.code)
+LEFT JOIN dbo.PayMast P
+    ON TRY_CONVERT(INT,P.brnc_code)=TRY_CONVERT(INT,B.code)
+   AND TRY_CONVERT(INT,P.[type]) IN (1,2,3,4,5)
+   AND (@GradeCode IS NULL OR TRY_CONVERT(INT,P.grad_Code)=@GradeCode)
+   AND (@Gender='' OR UPPER(LTRIM(RTRIM(ISNULL(P.sex,''))))=@Gender)
+WHERE (@DivisionCode IS NULL OR TRY_CONVERT(INT,D.code)=@DivisionCode)
+GROUP BY D.code,D.name
+HAVING COUNT(P.code)>0
+ORDER BY TRY_CONVERT(INT,D.code),D.name;";
 
                     AddParameter(command, "@DivisionCode", divisionCode);
                     AddParameter(command, "@GradeCode", gradeCode);
                     AddParameter(command, "@Gender", model.SelectedGender);
 
                     using var reader = await command.ExecuteReaderAsync();
-
                     while (await reader.ReadAsync())
                     {
-                        model.BranchWiseEmployees.Add(
-                            new BranchEmployeeChartViewModel
-                            {
-                                BranchCode = Convert.ToInt32(reader["BranchCode"]),
-                                BranchName = Convert.ToString(reader["BranchName"]) ?? "",
-                                EmployeeCount = GetInt(reader, "EmployeeCount")
-                            });
+                        model.BranchWiseEmployees.Add(new BranchEmployeeChartViewModel
+                        {
+                            BranchCode = GetInt(reader, "DivisionCode"),
+                            BranchName = Convert.ToString(reader["DivisionName"])?.Trim() ?? "",
+                            EmployeeCount = GetInt(reader, "EmployeeCount")
+                        });
                     }
                 }
 
-                // 6. Division/Branch Wise Salary chart
+                // 6. Division Wise Salary chart
                 // LIVE PAY CALCULATION GROSS SALARY
                 //
                 // Gross Salary = WPL Adjusted Basic + Total Allowance
@@ -280,21 +282,21 @@ ORDER BY B.name;";
                         model.SelectedSalaryYear,
                         model.SelectedSalaryMonth);
 
-                // Branch list of selected Division.
-                var salaryChartBranches =
-                    new List<(int BranchCode, string BranchName)>();
+                // Division list for pie chart.
+                var salaryChartDivisions =
+                    new List<(int DivisionCode, string DivisionName)>();
 
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 120;
                     command.CommandText = @"
 SELECT
-    TRY_CONVERT(INT,B.code) AS BranchCode,
-    ISNULL(B.name,'') AS BranchName
-FROM dbo.brncmast B
+    TRY_CONVERT(INT,D.code) AS DivisionCode,
+    ISNULL(D.name,'') AS DivisionName
+FROM dbo.Division_Master D
 WHERE (@DivisionCode IS NULL
-       OR TRY_CONVERT(INT,B.Tcode)=@DivisionCode)
-ORDER BY B.name;";
+       OR TRY_CONVERT(INT,D.code)=@DivisionCode)
+ORDER BY TRY_CONVERT(INT,D.code),D.name;";
 
                     AddParameter(command, "@DivisionCode", divisionCode);
 
@@ -302,15 +304,15 @@ ORDER BY B.name;";
 
                     while (await reader.ReadAsync())
                     {
-                        salaryChartBranches.Add((
-                            GetInt(reader, "BranchCode"),
-                            Convert.ToString(reader["BranchName"])?.Trim() ?? ""));
+                        salaryChartDivisions.Add((
+                            GetInt(reader, "DivisionCode"),
+                            Convert.ToString(reader["DivisionName"])?.Trim() ?? ""));
                     }
                 }
 
                 // Active employees for selected Division/Grade/Gender.
                 var salaryChartEmployees =
-                    new List<(int EmployeeCode, int BranchCode, double OriginalBasic)>();
+                    new List<(int EmployeeCode, int DivisionCode, double OriginalBasic)>();
 
                 using (var command = connection.CreateCommand())
                 {
@@ -318,7 +320,7 @@ ORDER BY B.name;";
                     command.CommandText = @"
 SELECT
     TRY_CONVERT(INT,P.code) AS EmployeeCode,
-    TRY_CONVERT(INT,P.brnc_code) AS BranchCode,
+    TRY_CONVERT(INT,B.Tcode) AS DivisionCode,
     ISNULL(TRY_CONVERT(FLOAT,P.basic),0) AS OriginalBasic
 FROM dbo.PayMast P
 INNER JOIN dbo.brncmast B
@@ -343,7 +345,7 @@ ORDER BY TRY_CONVERT(INT,P.brnc_code),
                     {
                         salaryChartEmployees.Add((
                             GetInt(reader, "EmployeeCode"),
-                            GetInt(reader, "BranchCode"),
+                            GetInt(reader, "DivisionCode"),
                             GetDouble(reader, "OriginalBasic")));
                     }
                 }
@@ -483,8 +485,8 @@ ORDER BY TRY_CONVERT(INT,pf.empl_code),
                     }
                 }
 
-                // Calculate live Gross Salary employee-wise and SUM branch-wise.
-                var salaryChartGrossByBranch =
+                // Calculate live Gross Salary employee-wise and SUM division-wise.
+                var salaryChartGrossByDivision =
                     new Dictionary<int, double>();
 
                 foreach (var employee in salaryChartEmployees)
@@ -546,32 +548,32 @@ ORDER BY TRY_CONVERT(INT,pf.empl_code),
                             payableBasic + totalAllowance,
                             2);
 
-                    if (!salaryChartGrossByBranch.ContainsKey(
-                            employee.BranchCode))
+                    if (!salaryChartGrossByDivision.ContainsKey(
+                            employee.DivisionCode))
                     {
-                        salaryChartGrossByBranch[employee.BranchCode] = 0;
+                        salaryChartGrossByDivision[employee.DivisionCode] = 0;
                     }
 
-                    salaryChartGrossByBranch[employee.BranchCode] +=
+                    salaryChartGrossByDivision[employee.DivisionCode] +=
                         grossSalary;
                 }
 
-                // Add ALL branches of selected Division to pie chart model.
-                foreach (var branch in salaryChartBranches)
+                // Add Division-wise Gross Salary totals to existing chart model.
+                foreach (var division in salaryChartDivisions)
                 {
-                    double branchGrossSalary =
-                        salaryChartGrossByBranch.TryGetValue(
-                            branch.BranchCode,
-                            out var loadedBranchGross)
-                            ? Math.Round(loadedBranchGross, 2)
+                    double divisionGrossSalary =
+                        salaryChartGrossByDivision.TryGetValue(
+                            division.DivisionCode,
+                            out var loadedDivisionGross)
+                            ? Math.Round(loadedDivisionGross, 2)
                             : 0;
 
                     model.BranchWiseSalaries.Add(
                         new BranchSalaryChartViewModel
                         {
-                            BranchCode = branch.BranchCode,
-                            BranchName = branch.BranchName,
-                            Salary = branchGrossSalary
+                            BranchCode = division.DivisionCode,
+                            BranchName = division.DivisionName,
+                            Salary = divisionGrossSalary
                         });
                 }
 

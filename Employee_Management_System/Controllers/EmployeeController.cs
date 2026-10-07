@@ -143,11 +143,11 @@ namespace Employee_Management_System.Controllers
                                 break;
 
                             case "temporary":
-                                employeeType = 2;
+                                employeeType = 7;
                                 break;
 
                             case "contract":
-                                employeeType = 3;
+                                employeeType = 6;
                                 break;
                         }
                     }

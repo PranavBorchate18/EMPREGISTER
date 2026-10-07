@@ -5,6 +5,12 @@ namespace Employee_Management_System.Models
 {
     public class SalaryReportViewModel
     {
+        // 0 = Select All
+        // 1 = Permanent group (dbo.paytrn.type = 1,2,3,4,5)
+        // 6 = Contract
+        // 7 = Temporary
+        public int SelectedEmployeeType { get; set; } = 0;
+
         public int FromYear { get; set; }
         public int FromMonth { get; set; }
         public int ToYear { get; set; }
@@ -48,10 +54,7 @@ namespace Employee_Management_System.Models
         public int? GradeCode { get; set; }
         public string GradeName { get; set; } = "";
         public double BasicSalary { get; set; }
-
-        // Original Basic saved in dbo.paytrn.orgn_basic for the selected month.
         public double OriginalBasicSalary { get; set; }
-
         public double WithoutPayLeaveDays { get; set; }
         public Dictionary<string, double> Allowances { get; set; } = new();
         public double TotalAllowance { get; set; }
@@ -68,10 +71,7 @@ namespace Employee_Management_System.Models
         public int Month { get; set; }
         public string MonthName { get; set; } = "";
         public double BasicSalary { get; set; }
-
-        // Original Basic saved in dbo.paytrn.orgn_basic for this exact month.
         public double OriginalBasicSalary { get; set; }
-
         public double WithoutPayLeaveDays { get; set; }
         public Dictionary<string, double> Allowances { get; set; } = new();
         public double TotalAllowance { get; set; }
