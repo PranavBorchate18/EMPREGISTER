@@ -235,8 +235,18 @@ ORDER BY p.code;";
                         // Saved month: show the exact payroll already stored by Salary Report/Pay Calculation.
                         // Basic comes from dbo.paytrn; individual allowance/deduction values come from dbo.paytrnft.
                         await LoadSavedPayTrnFtValues(connection, employee, year, month);
+
+                        // A formula may be configured after this month was originally saved.
+                        // Re-evaluate ONLY formula-based allowances using the Basic currently
+                        // displayed from dbo.paytrn. Normal saved allowances remain untouched.
+                        await RefreshFormulaAllowances(connection, employee, monthStart, monthEnd);
+
                         employee.TotalAllowance = Math.Round(employee.Allowances.Values.Sum(), 2);
                         employee.GrossSalary = Math.Round(employee.BasicSalary + employee.TotalAllowance, 2);
+
+                        // PT depends on Gross, so formula allowance must affect it immediately.
+                        SetProfessionalTax(employee, professionalTaxThreshold, month);
+
                         employee.TotalDeduction = Math.Round(employee.Deductions.Values.Sum(), 2);
                         employee.NetSalary = Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
                     }
@@ -599,30 +609,57 @@ GROUP BY LTRIM(RTRIM(ISNULL(dm.name,'')));";
         private async Task SavePayTrnFoot(DbConnection connection, DbTransaction transaction, int year, int month,
             EmployeeSalaryRowViewModel employee, int employeeType, DateTime monthStart, DateTime monthEnd)
         {
-            // Allowances from payfoot (flag=1).
+            // ----------------------------------------------------------
+            // Save allowance details.
+            //
+            // Normal allowances:
+            //     employee payfoot (flag = 1)
+            //
+            // Formula allowances:
+            //     selected grade rule in dbo.allwfoot (Apply = 1)
+            //     NO payfoot row required.
+            //
+            // UNION prevents a formula allowance from being missed while
+            // saving and prevents duplicate component codes.
+            // ----------------------------------------------------------
             using (var cmd = connection.CreateCommand())
             {
                 cmd.Transaction = transaction;
                 cmd.CommandText = @"
-SELECT TRY_CONVERT(INT,pf.allw_dedu) ComponentCode,
-       LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName
-FROM dbo.payfoot pf
-INNER JOIN dbo.allwmast am
-    ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,pf.allw_dedu)
-WHERE TRY_CONVERT(INT,pf.empl_code)=@EmployeeCode
-  AND TRY_CONVERT(INT,pf.flag)=1
-  AND (pf.[date] IS NULL OR pf.[date] <= @MonthEnd)
-  AND (pf.cancel_date IS NULL OR pf.cancel_date >= @MonthStart)
-ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
+SELECT q.ComponentCode,
+       MAX(q.ComponentName) ComponentName
+FROM
+(
+    SELECT TRY_CONVERT(INT,pf.allw_dedu) ComponentCode,
+           LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName
+    FROM dbo.payfoot pf
+    INNER JOIN dbo.allwmast am
+      ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,pf.allw_dedu)
+    WHERE TRY_CONVERT(INT,pf.empl_code)=@EmployeeCode
+      AND TRY_CONVERT(INT,pf.flag)=1
+      AND (pf.[date] IS NULL OR pf.[date] <= @MonthEnd)
+      AND (pf.cancel_date IS NULL OR pf.cancel_date >= @MonthStart)
+
+    UNION ALL
+
+    SELECT TRY_CONVERT(INT,af.allw_code) ComponentCode,
+           LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName
+    FROM dbo.allwfoot af
+    INNER JOIN dbo.allwmast am
+      ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,af.allw_code)
+    WHERE TRY_CONVERT(INT,af.grad_code)=@GradeCode
+      AND ISNULL(TRY_CONVERT(INT,af.Apply),0)=1
+      AND NULLIF(LTRIM(RTRIM(CONVERT(NVARCHAR(MAX),af.formula))), '') IS NOT NULL
+) q
+WHERE q.ComponentCode IS NOT NULL
+GROUP BY q.ComponentCode
+ORDER BY q.ComponentCode;";
+
                 AddParameter(cmd, "@EmployeeCode", employee.EmployeeCode);
+                AddParameter(cmd, "@GradeCode", employee.GradeCode);
                 AddParameter(cmd, "@MonthStart", monthStart);
                 AddParameter(cmd, "@MonthEnd", monthEnd);
 
-                // IMPORTANT:
-                // Save the exact allowance amount already calculated by
-                // LoadEmployeeAllowances(). This includes Special Formula
-                // allowances such as SP. Do not calculate again from payfoot,
-                // otherwise the formula result would be lost while saving.
                 var rows = new List<(int Code, string Name, double Amount)>();
 
                 using (var r = await cmd.ExecuteReaderAsync())
@@ -639,7 +676,7 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
 
                         if (!string.IsNullOrWhiteSpace(componentName))
                         {
-                            var allowanceKey = employee.Allowances.Keys
+                            string? allowanceKey = employee.Allowances.Keys
                                 .FirstOrDefault(x =>
                                     x.Equals(componentName, StringComparison.OrdinalIgnoreCase));
 
@@ -853,62 +890,116 @@ WHERE TRY_CONVERT(INT,empl)=@EmployeeCode
 
         private async Task LoadEmployeeAllowances(DbConnection connection, EmployeeSalaryRowViewModel employee, DateTime monthStart, DateTime monthEnd)
         {
-            using var command = connection.CreateCommand();
-            command.CommandText = @"
+            // ----------------------------------------------------------
+            // PASS 1: Normal employee allowances continue to use payfoot.
+            // If a selected grade rule has a Special Formula for the same
+            // allowance, do not calculate that payfoot row here.
+            // ----------------------------------------------------------
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = @"
 SELECT TRY_CONVERT(INT,pf.allw_dedu) ComponentCode,
        LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName,
-       LTRIM(RTRIM(ISNULL(am.name,''))) MasterName,
        ISNULL(TRY_CONVERT(FLOAT,pf.amt),0) Amount,
-       ISNULL(TRY_CONVERT(FLOAT,pf.[percent]),0) [Percent],
-       ISNULL(CONVERT(NVARCHAR(MAX),af.formula),'') Formula
+       ISNULL(TRY_CONVERT(FLOAT,pf.[percent]),0) [Percent]
 FROM dbo.payfoot pf
 INNER JOIN dbo.allwmast am
   ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,pf.allw_dedu)
-LEFT JOIN dbo.allwfoot af
-  ON TRY_CONVERT(INT,af.allw_code)=TRY_CONVERT(INT,pf.allw_dedu)
- AND TRY_CONVERT(INT,af.grad_code)=@GradeCode
- AND ISNULL(TRY_CONVERT(INT,af.Apply),0)=1
 WHERE TRY_CONVERT(INT,pf.empl_code)=@EmployeeCode
   AND TRY_CONVERT(INT,pf.flag)=1
   AND (pf.[date] IS NULL OR pf.[date] <= @MonthEnd)
   AND (pf.cancel_date IS NULL OR pf.cancel_date >= @MonthStart)
+  AND NOT EXISTS
+  (
+      SELECT 1
+      FROM dbo.allwfoot af
+      WHERE TRY_CONVERT(INT,af.allw_code)=TRY_CONVERT(INT,pf.allw_dedu)
+        AND TRY_CONVERT(INT,af.grad_code)=@GradeCode
+        AND ISNULL(TRY_CONVERT(INT,af.Apply),0)=1
+        AND NULLIF(LTRIM(RTRIM(CONVERT(NVARCHAR(MAX),af.formula))), '') IS NOT NULL
+  )
 ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
-            AddParameter(command, "@EmployeeCode", employee.EmployeeCode);
-            AddParameter(command, "@GradeCode", employee.GradeCode);
-            AddParameter(command, "@MonthStart", monthStart);
-            AddParameter(command, "@MonthEnd", monthEnd);
 
-            var rows = new List<(string Name, string MasterName, double FixedAmount, double Percent, string Formula)>();
+                AddParameter(command, "@EmployeeCode", employee.EmployeeCode);
+                AddParameter(command, "@GradeCode", employee.GradeCode);
+                AddParameter(command, "@MonthStart", monthStart);
+                AddParameter(command, "@MonthEnd", monthEnd);
 
-            using (var reader = await command.ExecuteReaderAsync())
-            {
+                using var reader = await command.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
                     string name = Convert.ToString(reader["ComponentName"])?.Trim() ?? "";
                     if (string.IsNullOrWhiteSpace(name)) continue;
 
-                    rows.Add((
-                        name,
-                        Convert.ToString(reader["MasterName"])?.Trim() ?? "",
+                    double amount = Calculate(
+                        employee.BasicSalary,
                         Number(reader["Amount"]),
-                        Number(reader["Percent"]),
-                        Convert.ToString(reader["Formula"])?.Trim() ?? ""));
+                        Number(reader["Percent"]));
+
+                    AddAllowanceAmount(employee, name, amount);
                 }
             }
 
-            // Pass 1: calculate allowances that do not use a Special Formula.
-            // This makes DA/HRA available before formula-based allowances are evaluated.
-            foreach (var row in rows.Where(x => string.IsNullOrWhiteSpace(x.Formula)))
+            // ----------------------------------------------------------
+            // PASS 2: Special Formula allowances are GRADE-WISE.
+            // Source of selection:
+            // dbo.allwfoot.Apply = 1 for employee's current Grade.
+            //
+            // IMPORTANT:
+            // No payfoot row is required for a formula allowance.
+            // BASIC = the Basic currently calculated/displayed on this page.
+            // ----------------------------------------------------------
+            await ApplySelectedGradeFormulaAllowances(connection, employee);
+        }
+
+        private async Task ApplySelectedGradeFormulaAllowances(
+            DbConnection connection,
+            EmployeeSalaryRowViewModel employee)
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+SELECT TRY_CONVERT(INT,af.allw_code) ComponentCode,
+       LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName,
+       LTRIM(RTRIM(CONVERT(NVARCHAR(MAX),af.formula))) Formula
+FROM dbo.allwfoot af
+INNER JOIN dbo.allwmast am
+  ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,af.allw_code)
+WHERE TRY_CONVERT(INT,af.grad_code)=@GradeCode
+  AND ISNULL(TRY_CONVERT(INT,af.Apply),0)=1
+  AND NULLIF(LTRIM(RTRIM(CONVERT(NVARCHAR(MAX),af.formula))), '') IS NOT NULL
+ORDER BY TRY_CONVERT(INT,af.allw_code);";
+
+            AddParameter(command, "@GradeCode", employee.GradeCode);
+
+            var rows = new List<(int Code, string Name, string Formula)>();
+
+            using (var reader = await command.ExecuteReaderAsync())
             {
-                double amount = Calculate(employee.BasicSalary, row.FixedAmount, row.Percent);
-                AddAllowanceAmount(employee, row.Name, amount);
+                while (await reader.ReadAsync())
+                {
+                    if (reader["ComponentCode"] == DBNull.Value) continue;
+
+                    string name = Convert.ToString(reader["ComponentName"])?.Trim() ?? "";
+                    string formula = Convert.ToString(reader["Formula"])?.Trim() ?? "";
+
+                    if (string.IsNullOrWhiteSpace(name) ||
+                        string.IsNullOrWhiteSpace(formula))
+                        continue;
+
+                    rows.Add((
+                        Convert.ToInt32(reader["ComponentCode"]),
+                        name,
+                        formula));
+                }
             }
 
-            // Pass 2: any allowance can use dbo.allwfoot.formula.
-            foreach (var row in rows.Where(x => !string.IsNullOrWhiteSpace(x.Formula)))
+            foreach (var row in rows)
             {
-                double da = FindComponentAmount(employee.Allowances, "DA", "DEARNESS ALLOWANCE");
-                double hra = FindComponentAmount(employee.Allowances, "HRA", "HOUSE RENT ALLOWANCE");
+                double da = FindComponentAmount(
+                    employee.Allowances, "DA", "DEARNESS ALLOWANCE");
+
+                double hra = FindComponentAmount(
+                    employee.Allowances, "HRA", "HOUSE RENT ALLOWANCE");
 
                 double amount = EvaluateAllowanceFormula(
                     row.Formula,
@@ -916,8 +1007,34 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                     da,
                     hra);
 
-                AddAllowanceAmount(employee, row.Name, amount);
+                // Formula allowance replaces the 0/master placeholder.
+                string? existingKey = employee.Allowances.Keys
+                    .FirstOrDefault(x =>
+                        x.Equals(row.Name, StringComparison.OrdinalIgnoreCase));
+
+                if (existingKey != null)
+                    employee.Allowances[existingKey] = Math.Round(amount, 2);
+                else
+                    employee.Allowances[row.Name] = Math.Round(amount, 2);
             }
+        }
+
+        // Recalculate only formula-based allowances for an already-saved month.
+        // BASIC = the Basic currently displayed in Pay Calculation (dbo.paytrn.basic).
+        // This lets a newly configured SP formula affect Total Allowance/Gross immediately
+        // without recalculating or duplicating the other saved allowance values.
+        private async Task RefreshFormulaAllowances(
+            DbConnection connection,
+            EmployeeSalaryRowViewModel employee,
+            DateTime monthStart,
+            DateTime monthEnd)
+        {
+            // Saved month still keeps normal saved paytrnft values.
+            // Formula allowances, however, follow the CURRENT selected grade
+            // configuration from dbo.allwfoot (Apply = 1).
+            //
+            // Therefore a formula allowance does not require payfoot.
+            await ApplySelectedGradeFormulaAllowances(connection, employee);
         }
 
         private static void AddAllowanceAmount(
@@ -939,7 +1056,7 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
         {
             if (string.IsNullOrWhiteSpace(formula)) return 0;
 
-            string expression = formula.Trim();
+            string expression = Regex.Replace(formula, @"\s+", "");
 
             expression = Regex.Replace(
                 expression, @"\bBASIC\b",
@@ -976,7 +1093,7 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                 if (double.IsNaN(result) || double.IsInfinity(result))
                     throw new InvalidOperationException("Formula result is invalid.");
 
-                return Math.Round(result, 2);
+                return Math.Round(Math.Max(0, result), 2);
             }
             catch (Exception ex) when (ex is not InvalidOperationException)
             {
@@ -1028,7 +1145,7 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
             double amount = fixedAmount > 0
                 ? fixedAmount
                 : percent > 0 ? basic * percent / 100.0 : 0;
-            return Math.Round(amount, 2);
+            return Math.Round(Math.Max(0, amount), 2);
         }
 
         private bool IsLoggedIn() =>
@@ -1045,7 +1162,12 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
         private static int? NullableInt(object value) =>
             value == DBNull.Value ? null : Convert.ToInt32(value);
 
-        private static double Number(object value) =>
-            value == DBNull.Value ? 0 : Convert.ToDouble(value);
+        private static double Number(object value)
+        {
+            if (value == DBNull.Value) return 0;
+
+            double number = Convert.ToDouble(value);
+            return number < 0 ? 0 : number;
+        }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Employee_Management_System.Models
+﻿using System.Collections.Generic;
+
+namespace Employee_Management_System.Models
 {
     public class GradeWiseAllowDeductionViewModel
     {
@@ -29,9 +31,6 @@
         public decimal? MinLimit { get; set; }
         public decimal? MaxLimit { get; set; }
         public decimal? MinDays { get; set; }
-
-        // Available for every allowance.
-        // Stored in dbo.allwfoot.formula for selected allowance + grade.
         public string? Formula { get; set; }
     }
 

@@ -24,16 +24,9 @@ namespace Employee_Management_System.Models
         public int? GradeCode { get; set; }
         public string GradeName { get; set; } = "";
 
-        // Basic before Without Pay Leave reduction (PayMast.basic).
         public double OriginalBasicSalary { get; set; }
-
-        // Approved WPL days for the selected month.
         public double WithoutPayLeaveDays { get; set; }
-
-        // Amount reduced from Basic because of WPL.
         public double WithoutPayLeaveAmount { get; set; }
-
-        // Payable Basic after WPL reduction.
         public double BasicSalary { get; set; }
 
         public Dictionary<string, double> Allowances { get; set; } = new();
