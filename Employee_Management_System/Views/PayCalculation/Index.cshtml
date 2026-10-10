@@ -196,7 +196,7 @@
             const esc = v => $("<div>").text(v ?? "").html();
             const money = v => {
                 let n = Number(v ?? 0);
-                return isNaN(n) ? "0.00" : n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return !Number.isFinite(n) ? "0.00" : Math.max(0,n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             };
 
             function dictionaryValue(dictionary, key) {
@@ -208,11 +208,12 @@
 
             function buildHeader(allowances, deductions) {
                 let html = `<tr><th rowspan="2">Sr.</th><th rowspan="2">Employee Code</th><th rowspan="2">Employee Name</th><th rowspan="2">Grade</th><th rowspan="2" class="text-end">Basic</th>`;
-                html += `<th colspan="${allowances.length + 2}" class="text-center income-header">Income / Allowances</th>`;
+                html += `<th colspan="${allowances.length + 3}" class="text-center income-header">Income / Allowances</th>`;
                 html += `<th colspan="${deductions.length + 1}" class="text-center deduction-header">Deductions</th>`;
                 html += `<th rowspan="2" class="text-end">Net Salary</th></tr><tr>`;
+                html += `<th class="text-end income-header">Sub Total</th>`;
                 allowances.forEach(n => html += `<th class="text-end income-header">${esc(n)}</th>`);
-                html += `<th class="text-end income-header">Total Allowance</th><th class="text-end income-header">Gross Salary</th>`;
+                html += `<th class="text-end income-header">Total Allowance</th><th class="text-end income-header">Total Salary</th>`;
                 deductions.forEach(n => html += `<th class="text-end deduction-header">${esc(n)}</th>`);
                 html += `<th class="text-end deduction-header">Total Deduction</th></tr>`;
                 $("#payTableHead").html(html);
@@ -258,6 +259,7 @@
                     let html = "";
                     data.forEach(function (item, index) {
                         html += `<tr><td>${index + 1}</td><td class="fw-bold">${item.employeeCode}</td><td>${esc(item.employeeName)}</td><td>${esc(item.gradeName || item.gradeCode || "-")}</td><td class="text-end fw-bold">${money(item.basicSalary)}</td>`;
+                        html += `<td class="text-end fw-bold">${money(item.subTotal)}</td>`;
                         allowances.forEach(name => html += `<td class="text-end">${money(dictionaryValue(item.allowances, name))}</td>`);
                         html += `<td class="text-end fw-bold">${money(item.totalAllowance)}</td><td class="text-end fw-bold">${money(item.grossSalary)}</td>`;
                         deductions.forEach(name => html += `<td class="text-end">${money(dictionaryValue(item.deductions, name))}</td>`);

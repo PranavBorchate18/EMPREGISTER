@@ -233,8 +233,8 @@
                                                             <div class="card-header bg-primary text-white">
 
                                                                 <div class="d-flex justify-content-between
-                                                                                                                                                                                                                                                                                        align-items-center
-                                                                                                                                                                                                                                                                                        flex-wrap gap-2">
+                                                                                                                                                                                                                                                                                                                align-items-center
+                                                                                                                                                                                                                                                                                                                flex-wrap gap-2">
 
                                                                     <h6 class="mb-0">
 
@@ -277,11 +277,11 @@
                                                                     <div class="table-responsive">
 
                                                                         <table class="table
-                                                                                                                                                                                                                                                                                                                                                                      table-bordered
-                                                                                                                                                                                                                                                                                                                                                                      table-striped
-                                                                                                                                                                                                                                                                                                                                                                      table-hover
-                                                                                                                                                                                                                                                                                                                                                                      align-middle
-                                                                                                                                                                                                                                                                                                                                                                      mb-0">
+                                                                                                                                                                                                                                                                                                                                                                                                      table-bordered
+                                                                                                                                                                                                                                                                                                                                                                                                      table-striped
+                                                                                                                                                                                                                                                                                                                                                                                                      table-hover
+                                                                                                                                                                                                                                                                                                                                                                                                      align-middle
+                                                                                                                                                                                                                                                                                                                                                                                                      mb-0">
 
                                                                             <thead class="table-primary">
 
@@ -675,8 +675,8 @@
                                                             <div class="card-header bg-danger text-white">
 
                                                                 <div class="d-flex justify-content-between
-                                                                                                                                                                                                                                                                            align-items-center
-                                                                                                                                                                                                                                                                            flex-wrap gap-2">
+                                                                                                                                                                                                                                                                                                    align-items-center
+                                                                                                                                                                                                                                                                                                    flex-wrap gap-2">
 
                                                                     <h6 class="mb-0">
 
@@ -717,11 +717,11 @@
                                                                     <div class="table-responsive">
 
                                                                         <table class="table
-                                                                                                                                                                                                                                                                                                                                                      table-bordered
-                                                                                                                                                                                                                                                                                                                                                      table-striped
-                                                                                                                                                                                                                                                                                                                                                      table-hover
-                                                                                                                                                                                                                                                                                                                                                      align-middle
-                                                                                                                                                                                                                                                                                                                                                      mb-0">
+                                                                                                                                                                                                                                                                                                                                                                                      table-bordered
+                                                                                                                                                                                                                                                                                                                                                                                      table-striped
+                                                                                                                                                                                                                                                                                                                                                                                      table-hover
+                                                                                                                                                                                                                                                                                                                                                                                      align-middle
+                                                                                                                                                                                                                                                                                                                                                                                      mb-0">
 
                                                                             <thead class="table-danger">
 
@@ -889,7 +889,8 @@
                                                                                                     data-percent="@detail.Percent"
                                                                                                     data-min="@detail.MinLimit"
                                                                                                     data-max="@detail.MaxLimit"
-                                                                                                    data-days="@detail.MinDays">
+                                                                                                    data-days="@detail.MinDays"
+                                                                                                    data-formula="@((ViewBag.DeductionFormulas as Dictionary<int, string>)?.GetValueOrDefault(detail.Code) ?? "")">
 
                                                                                                 <i class="bi bi-pencil-square"></i>
                                                                                                 Edit
@@ -1299,7 +1300,23 @@
                                                         Percentage
                                                     </label>
                                                 </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio"
+                                                           name="deductionAmountType" id="DeductionTypeFormula" value="formula" />
+                                                    <label class="form-check-label" for="DeductionTypeFormula">Special Formula</label>
+                                                </div>
                                             </div>
+                                        </div>
+
+                                        <div class="col-12" id="DeductionFormulaBox" style="display:none;">
+                                            <label class="form-label fw-bold" for="UpdateDeductionFormula">Special Formula</label>
+                                            <input type="text" id="UpdateDeductionFormula" name="formula"
+                                                   class="form-control" maxlength="500" autocomplete="off"
+                                                   placeholder="Example: SUBTOTAL*12/100" disabled />
+                                            <div id="DeductionFormulaSuggestions" class="list-group mt-1" style="display:none;">
+                                                <button type="button" class="list-group-item list-group-item-action" id="InsertDeductionSubtotal">SUBTOTAL</button>
+                                            </div>
+                                            <div class="form-text">Type S to insert SUBTOTAL. You can type letters, numbers, and arithmetic operators.</div>
                                         </div>
 
                                         <div class="col-md-4"
@@ -1431,202 +1448,85 @@
 
 
                 <!-- UPDATE DEDUCTION MODAL JAVASCRIPT -->
-
                 <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const byId = id => document.getElementById(id);
+                        const fixRadio = byId('DeductionTypeFix');
+                        const percentRadio = byId('DeductionTypePercent');
+                        const formulaRadio = byId('DeductionTypeFormula');
+                        const fixInput = byId('UpdateDeductionFixAmount');
+                        const calcInput = byId('UpdateDeductionCalcCode');
+                        const percentInput = byId('UpdateDeductionPercent');
+                        const formulaInput = byId('UpdateDeductionFormula');
+                        const suggestion = byId('DeductionFormulaSuggestions');
+                        const modal = byId('updateDeductionModal');
+                        if (!modal || !formulaInput) return;
 
-                    document.addEventListener(
-                        "DOMContentLoaded",
-                        function () {
-
-                            const updateButtons =
-                                document.querySelectorAll(
-                                    ".btnUpdateDeduction"
-                                );
-
-
-                            updateButtons.forEach(
-                                function (button) {
-
-                                    button.addEventListener(
-                                        "click",
-                                        function () {
-
-                                            document.getElementById(
-                                                "UpdateDeductionGradeCode"
-                                            ).value =
-                                                this.dataset.code || "";
-
-
-                                            document.getElementById(
-                                                "UpdateDeductionGradeCodeDisplay"
-                                            ).value =
-                                                this.dataset.code || "";
-
-
-                                            document.getElementById(
-                                                "UpdateDeductionGradeName"
-                                            ).value =
-                                                this.dataset.name || "";
-
-
-                                            document.getElementById(
-                                                "UpdateDeductionFixAmount"
-                                            ).value =
-                                                this.dataset.fix || "";
-
-
-                                            document.getElementById(
-                                                "UpdateDeductionCalcCode"
-                                            ).value =
-                                                this.dataset.calc || "";
-
-
-                                            document.getElementById(
-                                                "UpdateDeductionPercent"
-                                            ).value =
-                                                this.dataset.percent || "";
-
-
-                                            document.getElementById(
-                                                "UpdateDeductionMinLimit"
-                                            ).value =
-                                                this.dataset.min || "";
-
-
-                                            document.getElementById(
-                                                "UpdateDeductionMaxLimit"
-                                            ).value =
-                                                this.dataset.max || "";
-
-
-                                            document.getElementById(
-                                                "UpdateDeductionMinDays"
-                                            ).value =
-                                                this.dataset.days || "";
-
-                                            const fixValue =
-                                                this.dataset.fix || "";
-
-                                            const calcValue =
-                                                this.dataset.calc || "";
-
-                                            const percentValue =
-                                                this.dataset.percent || "";
-
-                                            const fixRadio =
-                                                document.getElementById("DeductionTypeFix");
-
-                                            const percentRadio =
-                                                document.getElementById("DeductionTypePercent");
-
-                                            const fixBox =
-                                                document.getElementById("DeductionFixAmountBox");
-
-                                            const calcBox =
-                                                document.getElementById("DeductionCalcCodeBox");
-
-                                            const percentBox =
-                                                document.getElementById("DeductionPercentBox");
-
-                                            const fixInput =
-                                                document.getElementById("UpdateDeductionFixAmount");
-
-                                            const calcInput =
-                                                document.getElementById("UpdateDeductionCalcCode");
-
-                                            const percentInput =
-                                                document.getElementById("UpdateDeductionPercent");
-
-                                            const usePercentage =
-                                                (
-                                                    String(calcValue).trim() !== "" &&
-                                                    Number(calcValue) !== 0
-                                                )
-                                                ||
-                                                (
-                                                    String(percentValue).trim() !== "" &&
-                                                    Number(percentValue) !== 0
-                                                );
-
-                                            function setDeductionMode(mode) {
-
-                                                if (mode === "fix") {
-
-                                                    if (fixRadio) fixRadio.checked = true;
-                                                    if (percentRadio) percentRadio.checked = false;
-
-                                                    if (fixBox) fixBox.style.display = "";
-                                                    if (calcBox) calcBox.style.display = "none";
-                                                    if (percentBox) percentBox.style.display = "none";
-
-                                                    if (fixInput) {
-                                                        fixInput.disabled = false;
-                                                    }
-
-                                                    if (calcInput) {
-                                                        calcInput.disabled = true;
-                                                        calcInput.value = "";
-                                                    }
-
-                                                    if (percentInput) {
-                                                        percentInput.disabled = true;
-                                                        percentInput.value = "";
-                                                    }
-                                                }
-                                                else {
-
-                                                    if (fixRadio) fixRadio.checked = false;
-                                                    if (percentRadio) percentRadio.checked = true;
-
-                                                    if (fixBox) fixBox.style.display = "none";
-                                                    if (calcBox) calcBox.style.display = "";
-                                                    if (percentBox) percentBox.style.display = "";
-
-                                                    if (fixInput) {
-                                                        fixInput.disabled = true;
-                                                    }
-
-                                                    if (calcInput) {
-                                                        calcInput.disabled = false;
-                                                        calcInput.value = calcValue;
-                                                    }
-
-                                                    if (percentInput) {
-                                                        percentInput.disabled = false;
-                                                        percentInput.value = percentValue;
-                                                    }
-                                                }
-                                            }
-
-                                            setDeductionMode(
-                                                usePercentage ? "percent" : "fix"
-                                            );
-
-                                            if (fixRadio) {
-                                                fixRadio.onchange = function () {
-                                                    if (this.checked) {
-                                                        setDeductionMode("fix");
-                                                    }
-                                                };
-                                            }
-
-                                            if (percentRadio) {
-                                                percentRadio.onchange = function () {
-                                                    if (this.checked) {
-                                                        setDeductionMode("percent");
-                                                    }
-                                                };
-                                            }
-
-                                        }
-                                    );
-
-                                }
-                            );
-
+                        function setMode(mode) {
+                            fixRadio.checked = mode === 'fix';
+                            percentRadio.checked = mode === 'percent';
+                            formulaRadio.checked = mode === 'formula';
+                            byId('DeductionFixAmountBox').style.display = mode === 'fix' ? '' : 'none';
+                            byId('DeductionCalcCodeBox').style.display = mode === 'percent' ? '' : 'none';
+                            byId('DeductionPercentBox').style.display = mode === 'percent' ? '' : 'none';
+                            byId('DeductionFormulaBox').style.display = mode === 'formula' ? '' : 'none';
+                            fixInput.disabled = mode !== 'fix';
+                            calcInput.disabled = mode !== 'percent';
+                            percentInput.disabled = mode !== 'percent';
+                            formulaInput.disabled = mode !== 'formula';
+                            formulaInput.required = mode === 'formula';
+                            if (mode !== 'formula') suggestion.style.display = 'none';
                         }
-                    );
 
+                        document.querySelectorAll('.btnUpdateDeduction').forEach(button => {
+                            button.addEventListener('click', function () {
+                                const data = this.dataset;
+                                byId('UpdateDeductionGradeCode').value = data.code || '';
+                                byId('UpdateDeductionGradeCodeDisplay').value = data.code || '';
+                                byId('UpdateDeductionGradeName').value = data.name || '';
+                                fixInput.value = data.fix || '';
+                                calcInput.value = data.calc || '';
+                                percentInput.value = data.percent || '';
+                                formulaInput.value = data.formula || '';
+                                byId('UpdateDeductionMinLimit').value = data.min || '';
+                                byId('UpdateDeductionMaxLimit').value = data.max || '';
+                                byId('UpdateDeductionMinDays').value = data.days || '';
+                                const hasPercent = Number(data.calc || 0) !== 0 || Number(data.percent || 0) !== 0;
+                                setMode(data.formula ? 'formula' : (hasPercent ? 'percent' : 'fix'));
+                            });
+                        });
+                        fixRadio.addEventListener('change', () => { if (fixRadio.checked) setMode('fix'); });
+                        percentRadio.addEventListener('change', () => { if (percentRadio.checked) setMode('percent'); });
+                        formulaRadio.addEventListener('change', () => { if (formulaRadio.checked) setMode('formula'); });
+
+                        // Suggest SUBTOTAL after typing S; preserve other letters and numbers.
+                        formulaInput.addEventListener('input', () => {
+                            const caret = formulaInput.selectionStart || 0;
+                            const prefix = formulaInput.value.slice(0, caret);
+                            suggestion.style.display = /(?:^|[^A-Za-z0-9_])S$/i.test(prefix) ? '' : 'none';
+                        });
+                        byId('InsertDeductionSubtotal').addEventListener('click', () => {
+                            const end = formulaInput.selectionStart ?? formulaInput.value.length;
+                            const start = Math.max(0, end - 1);
+                            formulaInput.value = formulaInput.value.slice(0, start) + 'SUBTOTAL' + formulaInput.value.slice(end);
+                            formulaInput.focus();
+                            formulaInput.setSelectionRange(start + 8, start + 8);
+                            suggestion.style.display = 'none';
+                        });
+                        modal.querySelector('form').addEventListener('submit', event => {
+                            if (!formulaRadio.checked) return;
+                            const value = formulaInput.value.trim().toUpperCase();
+                            const rest = value.replace(/SUBTOTAL|FDA1|FDA2|BASIC|VDA|HRA|DA|(?:\d+(?:\.\d+)?|\.\d+)|[+\-*/()\s]/g, '');
+                            if (!value || rest) {
+                                event.preventDefault();
+                                formulaInput.setCustomValidity('Use valid formula variables, numbers and arithmetic operators.');
+                                formulaInput.reportValidity();
+                            } else {
+                                formulaInput.setCustomValidity('');
+                            }
+                        });
+                        formulaInput.addEventListener('input', () => formulaInput.setCustomValidity(''));
+                    });
                 </script>
             }
 
@@ -2029,10 +1929,10 @@
                                                            id="UpdateFormula"
                                                            name="formula"
                                                            class="form-control"
-                                                           placeholder="Example: BASIC+DA+HRA-500"
+                                                           placeholder="Example: (BASIC+FDA1+FDA2+VDA)*15/100"
                                                            disabled />
                                                     <div class="form-text">
-                                                        Allowed: BASIC, DA, HRA, numbers and + - * / ( ) — no spaces
+                                                        Allowed: BASIC, FDA1, FDA2, VDA, DA, HRA, numbers and + - * / ( ) — no spaces
                                                     </div>
                                                 </div>
                                             </div>
@@ -2398,70 +2298,24 @@
                             if (upper === "B") return "BASIC";
                             if (upper === "D") return "DA";
                             if (upper === "H") return "HRA";
+                            if (upper === "F") return "FDA1";
+                            if (upper === "V") return "VDA";
                             return "";
                         }
 
                         function sanitizeFormulaValue(value) {
-                            // Keep already generated BASIC / DA / HRA tokens, digits,
-                            // and the allowed mathematical symbols only. Spaces are removed.
                             const tokens = String(value || "")
                                 .toUpperCase()
-                                .match(/BASIC|DA|HRA|[0-9]+(?:\.[0-9]+)?|[+\-*/()]/g);
-
+                                .match(/FDA1|FDA2|BASIC|VDA|HRA|DA|[0-9]+(?:\.[0-9]+)?|[+\-*/()]/g);
                             return tokens ? tokens.join("") : "";
                         }
 
                         specialFormulaInput.addEventListener("beforeinput", function (event) {
-                            // Allow deletion, cursor movement, undo/redo etc.
-                            if (!event.inputType || !event.inputType.startsWith("insert")) {
-                                return;
-                            }
-
-                            // Paste is handled by the paste event below.
-                            if (event.inputType === "insertFromPaste") {
-                                return;
-                            }
-
-                            const typed = event.data;
-                            if (typed === null) {
-                                return;
-                            }
-
-                            // Numbers, decimal point and allowed operators. Space is NOT allowed.
-                            if (/^[0-9.+\-*/()]$/.test(typed)) {
-                                return;
-                            }
-
-                            const replacement = expandFormulaToken(typed);
-
-                            // Every other letter/symbol is blocked.
-                            event.preventDefault();
-
-                            if (!replacement) {
-                                return;
-                            }
-
-                            const input = event.target;
-                            const start = input.selectionStart ?? input.value.length;
-                            const end = input.selectionEnd ?? start;
-
-                            // B/D/H is accepted only at the beginning of a token.
-                            const previous = start > 0 ? input.value.charAt(start - 1) : "";
-                            const isTokenStart =
-                                start === 0 || /[\s+\-*/(]/.test(previous);
-
-                            if (!isTokenStart) {
-                                return;
-                            }
-
-                            input.value =
-                                input.value.substring(0, start) +
-                                replacement +
-                                input.value.substring(end);
-
-                            const newCaret = start + replacement.length;
-                            input.setSelectionRange(newCaret, newCaret);
-                            input.dispatchEvent(new Event("change", { bubbles: true }));
+                            // Allow complete variable names to be typed/pasted (FDA1, FDA2, VDA).
+                            if (!event.inputType || !event.inputType.startsWith("insert")) return;
+                            if (event.inputType === "insertFromPaste") return;
+                            if (event.data && !/^[A-Za-z0-9.+\-*/()]+$/.test(event.data))
+                                event.preventDefault();
                         });
 
                         specialFormulaInput.addEventListener("paste", function (event) {
@@ -2486,7 +2340,7 @@
                         });
 
                         // Final safety check for drag/drop, browser autofill or other input.
-                        specialFormulaInput.addEventListener("input", function () {
+                        specialFormulaInput.addEventListener("blur", function () {
                             const cleanValue = sanitizeFormulaValue(this.value);
                             if (this.value !== cleanValue) {
                                 this.value = cleanValue;

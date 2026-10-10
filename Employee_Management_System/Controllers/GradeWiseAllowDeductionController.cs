@@ -292,6 +292,9 @@ namespace Employee_Management_System.Controllers
             }
 
 
+            ViewBag.DeductionFormulas = model.SelectedDeductionCode.HasValue
+                ? await LoadDeductionFormulasAsync(model.SelectedDeductionCode.Value)
+                : new Dictionary<int, string>();
             return View(model);
         }
 
@@ -460,6 +463,12 @@ namespace Employee_Management_System.Controllers
 
 
                 _context.AllwFoots.Add(detail);
+
+                if (!IsValidAllowanceFormula(formula))
+                {
+                    TempData["Error"] = "Invalid formula. Use BASIC, FDA1, FDA2, VDA, DA, HRA and arithmetic operators.";
+                    return RedirectToAction(nameof(Index), new { allowanceCode, section = "allowance" });
+                }
 
                 await _context.SaveChangesAsync();
 
@@ -648,6 +657,12 @@ namespace Employee_Management_System.Controllers
                     true;
 
 
+                if (!IsValidAllowanceFormula(formula))
+                {
+                    TempData["Error"] = "Invalid formula. Use BASIC, FDA1, FDA2, VDA, DA, HRA and arithmetic operators.";
+                    return RedirectToAction(nameof(Index), new { allowanceCode, section = "allowance" });
+                }
+
                 await _context.SaveChangesAsync();
 
                 // Save formula for the selected allowance + grade. Blank means no special formula.
@@ -786,7 +801,8 @@ namespace Employee_Management_System.Controllers
                 decimal? percent,
                 decimal? minLimit,
                 decimal? maxLimit,
-                int? minDays)
+                int? minDays,
+                string? formula = null)
         {
             try
             {
@@ -894,6 +910,18 @@ namespace Employee_Management_System.Controllers
 
                 _context.DeduFoots.Add(detail);
 
+                if (!IsValidDeductionFormula(formula))
+                {
+                    TempData["Error"] = "Invalid deduction formula. Use SUBTOTAL, BASIC, FDA1, FDA2, VDA, DA, HRA, numbers and arithmetic operators.";
+                    return RedirectToAction(nameof(Index), new { deductionCode, section = "deduction" });
+                }
+                detail.Formula = string.IsNullOrWhiteSpace(formula) ? null : formula.Trim().ToUpperInvariant();
+                if (!string.IsNullOrWhiteSpace(detail.Formula))
+                {
+                    detail.FixAmount = null;
+                    detail.CalcCode = null;
+                    detail.Percent = null;
+                }
                 await _context.SaveChangesAsync();
 
                 TempData["Success"] =
@@ -937,7 +965,8 @@ namespace Employee_Management_System.Controllers
                 decimal? percent,
                 decimal? minLimit,
                 decimal? maxLimit,
-                int? minDays)
+                int? minDays,
+                string? formula = null)
         {
             try
             {
@@ -1034,6 +1063,18 @@ namespace Employee_Management_System.Controllers
                 // SQL BIT -> 1
                 detail.Apply = true;
 
+                if (!IsValidDeductionFormula(formula))
+                {
+                    TempData["Error"] = "Invalid deduction formula. Use SUBTOTAL, BASIC, FDA1, FDA2, VDA, DA, HRA, numbers and arithmetic operators.";
+                    return RedirectToAction(nameof(Index), new { deductionCode, section = "deduction" });
+                }
+                detail.Formula = string.IsNullOrWhiteSpace(formula) ? null : formula.Trim().ToUpperInvariant();
+                if (!string.IsNullOrWhiteSpace(detail.Formula))
+                {
+                    detail.FixAmount = null;
+                    detail.CalcCode = null;
+                    detail.Percent = null;
+                }
                 await _context.SaveChangesAsync();
 
                 TempData["Success"] =
@@ -1244,6 +1285,15 @@ WHERE TRY_CONVERT(DECIMAL(18,4), allw_code) = @AllowanceCode;";
             return result;
         }
 
+        private static bool IsValidAllowanceFormula(string? formula)
+        {
+            if (string.IsNullOrWhiteSpace(formula)) return true;
+            string remaining = System.Text.RegularExpressions.Regex.Replace(formula, @"\s+", "").ToUpperInvariant();
+            remaining = System.Text.RegularExpressions.Regex.Replace(remaining,
+                @"FDA1|FDA2|BASIC|VDA|HRA|DA|(?:\d+(?:\.\d+)?|\.\d+)|[+\-*/()]", "");
+            return remaining.Length == 0;
+        }
+
         private async Task SaveAllowanceFormulaAsync(
             decimal allowanceCode,
             decimal gradeCode,
@@ -1275,6 +1325,24 @@ WHERE TRY_CONVERT(DECIMAL(18,4), allw_code) = @AllowanceCode
                 if (close && connection.State == ConnectionState.Open)
                     await connection.CloseAsync();
             }
+        }
+
+
+        private async Task<Dictionary<int, string>> LoadDeductionFormulasAsync(int deductionCode)
+        {
+            return await _context.DeduFoots.AsNoTracking()
+                .Where(x => x.DeduCode == deductionCode)
+                .ToDictionaryAsync(x => x.GradeCode, x => x.Formula ?? "");
+        }
+
+        private static bool IsValidDeductionFormula(string? formula)
+        {
+            if (string.IsNullOrWhiteSpace(formula)) return true;
+            string compact = System.Text.RegularExpressions.Regex.Replace(formula.ToUpperInvariant(), @"\s+", "");
+            if (compact.Length > 500) return false;
+            string remaining = System.Text.RegularExpressions.Regex.Replace(
+                compact, @"SUBTOTAL|FDA1|FDA2|BASIC|VDA|HRA|DA|(?:\d+(?:\.\d+)?|\.\d+)|[+\-*/()]", "");
+            return remaining.Length == 0 && compact.Count(c => c == '(') == compact.Count(c => c == ')');
         }
 
         private static void AddDbParameter(DbCommand command, string name, object? value)

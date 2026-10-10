@@ -182,6 +182,7 @@ ORDER BY TRY_CONVERT(INT,b.code);";
 SELECT p.code EmployeeCode,
        ISNULL(p.name,'') EmployeeName,
        TRY_CONVERT(INT,p.grad_Code) GradeCode,
+       ISNULL(TRY_CONVERT(INT,p.[type]),0) EmployeeType,
        ISNULL(g.name,'') GradeName,
        ISNULL(TRY_CONVERT(FLOAT,p.basic),0) OriginalBasicSalary,
        CASE WHEN t.code IS NULL
@@ -211,6 +212,7 @@ ORDER BY p.code;";
                             EmployeeCode = Convert.ToInt32(reader["EmployeeCode"]),
                             EmployeeName = Convert.ToString(reader["EmployeeName"])?.Trim() ?? "",
                             GradeCode = NullableInt(reader["GradeCode"]),
+                            EmployeeType = Convert.ToInt32(reader["EmployeeType"]),
                             GradeName = Convert.ToString(reader["GradeName"])?.Trim() ?? "",
                             OriginalBasicSalary = Number(reader["OriginalBasicSalary"]),
                             BasicSalary = Number(reader["BasicSalary"])
@@ -236,19 +238,10 @@ ORDER BY p.code;";
                         // Basic comes from dbo.paytrn; individual allowance/deduction values come from dbo.paytrnft.
                         await LoadSavedPayTrnFtValues(connection, employee, year, month);
 
-                        // A formula may be configured after this month was originally saved.
-                        // Re-evaluate ONLY formula-based allowances using the Basic currently
-                        // displayed from dbo.paytrn. Normal saved allowances remain untouched.
-                        await RefreshFormulaAllowances(connection, employee, monthStart, monthEnd);
+                        // A saved month is a historical snapshot. Display paytrnft amounts
+                        // without silently overwriting them with current grade rules.
+                        RecalculateSavedPayrollTotals(employee);
 
-                        employee.TotalAllowance = Math.Round(employee.Allowances.Values.Sum(), 2);
-                        employee.GrossSalary = Math.Round(employee.BasicSalary + employee.TotalAllowance, 2);
-
-                        // PT depends on Gross, so formula allowance must affect it immediately.
-                        SetProfessionalTax(employee, professionalTaxThreshold, month);
-
-                        employee.TotalDeduction = Math.Round(employee.Deductions.Values.Sum(), 2);
-                        employee.NetSalary = Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
                     }
                     else
                     {
@@ -261,11 +254,9 @@ ORDER BY p.code;";
                         await LoadEmployeeAllowances(connection, employee, monthStart, monthEnd);
                         await LoadEmployeeDeductions(connection, employee, monthStart, monthEnd);
 
-                        employee.TotalAllowance = Math.Round(employee.Allowances.Values.Sum(), 2);
-                        employee.GrossSalary = Math.Round(employee.BasicSalary + employee.TotalAllowance, 2);
-                        SetProfessionalTax(employee, professionalTaxThreshold, month);
-                        employee.TotalDeduction = Math.Round(employee.Deductions.Values.Sum(), 2);
-                        employee.NetSalary = Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
+                        ApplyNewSalaryRules(employee, month);
+                        await ApplySelectedGradePayRules(connection, employee);
+
                     }
                 }
 
@@ -351,6 +342,7 @@ WHERE TRY_CONVERT(INT,t.[year])=@Year
 SELECT p.code EmployeeCode,
        ISNULL(p.name,'') EmployeeName,
        TRY_CONVERT(INT,p.grad_Code) GradeCode,
+       ISNULL(TRY_CONVERT(INT,p.[type]),0) EmployeeType,
        ISNULL(g.name,'') GradeName,
        ISNULL(TRY_CONVERT(FLOAT,p.basic),0) BasicSalary
 FROM dbo.PayMast p
@@ -368,6 +360,7 @@ ORDER BY p.code;";
                             EmployeeCode = Convert.ToInt32(reader["EmployeeCode"]),
                             EmployeeName = Convert.ToString(reader["EmployeeName"])?.Trim() ?? "",
                             GradeCode = NullableInt(reader["GradeCode"]),
+                            EmployeeType = Convert.ToInt32(reader["EmployeeType"]),
                             GradeName = Convert.ToString(reader["GradeName"])?.Trim() ?? "",
                             OriginalBasicSalary = Number(reader["BasicSalary"]),
                             BasicSalary = Number(reader["BasicSalary"])
@@ -394,15 +387,11 @@ ORDER BY p.code;";
                     await LoadEmployeeAllowances(connection, employee, monthStart, monthEnd);
                     await LoadEmployeeDeductions(connection, employee, monthStart, monthEnd);
 
-                    employee.TotalAllowance = Math.Round(employee.Allowances.Values.Sum(), 2);
-                    employee.GrossSalary = Math.Round(employee.BasicSalary + employee.TotalAllowance, 2);
+                    ApplyNewSalaryRules(employee, month);
+                    await ApplySelectedGradePayRules(connection, employee);
 
-                    // Gross Salary below dbo.daptsys.from1 = 0
-                    // Gross Salary >= threshold: March = 300, all other months = 200
-                    SetProfessionalTax(employee, professionalTaxThreshold, month);
+                    // New PT slabs are calculated inside ApplyNewSalaryRules.
 
-                    employee.TotalDeduction = Math.Round(employee.Deductions.Values.Sum(), 2);
-                    employee.NetSalary = Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
                 }
 
                 transaction = await connection.BeginTransactionAsync();
@@ -449,8 +438,8 @@ WHERE TRY_CONVERT(INT,t.[year])=@Year
                 foreach (var employee in employees)
                 {
                     // paytrn stores DA and HRA separately.
-                    double da = FindComponentAmount(employee.Allowances, "DA", "DEARNESS ALLOWANCE");
-                    double hra = FindComponentAmount(employee.Allowances, "HRA", "HOUSE RENT ALLOWANCE");
+                    double da = Money(employee.Fda1 + employee.Fda2 + employee.Vda);
+                    double hra = Money(employee.Hra);
 
                     // type is NOT NULL in paytrn, so fetch the employee type from PayMast.
                     int employeeType;
@@ -485,13 +474,13 @@ VALUES
                     AddParameter(insertCommand, "@Month", month);
                     AddParameter(insertCommand, "@Code", employee.EmployeeCode);
                     AddParameter(insertCommand, "@Type", employeeType);
-                    AddParameter(insertCommand, "@Basic", employee.BasicSalary);
+                    AddParameter(insertCommand, "@Basic", Money(employee.BasicSalary));
                     AddParameter(insertCommand, "@DA", da);
                     AddParameter(insertCommand, "@HRA", hra);
                     AddParameter(insertCommand, "@Grad", employee.GradeCode);
                     AddParameter(insertCommand, "@Branch", branchCode);
-                    AddParameter(insertCommand, "@TotalAllowance", employee.TotalAllowance);
-                    AddParameter(insertCommand, "@TotalDeduction", employee.TotalDeduction);
+                    AddParameter(insertCommand, "@TotalAllowance", Money(employee.TotalAllowance));
+                    AddParameter(insertCommand, "@TotalDeduction", Money(employee.TotalDeduction));
                     AddParameter(insertCommand, "@IssueDate", monthEnd);
                     AddParameter(insertCommand, "@OriginalBasic", employee.OriginalBasicSalary);
                     AddParameter(insertCommand, "@Days", Math.Max(0, daysInMonth - employee.WithoutPayLeaveDays));
@@ -555,7 +544,7 @@ GROUP BY LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name)));";
                 while (await r.ReadAsync())
                 {
                     string name = Convert.ToString(r["ComponentName"])?.Trim() ?? "";
-                    if (!string.IsNullOrWhiteSpace(name)) employee.Allowances[name] = Number(r["Amount"]);
+                    if (!string.IsNullOrWhiteSpace(name)) employee.Allowances[name] = Money(Number(r["Amount"]));
                 }
             }
 
@@ -579,9 +568,52 @@ GROUP BY LTRIM(RTRIM(ISNULL(dm.name,'')));";
                 while (await r.ReadAsync())
                 {
                     string name = Convert.ToString(r["ComponentName"])?.Trim() ?? "";
-                    if (!string.IsNullOrWhiteSpace(name)) employee.Deductions[name] = Number(r["Amount"]);
+                    if (!string.IsNullOrWhiteSpace(name)) employee.Deductions[name] = Money(Number(r["Amount"]));
                 }
             }
+        }
+
+        private static double Money(double value) =>
+            double.IsNaN(value) || double.IsInfinity(value) ? 0 : Math.Round(Math.Max(0, value), 2);
+
+        private static void SetComponent(Dictionary<string, double> values, double amount, params string[] aliases)
+        {
+            foreach (string alias in aliases)
+            {
+                string? key = values.Keys.FirstOrDefault(x => x.Equals(alias, StringComparison.OrdinalIgnoreCase));
+                if (key != null) { values[key] = Money(amount); return; }
+            }
+            values[aliases[0]] = Money(amount);
+        }
+
+        // PayMast.type 1..5 = permanent (confirm codes if the database uses a different convention).
+        // PT slab is applied to Total Allowance, not Gross/Basic.
+        private static void ApplyNewSalaryRules(EmployeeSalaryRowViewModel e, int month)
+        {
+            e.BasicSalary = Money(e.BasicSalary);
+            e.Fda1 = Money(FindComponentAmount(e.Allowances, "Fda", "FDA 1", "FDA1"));
+            e.Fda2 = Money(FindComponentAmount(e.Allowances, "Fdaa", "FDA 2", "FDA2"));
+            e.Vda = e.IsPermanent ? 7980 : 0;
+            SetComponent(e.Allowances, e.Fda1, "Fda", "FDA 1");
+            SetComponent(e.Allowances, e.Fda2, "Fdaa", "FDA 2");
+            SetComponent(e.Allowances, e.Vda, "vda", "VDA");
+            e.SubTotal = Money(e.BasicSalary + e.Fda1 + e.Fda2 + e.Vda);
+            e.Hra = Money(e.SubTotal * 0.15);
+            SetComponent(e.Allowances, e.Hra, "HRA");
+            e.CashAllowance = Money(FindComponentAmount(e.Allowances, "Cash A", "Cash Allowance"));
+            e.SroAllowance = Money(FindComponentAmount(e.Allowances, "SRO A", "SRO Allowance"));
+            e.SpecialPay = e.IsPermanent ? 500 : 0;
+            SetComponent(e.Allowances, e.SpecialPay, "SP", "Special Pay");
+            e.TotalAllowance = Money(e.Fda1 + e.Fda2 + e.Vda + e.Hra + e.CashAllowance + e.SroAllowance + e.SpecialPay);
+            e.GrossSalary = Money(e.BasicSalary + e.TotalAllowance);
+            e.ProvidentFund = Money(e.SubTotal * 0.12);
+            SetComponent(e.Deductions, e.ProvidentFund, "PF", "PROVIDENT FUND", "P.F.", "P.F");
+            double pt = e.TotalAllowance > 10000 ? 200 : e.TotalAllowance >= 7500 ? 175 : 0;
+            SetComponent(e.Deductions, pt, "PROFESSIONAL TAX");
+            foreach (var key in e.Deductions.Keys.ToList())
+                e.Deductions[key] = Money(e.Deductions[key]);
+            e.TotalDeduction = Money(e.Deductions.Values.Sum());
+            e.NetSalary = Money(e.GrossSalary - e.TotalDeduction);
         }
 
         private static void SetProfessionalTax(
@@ -642,6 +674,22 @@ FROM
 
     UNION ALL
 
+    -- Persist the seven configured salary components, including fixed VDA/SP.
+    SELECT TRY_CONVERT(INT,am.code) ComponentCode,
+           LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName
+    FROM dbo.allwmast am
+    WHERE TRY_CONVERT(INT,am.code) BETWEEN 1 AND 7
+
+    UNION ALL
+
+    SELECT TRY_CONVERT(INT,af.allw_code) ComponentCode,
+           LTRIM(RTRIM(ISNULL(NULLIF(am.short_name,''),am.name))) ComponentName
+    FROM dbo.allwfoot af JOIN dbo.allwmast am
+      ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,af.allw_code)
+    WHERE TRY_CONVERT(INT,af.grad_code)=@GradeCode AND af.Apply=1
+
+    UNION ALL
+
     SELECT TRY_CONVERT(INT,af.allw_code) ComponentCode,
            LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName
     FROM dbo.allwfoot af
@@ -687,7 +735,7 @@ ORDER BY q.ComponentCode;";
                         rows.Add((
                             componentCode,
                             componentName,
-                            Math.Round(calculatedAmount, 2)));
+                            Money(calculatedAmount)));
                     }
                 }
 
@@ -729,11 +777,76 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                     {
                         if (r["ComponentCode"] == DBNull.Value) continue;
                         rows.Add((Convert.ToInt32(r["ComponentCode"]), Convert.ToString(r["ComponentName"])?.Trim() ?? "",
-                            Calculate(employee.BasicSalary, Number(r["FixedAmount"]), Number(r["Percent"]))));
+                            FindComponentAmount(employee.Deductions, Convert.ToString(r["ComponentName"])?.Trim() ?? "")));
                     }
                 foreach (var row in rows)
                     if (!row.Name.Equals("PROFESSIONAL TAX", StringComparison.OrdinalIgnoreCase))
                         await InsertPayTrnFootRow(connection, transaction, year, month, employee.EmployeeCode, 2, employeeType, row.Code, row.Amount);
+            }
+
+
+            // Persist grade-selected formula deductions even without payfoot assignments.
+            if (employee.GradeCode.HasValue)
+            {
+                using var formulaCmd = connection.CreateCommand();
+                formulaCmd.Transaction = transaction;
+                formulaCmd.CommandText = @"
+SELECT TRY_CONVERT(INT,df.dedu_code) AS ComponentCode,
+       LTRIM(RTRIM(ISNULL(dm.name,''))) AS ComponentName
+FROM dbo.dedufoot df
+INNER JOIN dbo.dedumast dm ON TRY_CONVERT(INT,dm.code)=TRY_CONVERT(INT,df.dedu_code)
+WHERE TRY_CONVERT(INT,df.grad_code)=@Grade
+  AND df.Apply=1
+;";
+                AddParameter(formulaCmd, "@Grade", employee.GradeCode.Value);
+                var formulaRows = new List<(int Code, string Name)>();
+                using (var reader = await formulaCmd.ExecuteReaderAsync())
+                    while (await reader.ReadAsync())
+                        if (reader["ComponentCode"] != DBNull.Value)
+                            formulaRows.Add((Convert.ToInt32(reader["ComponentCode"]),
+                                Convert.ToString(reader["ComponentName"])?.Trim() ?? ""));
+                foreach (var row in formulaRows)
+                {
+                    using var check = connection.CreateCommand();
+                    check.Transaction = transaction;
+                    check.CommandText = @"SELECT COUNT(1) FROM dbo.paytrnft
+WHERE [year]=@Year AND [month]=@Month AND empl=@Employee
+AND flag=2 AND allw_dedu_code=@Code;";
+                    AddParameter(check, "@Year", year);
+                    AddParameter(check, "@Month", month);
+                    AddParameter(check, "@Employee", employee.EmployeeCode);
+                    AddParameter(check, "@Code", row.Code);
+                    if (Convert.ToInt32(await check.ExecuteScalarAsync() ?? 0) == 0)
+                        await InsertPayTrnFootRow(connection, transaction, year, month,
+                            employee.EmployeeCode, 2, employeeType, row.Code,
+                            FindComponentAmount(employee.Deductions, row.Name));
+                }
+            }
+
+            // PF must be saved even if there is no payfoot assignment.
+            int? pfCode = null;
+            using (var pfLookup = connection.CreateCommand())
+            {
+                pfLookup.Transaction = transaction;
+                pfLookup.CommandText = @"SELECT TOP 1 TRY_CONVERT(INT,code)
+FROM dbo.dedumast
+WHERE UPPER(LTRIM(RTRIM(ISNULL(name,'')))) IN ('PF','PROVIDENT FUND','P.F.','P.F')
+ORDER BY TRY_CONVERT(INT,code);";
+                var result = await pfLookup.ExecuteScalarAsync();
+                if (result != null && result != DBNull.Value) pfCode = Convert.ToInt32(result);
+            }
+            if (pfCode.HasValue)
+            {
+                using var check = connection.CreateCommand();
+                check.Transaction = transaction;
+                check.CommandText = @"SELECT COUNT(1) FROM dbo.paytrnft
+WHERE [year]=@Year AND [month]=@Month AND empl=@Employee AND flag=2 AND allw_dedu_code=@Code;";
+                AddParameter(check, "@Year", year);
+                AddParameter(check, "@Month", month);
+                AddParameter(check, "@Employee", employee.EmployeeCode);
+                AddParameter(check, "@Code", pfCode.Value);
+                if (Convert.ToInt32(await check.ExecuteScalarAsync() ?? 0) == 0)
+                    await InsertPayTrnFootRow(connection, transaction, year, month, employee.EmployeeCode, 2, employeeType, pfCode.Value, employee.ProvidentFund);
             }
 
             // Save the exact Professional Tax amount already calculated above.
@@ -761,16 +874,17 @@ WHERE UPPER(LTRIM(RTRIM(ISNULL(name,''))))='PROFESSIONAL TAX' ORDER BY TRY_CONVE
                 if (!ptCode.HasValue)
                     throw new InvalidOperationException("PROFESSIONAL TAX is not available in dbo.dedumast.");
 
-                await InsertPayTrnFootRow(
-                    connection,
-                    transaction,
-                    year,
-                    month,
-                    employee.EmployeeCode,
-                    2,
-                    employeeType,
-                    ptCode.Value,
-                    professionalTaxAmount);
+                using var ptCheck = connection.CreateCommand();
+                ptCheck.Transaction = transaction;
+                ptCheck.CommandText = @"SELECT COUNT(1) FROM dbo.paytrnft WHERE [year]=@Year
+ AND [month]=@Month AND empl=@Employee AND flag=2 AND allw_dedu_code=@Code;";
+                AddParameter(ptCheck, "@Year", year);
+                AddParameter(ptCheck, "@Month", month);
+                AddParameter(ptCheck, "@Employee", employee.EmployeeCode);
+                AddParameter(ptCheck, "@Code", ptCode.Value);
+                if (Convert.ToInt32(await ptCheck.ExecuteScalarAsync() ?? 0) == 0)
+                    await InsertPayTrnFootRow(connection, transaction, year, month,
+                        employee.EmployeeCode, 2, employeeType, ptCode.Value, professionalTaxAmount);
             }
         }
 
@@ -788,7 +902,7 @@ VALUES (@Year,@Month,@EmployeeCode,@Flag,@Type,@ComponentCode,@Amount,@Amount,GE
             AddParameter(cmd, "@Flag", flag);
             AddParameter(cmd, "@Type", employeeType);
             AddParameter(cmd, "@ComponentCode", componentCode);
-            AddParameter(cmd, "@Amount", Math.Round(amount, 2));
+            AddParameter(cmd, "@Amount", Money(amount));
             await cmd.ExecuteNonQueryAsync();
         }
 
@@ -799,7 +913,7 @@ VALUES (@Year,@Month,@EmployeeCode,@Flag,@Type,@ComponentCode,@Amount,@Amount,GE
                 foreach (var item in components)
                 {
                     if (item.Key.Equals(componentName, StringComparison.OrdinalIgnoreCase))
-                        return Math.Round(item.Value, 2);
+                        return Money(item.Value);
                 }
             }
 
@@ -949,7 +1063,7 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
             // No payfoot row is required for a formula allowance.
             // BASIC = the Basic currently calculated/displayed on this page.
             // ----------------------------------------------------------
-            await ApplySelectedGradeFormulaAllowances(connection, employee);
+            // Grade rules are applied together after baseline salary calculation.
         }
 
         private async Task ApplySelectedGradeFormulaAllowances(
@@ -995,8 +1109,10 @@ ORDER BY TRY_CONVERT(INT,af.allw_code);";
 
             foreach (var row in rows)
             {
-                double da = FindComponentAmount(
-                    employee.Allowances, "DA", "DEARNESS ALLOWANCE");
+                double fda1 = FindComponentAmount(employee.Allowances, "Fda", "FDA 1", "FDA1");
+                double fda2 = FindComponentAmount(employee.Allowances, "Fdaa", "FDA 2", "FDA2");
+                double vda = employee.IsPermanent ? 7980 : 0;
+                double da = Money(fda1 + fda2 + vda);
 
                 double hra = FindComponentAmount(
                     employee.Allowances, "HRA", "HOUSE RENT ALLOWANCE");
@@ -1005,7 +1121,10 @@ ORDER BY TRY_CONVERT(INT,af.allw_code);";
                     row.Formula,
                     employee.BasicSalary,
                     da,
-                    hra);
+                    hra,
+                    fda1,
+                    fda2,
+                    vda);
 
                 // Formula allowance replaces the 0/master placeholder.
                 string? existingKey = employee.Allowances.Keys
@@ -1013,9 +1132,9 @@ ORDER BY TRY_CONVERT(INT,af.allw_code);";
                         x.Equals(row.Name, StringComparison.OrdinalIgnoreCase));
 
                 if (existingKey != null)
-                    employee.Allowances[existingKey] = Math.Round(amount, 2);
+                    employee.Allowances[existingKey] = Money(amount);
                 else
-                    employee.Allowances[row.Name] = Math.Round(amount, 2);
+                    employee.Allowances[row.Name] = Money(amount);
             }
         }
 
@@ -1034,7 +1153,7 @@ ORDER BY TRY_CONVERT(INT,af.allw_code);";
             // configuration from dbo.allwfoot (Apply = 1).
             //
             // Therefore a formula allowance does not require payfoot.
-            await ApplySelectedGradeFormulaAllowances(connection, employee);
+            // Grade rules are applied together after baseline salary calculation.
         }
 
         private static void AddAllowanceAmount(
@@ -1043,20 +1162,34 @@ ORDER BY TRY_CONVERT(INT,af.allw_code);";
                     double amount)
         {
             if (employee.Allowances.ContainsKey(name))
-                employee.Allowances[name] += Math.Round(amount, 2);
+                employee.Allowances[name] = Money(employee.Allowances[name] + Money(amount));
             else
-                employee.Allowances[name] = Math.Round(amount, 2);
+                employee.Allowances[name] = Money(amount);
         }
 
         private static double EvaluateAllowanceFormula(
             string formula,
             double basic,
             double da,
-            double hra)
+            double hra,
+            double fda1,
+            double fda2,
+            double vda)
         {
             if (string.IsNullOrWhiteSpace(formula)) return 0;
 
             string expression = Regex.Replace(formula, @"\s+", "");
+
+            // Replace longer tokens before DA, so FDA1/FDA2 remain distinct.
+            expression = Regex.Replace(expression, @"\bSUBTOTAL\b",
+                (basic + fda1 + fda2 + vda).ToString(CultureInfo.InvariantCulture),
+                RegexOptions.IgnoreCase);
+            expression = Regex.Replace(expression, @"\bFDA1\b",
+                fda1.ToString(CultureInfo.InvariantCulture), RegexOptions.IgnoreCase);
+            expression = Regex.Replace(expression, @"\bFDA2\b",
+                fda2.ToString(CultureInfo.InvariantCulture), RegexOptions.IgnoreCase);
+            expression = Regex.Replace(expression, @"\bVDA\b",
+                vda.ToString(CultureInfo.InvariantCulture), RegexOptions.IgnoreCase);
 
             expression = Regex.Replace(
                 expression, @"\bBASIC\b",
@@ -1078,7 +1211,7 @@ ORDER BY TRY_CONVERT(INT,af.allw_code);";
             if (!Regex.IsMatch(expression, @"^[0-9\.\+\-\*\/\(\)]+$"))
                 throw new InvalidOperationException(
                     "Allowance formula contains an unsupported value. " +
-                    "Use only BASIC, DA, HRA, numbers and + - * / ( ).");
+                    "Use only BASIC, FDA1, FDA2, VDA, DA, HRA, numbers and + - * / ( ).");
 
             try
             {
@@ -1132,7 +1265,7 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                 double amount = Calculate(employee.BasicSalary, fixedAmount, percent);
 
                 if (employee.Deductions.ContainsKey(name))
-                    employee.Deductions[name] += amount;
+                    employee.Deductions[name] = Money(employee.Deductions[name] + amount);
                 else
                     employee.Deductions[name] = amount;
             }
@@ -1146,6 +1279,162 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                 ? fixedAmount
                 : percent > 0 ? basic * percent / 100.0 : 0;
             return Math.Round(Math.Max(0, amount), 2);
+        }
+
+
+        // Reconstruct totals for historical saved data without recalculating its rules.
+        private static void RecalculateSavedPayrollTotals(EmployeeSalaryRowViewModel e)
+        {
+            e.Fda1 = FindComponentAmount(e.Allowances, "Fda", "FDA 1", "FDA1");
+            e.Fda2 = FindComponentAmount(e.Allowances, "Fdaa", "FDA 2", "FDA2");
+            e.Vda = FindComponentAmount(e.Allowances, "vda", "VDA");
+            e.Hra = FindComponentAmount(e.Allowances, "HRA");
+            e.CashAllowance = FindComponentAmount(e.Allowances, "Cash A", "Cash Allowance");
+            e.SroAllowance = FindComponentAmount(e.Allowances, "SRO A", "SRO Allowance");
+            e.SpecialPay = FindComponentAmount(e.Allowances, "SP", "Special Pay");
+            e.SubTotal = Money(e.BasicSalary + e.Fda1 + e.Fda2 + e.Vda);
+            e.TotalAllowance = Money(e.Allowances.Values.Sum());
+            e.GrossSalary = Money(e.BasicSalary + e.TotalAllowance);
+            e.ProvidentFund = FindComponentAmount(e.Deductions, "Provident Fund", "PF");
+            e.TotalDeduction = Money(e.Deductions.Values.Sum());
+            e.NetSalary = Money(e.GrossSalary - e.TotalDeduction);
+        }
+
+        // The grade configuration (allwfoot/dedufoot) takes priority over
+        // payfoot and fallback rules for an unsaved payroll month.
+        private async Task ApplySelectedGradePayRules(DbConnection connection, EmployeeSalaryRowViewModel e)
+        {
+            if (!e.GradeCode.HasValue) return;
+            var allowanceRules = new List<(int Code, string Name, double Fixed, double Percent, string Formula)>();
+            using (var cmd = connection.CreateCommand())
+            {
+                cmd.CommandText = @"SELECT TRY_CONVERT(INT,af.allw_code) Code,
+ LTRIM(RTRIM(ISNULL(NULLIF(am.short_name,''),am.name))) Name,
+ ISNULL(TRY_CONVERT(FLOAT,af.FIX_amount),0) Fixed,
+ ISNULL(TRY_CONVERT(FLOAT,af.[percent]),0) Pct,
+ ISNULL(CONVERT(NVARCHAR(MAX),af.formula),'') Formula
+ FROM dbo.allwfoot af JOIN dbo.allwmast am
+ ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,af.allw_code)
+ WHERE TRY_CONVERT(INT,af.grad_code)=@Grade AND af.Apply=1
+ ORDER BY TRY_CONVERT(INT,af.allw_code);";
+                AddParameter(cmd, "@Grade", e.GradeCode.Value);
+                using var r = await cmd.ExecuteReaderAsync();
+                while (await r.ReadAsync())
+                    if (r["Code"] != DBNull.Value)
+                        allowanceRules.Add((Convert.ToInt32(r["Code"]), Convert.ToString(r["Name"])?.Trim() ?? "",
+                            Number(r["Fixed"]), Number(r["Pct"]), Convert.ToString(r["Formula"])?.Trim() ?? ""));
+            }
+            // Pass 1: fixed and percentage values. Pass 2: formulas which may reference FDA1/FDA2/VDA.
+            foreach (var rule in allowanceRules.Where(x => string.IsNullOrWhiteSpace(x.Formula)))
+                SetComponent(e.Allowances, Calculate(e.BasicSalary, rule.Fixed, rule.Percent), rule.Name);
+            UpdateAllowanceTotals(e);
+            foreach (var rule in allowanceRules.Where(x => !string.IsNullOrWhiteSpace(x.Formula)))
+            {
+                double value = EvaluateAllowanceFormula(rule.Formula, e.BasicSalary,
+                    e.Fda1 + e.Fda2 + e.Vda, e.Hra, e.Fda1, e.Fda2, e.Vda);
+                SetComponent(e.Allowances, value, rule.Name);
+                UpdateAllowanceTotals(e);
+            }
+            // If no HRA rule exists, keep the prior fallback HRA based on the final subtotal.
+            if (!allowanceRules.Any(x => x.Code == 4))
+            {
+                SetComponent(e.Allowances, Money(e.SubTotal * .15), "HRA");
+                UpdateAllowanceTotals(e);
+            }
+
+            var deductionRules = new List<(int Code, string Name, double Fixed, double Percent, string Formula)>();
+            using (var cmd = connection.CreateCommand())
+            {
+                cmd.CommandText = @"SELECT TRY_CONVERT(INT,df.dedu_code) Code,
+ LTRIM(RTRIM(ISNULL(dm.name,''))) Name,
+ ISNULL(TRY_CONVERT(FLOAT,df.FIX_amount),0) Fixed,
+ ISNULL(TRY_CONVERT(FLOAT,df.[percent]),0) Pct,
+ ISNULL(CONVERT(NVARCHAR(MAX),df.formula),'') Formula
+ FROM dbo.dedufoot df JOIN dbo.dedumast dm
+ ON TRY_CONVERT(INT,dm.code)=TRY_CONVERT(INT,df.dedu_code)
+ WHERE TRY_CONVERT(INT,df.grad_code)=@Grade AND df.Apply=1
+ ORDER BY TRY_CONVERT(INT,df.dedu_code);";
+                AddParameter(cmd, "@Grade", e.GradeCode.Value);
+                using var r = await cmd.ExecuteReaderAsync();
+                while (await r.ReadAsync())
+                    if (r["Code"] != DBNull.Value)
+                        deductionRules.Add((Convert.ToInt32(r["Code"]), Convert.ToString(r["Name"])?.Trim() ?? "",
+                            Number(r["Fixed"]), Number(r["Pct"]), Convert.ToString(r["Formula"])?.Trim() ?? ""));
+            }
+            foreach (var rule in deductionRules)
+            {
+                double value = string.IsNullOrWhiteSpace(rule.Formula)
+                    ? Calculate(e.BasicSalary, rule.Fixed, rule.Percent)
+                    : EvaluateAllowanceFormula(rule.Formula, e.BasicSalary,
+                        e.Fda1 + e.Fda2 + e.Vda, e.Hra, e.Fda1, e.Fda2, e.Vda);
+                SetComponent(e.Deductions, value, rule.Name);
+            }
+            e.ProvidentFund = FindComponentAmount(e.Deductions, "Provident Fund", "PF");
+            e.TotalDeduction = Money(e.Deductions.Values.Sum());
+            e.NetSalary = Money(e.GrossSalary - e.TotalDeduction);
+        }
+
+        private static void UpdateAllowanceTotals(EmployeeSalaryRowViewModel e)
+        {
+            e.Fda1 = FindComponentAmount(e.Allowances, "Fda", "FDA 1", "FDA1");
+            e.Fda2 = FindComponentAmount(e.Allowances, "Fdaa", "FDA 2", "FDA2");
+            e.Vda = FindComponentAmount(e.Allowances, "vda", "VDA");
+            e.SubTotal = Money(e.BasicSalary + e.Fda1 + e.Fda2 + e.Vda);
+            e.Hra = FindComponentAmount(e.Allowances, "HRA");
+            e.CashAllowance = FindComponentAmount(e.Allowances, "Cash A", "Cash Allowance");
+            e.SroAllowance = FindComponentAmount(e.Allowances, "SRO A", "SRO Allowance");
+            e.SpecialPay = FindComponentAmount(e.Allowances, "SP", "Special Pay");
+            e.TotalAllowance = Money(e.Allowances.Values.Sum());
+            e.GrossSalary = Money(e.BasicSalary + e.TotalAllowance);
+        }
+
+        // Grade-specific deductions, including SUBTOTAL-based formulas.
+        // Applied after salary rules so SUBTOTAL and HRA have final values.
+        private async Task ApplyGradeDeductionFormulas(DbConnection connection, EmployeeSalaryRowViewModel employee)
+        {
+            if (!employee.GradeCode.HasValue) return;
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+SELECT LTRIM(RTRIM(ISNULL(dm.name,''))) AS ComponentName,
+       CONVERT(NVARCHAR(MAX),df.formula) AS Formula
+FROM dbo.dedufoot df
+INNER JOIN dbo.dedumast dm ON TRY_CONVERT(INT,dm.code)=TRY_CONVERT(INT,df.dedu_code)
+WHERE TRY_CONVERT(INT,df.grad_code)=@Grade
+  AND df.Apply=1
+  AND NULLIF(LTRIM(RTRIM(CONVERT(NVARCHAR(MAX),df.formula))),'') IS NOT NULL;";
+            AddParameter(cmd, "@Grade", employee.GradeCode.Value);
+            var formulas = new List<(string Name, string Formula)>();
+            using (var reader = await cmd.ExecuteReaderAsync())
+                while (await reader.ReadAsync())
+                    formulas.Add((Convert.ToString(reader["ComponentName"])?.Trim() ?? "",
+                                  Convert.ToString(reader["Formula"])?.Trim() ?? ""));
+            foreach (var item in formulas)
+            {
+                if (string.IsNullOrWhiteSpace(item.Name)) continue;
+                string expression = Regex.Replace(item.Formula, @"\s+", "").ToUpperInvariant();
+                var tokens = new Dictionary<string, double>
+                {
+                    ["SUBTOTAL"] = employee.SubTotal,
+                    ["BASIC"] = employee.BasicSalary,
+                    ["FDA1"] = employee.Fda1,
+                    ["FDA2"] = employee.Fda2,
+                    ["VDA"] = employee.Vda,
+                    ["DA"] = employee.Fda1 + employee.Fda2 + employee.Vda,
+                    ["HRA"] = employee.Hra
+                };
+                foreach (var token in tokens.OrderByDescending(x => x.Key.Length))
+                    expression = Regex.Replace(expression, @"\b" + token.Key + @"\b",
+                        token.Value.ToString(CultureInfo.InvariantCulture), RegexOptions.IgnoreCase);
+                if (!Regex.IsMatch(expression, @"^[0-9.+\-*/()]+$"))
+                    throw new InvalidOperationException("Invalid deduction formula for " + item.Name);
+                var result = new DataTable { Locale = CultureInfo.InvariantCulture }
+                    .Compute(expression, string.Empty);
+                double amount = Convert.ToDouble(result, CultureInfo.InvariantCulture);
+                if (!double.IsFinite(amount)) throw new InvalidOperationException("Invalid deduction amount for " + item.Name);
+                SetComponent(employee.Deductions, Money(amount), item.Name);
+            }
+            employee.TotalDeduction = Money(employee.Deductions.Values.Sum());
+            employee.NetSalary = Money(employee.GrossSalary - employee.TotalDeduction);
         }
 
         private bool IsLoggedIn() =>
