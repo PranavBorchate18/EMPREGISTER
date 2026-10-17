@@ -244,6 +244,18 @@
 
                                         </a>
 
+                                        @if (isPending || isApproved)
+                                        {
+                                            <form asp-controller="Leave" asp-action="Reject" method="post" class="d-inline ms-1"
+                                                  onsubmit="return confirm('Reject this leave request? Saved payroll must be recalculated and saved afterwards.');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="LeaveApplicationId" value="@item.LeaveApplicationId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-x-circle me-1"></i>Reject
+                                                </button>
+                                            </form>
+                                        }
+
                                     </td>
 
                                 </tr>

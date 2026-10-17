@@ -1073,8 +1073,15 @@ WHERE Leave_App_ID = @Leave_App_ID
                 }
 
 
-                TempData["Success"] =
-                    $"Leave Application ID {leaveApplicationId} approved successfully.";
+                try
+                {
+                    int updated = await SyncPayrollForLeave(leaveApplicationId);
+                    TempData["Success"] = $"Leave Application ID {leaveApplicationId} approved. {updated} saved payroll month(s) synchronized.";
+                }
+                catch (Exception syncError)
+                {
+                    TempData["Error"] = $"Leave approved, but payroll synchronization failed: {syncError.Message}. Please resolve before using Salary Report.";
+                }
 
 
                 return RedirectToAction(
@@ -1140,8 +1147,15 @@ WHERE Leave_App_ID = @Leave_App_ID
             }
             else
             {
-                TempData["Success"] =
-                    $"Leave Application ID {id} rejected successfully.";
+                try
+                {
+                    int updated = await SyncPayrollForLeave(id);
+                    TempData["Success"] = $"Leave Application ID {id} rejected. {updated} saved payroll month(s) synchronized.";
+                }
+                catch (Exception syncError)
+                {
+                    TempData["Error"] = $"Leave rejected, but payroll synchronization failed: {syncError.Message}. Please resolve before using Salary Report.";
+                }
             }
 
 
@@ -1149,6 +1163,49 @@ WHERE Leave_App_ID = @Leave_App_ID
                 nameof(SanctionList));
         }
 
+
+        // Synchronize saved months touched by this leave. Unsaved months are
+        // calculated on demand by the Pay Calculation dashboard.
+        private async Task<int> SyncPayrollForLeave(decimal leaveApplicationId)
+        {
+            var connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+            int employeeCode;
+            DateTime fromDate, toDate;
+            try
+            {
+                if (close) await connection.OpenAsync();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"SELECT TOP 1 empl, sact_from_date, sact_to_date
+ FROM dbo.leavtrn WHERE Leave_App_ID=@Id;";
+                AddParameter(cmd, "@Id", leaveApplicationId, DbType.Decimal);
+                using var reader = await cmd.ExecuteReaderAsync();
+                if (!await reader.ReadAsync()) return 0;
+                employeeCode = Convert.ToInt32(reader["empl"]);
+                if (reader["sact_from_date"] == DBNull.Value || reader["sact_to_date"] == DBNull.Value)
+                    return 0;
+                fromDate = Convert.ToDateTime(reader["sact_from_date"]);
+                toDate = Convert.ToDateTime(reader["sact_to_date"]);
+            }
+            finally
+            {
+                if (close && connection.State == ConnectionState.Open) await connection.CloseAsync();
+            }
+            if (toDate < fromDate) return 0;
+            var payroll = new PayCalculationController(_context);
+            int updated = 0;
+            var month = new DateTime(fromDate.Year, fromDate.Month, 1);
+            var last = new DateTime(toDate.Year, toDate.Month, 1);
+            if ((last.Year - month.Year) * 12 + last.Month - month.Month > 120)
+                throw new InvalidOperationException("Leave period exceeds 120 months.");
+            while (month <= last)
+            {
+                if (await payroll.RecalculateSavedEmployeeAfterLeave(employeeCode, month.Year, month.Month))
+                    updated++;
+                month = month.AddMonths(1);
+            }
+            return updated;
+        }
 
         // =========================================================
         // UPDATE LEAVE STATUS
@@ -1184,7 +1241,7 @@ SET
     Operator = @Operator
 
 WHERE Leave_App_ID = @id
-  AND UPPER(LTRIM(RTRIM(ISNULL(Status, 'P')))) IN ('P', 'PENDING');";
+  AND UPPER(LTRIM(RTRIM(ISNULL(Status, 'P')))) IN ('P', 'PENDING', 'A', 'APPROVED');";
 
 
                 AddParameter(

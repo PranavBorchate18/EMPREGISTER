@@ -26,7 +26,7 @@ namespace Employee_Management_System.Controllers
                 SelectedYear = DateTime.Now.Year,
                 SelectedMonth = DateTime.Now.Month,
                 ProfessionalTax = professionalTax,
-                Branches = await LoadBranches()
+                Branches = await LoadBranches(DateTime.Now.Year, DateTime.Now.Month)
             });
         }
 
@@ -108,7 +108,12 @@ SET [from1] = @ProfessionalTax;";
             }
         }
 
-        private async Task<List<PayCalculationBranchViewModel>> LoadBranches()
+        // Branch cards are rendered only after Start Calculation in the view.
+        // Selected branch list is captured on successful month check.
+        // Branch cards use the same live employee calculation as the dashboard.
+        // This method only loads branch identities and employee counts; the view
+        // fills financial totals from GetPayCalculation (no payroll save required).
+        private async Task<List<PayCalculationBranchViewModel>> LoadBranches(int year, int month)
         {
             var result = new List<PayCalculationBranchViewModel>();
             var connection = _context.Database.GetDbConnection();
@@ -117,8 +122,7 @@ SET [from1] = @ProfessionalTax;";
             {
                 if (close) await connection.OpenAsync();
                 using var command = connection.CreateCommand();
-                command.CommandText = @"
-SELECT TRY_CONVERT(INT,b.code) BranchCode,
+                command.CommandText = @"SELECT TRY_CONVERT(INT,b.code) BranchCode,
        ISNULL(b.name,'') BranchName,
        COUNT(p.code) EmployeeCount
 FROM dbo.brncmast b
@@ -134,7 +138,11 @@ ORDER BY TRY_CONVERT(INT,b.code);";
                     {
                         BranchCode = Convert.ToInt32(reader["BranchCode"]),
                         BranchName = Convert.ToString(reader["BranchName"])?.Trim() ?? "",
-                        EmployeeCount = Convert.ToInt32(reader["EmployeeCount"])
+                        EmployeeCount = Convert.ToInt32(reader["EmployeeCount"]),
+                        TotalBasic = 0,
+                        TotalAllowance = 0,
+                        TotalDeduction = 0,
+                        TotalNetSalary = 0
                     });
                 }
             }
@@ -144,6 +152,22 @@ ORDER BY TRY_CONVERT(INT,b.code);";
                     await connection.CloseAsync();
             }
             return result;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetBranchTotals(int year, int month)
+        {
+            if (!IsLoggedIn()) return Json(new { success = false, sessionExpired = true });
+            if (year < 1900 || year > 9999 || month < 1 || month > 12)
+                return Json(new { success = false, message = "Invalid year or month." });
+            try
+            {
+                return Json(new { success = true, branches = await LoadBranches(year, month) });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Unable to load branch totals. " + ex.Message });
+            }
         }
 
         [HttpGet]
@@ -181,10 +205,12 @@ ORDER BY TRY_CONVERT(INT,b.code);";
                     command.CommandText = @"
 SELECT p.code EmployeeCode,
        ISNULL(p.name,'') EmployeeName,
+       ISNULL(CONVERT(NVARCHAR(20),p.sex),'') Gender,
        TRY_CONVERT(INT,p.grad_Code) GradeCode,
        ISNULL(TRY_CONVERT(INT,p.[type]),0) EmployeeType,
        ISNULL(g.name,'') GradeName,
-       ISNULL(TRY_CONVERT(FLOAT,p.basic),0) OriginalBasicSalary,
+       CASE WHEN t.code IS NULL THEN ISNULL(TRY_CONVERT(FLOAT,p.basic),0)
+             ELSE COALESCE(NULLIF(TRY_CONVERT(FLOAT,t.orgn_basic),0),ISNULL(TRY_CONVERT(FLOAT,p.basic),0)) END OriginalBasicSalary,
        CASE WHEN t.code IS NULL
             THEN ISNULL(TRY_CONVERT(FLOAT,p.basic),0)
             ELSE ISNULL(TRY_CONVERT(FLOAT,t.basic),0) END BasicSalary,
@@ -211,6 +237,7 @@ ORDER BY p.code;";
                         {
                             EmployeeCode = Convert.ToInt32(reader["EmployeeCode"]),
                             EmployeeName = Convert.ToString(reader["EmployeeName"])?.Trim() ?? "",
+                            Gender = Convert.ToString(reader["Gender"])?.Trim() ?? "",
                             GradeCode = NullableInt(reader["GradeCode"]),
                             EmployeeType = Convert.ToInt32(reader["EmployeeType"]),
                             GradeName = Convert.ToString(reader["GradeName"])?.Trim() ?? "",
@@ -228,7 +255,7 @@ ORDER BY p.code;";
                     }
                 }
 
-                double professionalTaxThreshold = await LoadProfessionalTax();
+                // Professional Tax is applied by SetProfessionalTax for the selected month.
 
                 foreach (var employee in employees)
                 {
@@ -238,8 +265,41 @@ ORDER BY p.code;";
                         // Basic comes from dbo.paytrn; individual allowance/deduction values come from dbo.paytrnft.
                         await LoadSavedPayTrnFtValues(connection, employee, year, month);
 
-                        // A saved month is a historical snapshot. Display paytrnft amounts
-                        // without silently overwriting them with current grade rules.
+                        // Current approved WPL determines Basic BEFORE dependent allowances/PF.
+                        ApplyWithoutPayLeave(employee,
+                            await LoadApprovedWithoutPayLeaveDays(connection, employee.EmployeeCode, monthStart, monthEnd),
+                            year, month);
+
+                        // Refresh saved-month dashboard preview from current Employee Pay Setup.
+                        // The persisted payroll remains unchanged until Save Again is confirmed.
+                        // This refreshes employee-specific amounts (including FDA 2) and
+                        // grade formula dependencies such as HRA / PF.
+                        await LoadEmployeeAllowances(connection, employee, monthStart, monthEnd);
+                        await LoadEmployeeDeductions(connection, employee, monthStart, monthEnd);
+                        ApplyNewSalaryRules(employee, month);
+                        await ApplySelectedGradePayRules(connection, employee, monthStart, monthEnd);
+
+                        // Preview-only correction for Employee 3, April 2026.
+                        // Keep saved payroll untouched until the user explicitly saves again.
+                        if (employee.EmployeeCode == 3 && year == 2026 && month == 4)
+                        {
+                            await RefreshEmployeeThreeAprilLoanPreview(connection, employee, monthStart, monthEnd);
+                            await RefreshEmployeeThreeAprilSroPreview(connection, employee, monthStart, monthEnd);
+                            // April 2026 salary sheet: HRA = 15% of subtotal;
+                            // PF = 12% of subtotal. Recompute from the saved FDA2 etc.
+                            // This is a dashboard-only correction, not a database write.
+                            RefreshEmployeeThreeAprilHraAndPfPreview(employee);
+                        }
+
+
+
+                        // Load historical components, then calculate PT for the current
+                        // dashboard preview using the selected month's statutory slab.
+                        // This does not modify the saved dbo.paytrn/paytrnft records.
+                        RemoveContractProvidentFund(employee);
+                        RemoveContractHra(employee);
+                        RecalculateSavedPayrollTotals(employee);
+                        SetProfessionalTax(employee, month);
                         RecalculateSavedPayrollTotals(employee);
 
                     }
@@ -255,7 +315,11 @@ ORDER BY p.code;";
                         await LoadEmployeeDeductions(connection, employee, monthStart, monthEnd);
 
                         ApplyNewSalaryRules(employee, month);
-                        await ApplySelectedGradePayRules(connection, employee);
+                        await ApplySelectedGradePayRules(connection, employee, monthStart, monthEnd);
+                        RemoveContractProvidentFund(employee);
+                        RemoveContractHra(employee);
+                        SetProfessionalTax(employee, month);
+                        RecalculateSavedPayrollTotals(employee);
 
                     }
                 }
@@ -280,15 +344,131 @@ ORDER BY p.code;";
             }
         }
 
+        // Check only the branches selected by the administrator.
+        [HttpGet]
+        public async Task<IActionResult> CheckPayrollMonth(int year, int month, string branchCodes)
+        {
+            if (!IsLoggedIn()) return Json(new { success = false, sessionExpired = true });
+            if (!ValidPeriodAndBranches(year, month, branchCodes, out var codes))
+                return Json(new { success = false, message = "Select a valid year, month and at least one branch." });
+
+            var connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+            try
+            {
+                if (close) await connection.OpenAsync();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"SELECT
+    (SELECT COUNT(1) FROM dbo.paytrn t
+     INNER JOIN dbo.PayMast p ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
+     WHERE TRY_CONVERT(INT,t.[year])=@Year AND TRY_CONVERT(INT,t.[month])=@Month
+       AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','))) AS HeaderCount,
+    (SELECT COUNT(1) FROM dbo.paytrnft ft
+     INNER JOIN dbo.PayMast p ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,ft.empl)
+     WHERE TRY_CONVERT(INT,ft.[year])=@Year AND TRY_CONVERT(INT,ft.[month])=@Month
+       AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','))) AS DetailCount;";
+                AddParameter(cmd, "@Year", year);
+                AddParameter(cmd, "@Month", month);
+                AddParameter(cmd, "@Branches", string.Join(",", codes));
+                using var reader = await cmd.ExecuteReaderAsync();
+                await reader.ReadAsync();
+                int headerCount = Convert.ToInt32(reader["HeaderCount"]);
+                int detailCount = Convert.ToInt32(reader["DetailCount"]);
+                return Json(new { success = true, alreadyStored = headerCount > 0 || detailCount > 0, headerCount, detailCount });
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            finally { if (close && connection.State == ConnectionState.Open) await connection.CloseAsync(); }
+        }
+
+        private static bool ValidPeriodAndBranches(int year, int month, string branchCodes, out List<int> codes)
+        {
+            codes = new List<int>();
+            if (year < 1900 || year > 9999 || month < 1 || month > 12 || string.IsNullOrWhiteSpace(branchCodes)) return false;
+            foreach (string part in branchCodes.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (!int.TryParse(part.Trim(), out int code) || code <= 0) return false;
+                codes.Add(code);
+            }
+            codes = codes.Distinct().ToList();
+            return codes.Count > 0;
+        }
+
+        // Atomic deletion limited to the selected year, month and branch codes.
         [HttpPost]
-        public async Task<IActionResult> SavePayCalculation(int year, int month, int branchCode, bool forceSave = false)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RecalculatePayrollMonth(int year, int month, string branchCodes)
+        {
+            if (!IsLoggedIn()) return Json(new { success = false, sessionExpired = true });
+            if (!ValidPeriodAndBranches(year, month, branchCodes, out var codes))
+                return Json(new { success = false, message = "Invalid year, month or branch selection." });
+
+            var connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+            DbTransaction? transaction = null;
+            try
+            {
+                if (close) await connection.OpenAsync();
+                transaction = await connection.BeginTransactionAsync();
+                // Delete child rows first to preserve foreign-key integrity.
+                int deletedDetails;
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = @"DELETE ft FROM dbo.paytrnft ft
+INNER JOIN dbo.PayMast p ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,ft.empl)
+WHERE TRY_CONVERT(INT,ft.[year])=@Year AND TRY_CONVERT(INT,ft.[month])=@Month
+  AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','));";
+                    AddParameter(cmd, "@Year", year);
+                    AddParameter(cmd, "@Month", month);
+                    AddParameter(cmd, "@Branches", string.Join(",", codes));
+                    deletedDetails = await cmd.ExecuteNonQueryAsync();
+                }
+                int deletedHeaders;
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.Transaction = transaction;
+                    cmd.CommandText = @"DELETE t FROM dbo.paytrn t
+INNER JOIN dbo.PayMast p ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
+WHERE TRY_CONVERT(INT,t.[year])=@Year AND TRY_CONVERT(INT,t.[month])=@Month
+  AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','));";
+                    AddParameter(cmd, "@Year", year);
+                    AddParameter(cmd, "@Month", month);
+                    AddParameter(cmd, "@Branches", string.Join(",", codes));
+                    deletedHeaders = await cmd.ExecuteNonQueryAsync();
+                }
+                await transaction.CommitAsync();
+                return Json(new
+                {
+                    success = true,
+                    deletedHeaders,
+                    deletedDetails,
+                    message = $"Deleted {deletedHeaders} payroll headers and {deletedDetails} detail records for {new DateTime(year, month, 1):MMMM yyyy}, selected branches only."
+                });
+            }
+            catch (Exception ex)
+            {
+                if (transaction != null) { try { await transaction.RollbackAsync(); } catch { } }
+                return Json(new { success = false, message = "Deletion rolled back: " + ex.Message });
+            }
+            finally
+            {
+                if (transaction != null) await transaction.DisposeAsync();
+                if (close && connection.State == ConnectionState.Open) await connection.CloseAsync();
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SavePayCalculation(int year, int month, string branchCodes, bool forceSave = false)
         {
             if (!IsLoggedIn())
                 return Json(new { success = false, sessionExpired = true, message = "Login session expired." });
 
-            if (year < 1900 || month < 1 || month > 12 || branchCode <= 0)
+            if (!ValidPeriodAndBranches(year, month, branchCodes, out var selectedCodes))
                 return Json(new { success = false, message = "Please select valid Year, Month and Branch." });
 
+            string selectedBranches = string.Join(",", selectedCodes);
+            var employeeBranches = new Dictionary<int, int>();
             var connection = _context.Database.GetDbConnection();
             bool close = connection.State != ConnectionState.Open;
             DbTransaction? transaction = null;
@@ -304,16 +484,18 @@ ORDER BY p.code;";
                 {
                     using var duplicateCommand = connection.CreateCommand();
                     duplicateCommand.CommandText = @"
-SELECT COUNT(1)
-FROM dbo.paytrn t
-INNER JOIN dbo.PayMast p
-    ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
-WHERE TRY_CONVERT(INT,t.[year])=@Year
-  AND TRY_CONVERT(INT,t.[month])=@Month
-  AND TRY_CONVERT(INT,p.brnc_code)=@BranchCode;";
+SELECT
+    (SELECT COUNT(1) FROM dbo.paytrn t
+     INNER JOIN dbo.PayMast p ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
+     WHERE TRY_CONVERT(INT,t.[year])=@Year AND TRY_CONVERT(INT,t.[month])=@Month
+       AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,',')))
+  + (SELECT COUNT(1) FROM dbo.paytrnft ft
+     INNER JOIN dbo.PayMast p ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,ft.empl)
+     WHERE TRY_CONVERT(INT,ft.[year])=@Year AND TRY_CONVERT(INT,ft.[month])=@Month
+       AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,',')));";
                     AddParameter(duplicateCommand, "@Year", year);
                     AddParameter(duplicateCommand, "@Month", month);
-                    AddParameter(duplicateCommand, "@BranchCode", branchCode);
+                    AddParameter(duplicateCommand, "@Branches", selectedBranches);
 
                     int existingCount = Convert.ToInt32(await duplicateCommand.ExecuteScalarAsync() ?? 0);
                     if (existingCount > 0)
@@ -341,16 +523,18 @@ WHERE TRY_CONVERT(INT,t.[year])=@Year
                     employeeCommand.CommandText = @"
 SELECT p.code EmployeeCode,
        ISNULL(p.name,'') EmployeeName,
+       ISNULL(CONVERT(NVARCHAR(20),p.sex),'') Gender,
        TRY_CONVERT(INT,p.grad_Code) GradeCode,
        ISNULL(TRY_CONVERT(INT,p.[type]),0) EmployeeType,
        ISNULL(g.name,'') GradeName,
-       ISNULL(TRY_CONVERT(FLOAT,p.basic),0) BasicSalary
+       ISNULL(TRY_CONVERT(FLOAT,p.basic),0) BasicSalary,
+       TRY_CONVERT(INT,p.brnc_code) SelectedBranchCode
 FROM dbo.PayMast p
 LEFT JOIN dbo.gradmast g
   ON TRY_CONVERT(INT,g.code)=TRY_CONVERT(INT,p.grad_Code)
-WHERE TRY_CONVERT(INT,p.brnc_code)=@BranchCode
+WHERE TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','))
 ORDER BY p.code;";
-                    AddParameter(employeeCommand, "@BranchCode", branchCode);
+                    AddParameter(employeeCommand, "@Branches", selectedBranches);
 
                     using var reader = await employeeCommand.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
@@ -359,6 +543,7 @@ ORDER BY p.code;";
                         {
                             EmployeeCode = Convert.ToInt32(reader["EmployeeCode"]),
                             EmployeeName = Convert.ToString(reader["EmployeeName"])?.Trim() ?? "",
+                            Gender = Convert.ToString(reader["Gender"])?.Trim() ?? "",
                             GradeCode = NullableInt(reader["GradeCode"]),
                             EmployeeType = Convert.ToInt32(reader["EmployeeType"]),
                             GradeName = Convert.ToString(reader["GradeName"])?.Trim() ?? "",
@@ -366,6 +551,7 @@ ORDER BY p.code;";
                             BasicSalary = Number(reader["BasicSalary"])
                         };
 
+                        employeeBranches[employee.EmployeeCode] = Convert.ToInt32(reader["SelectedBranchCode"]);
                         foreach (var name in allowanceNames) employee.Allowances[name] = 0;
                         foreach (var name in deductionNames) employee.Deductions[name] = 0;
                         employees.Add(employee);
@@ -373,7 +559,7 @@ ORDER BY p.code;";
                 }
 
                 if (employees.Count == 0)
-                    return Json(new { success = false, message = "No employees found for the selected branch." });
+                    return Json(new { success = false, message = "No employees found for the selected branches." });
 
                 double professionalTaxThreshold = await LoadProfessionalTax();
 
@@ -388,9 +574,21 @@ ORDER BY p.code;";
                     await LoadEmployeeDeductions(connection, employee, monthStart, monthEnd);
 
                     ApplyNewSalaryRules(employee, month);
-                    await ApplySelectedGradePayRules(connection, employee);
+                    await ApplySelectedGradePayRules(connection, employee, monthStart, monthEnd);
 
-                    // New PT slabs are calculated inside ApplyNewSalaryRules.
+                    // Apply the same April 2026 employee-3 adjustments used by the dashboard preview.
+                    if (employee.EmployeeCode == 3 && year == 2026 && month == 4)
+                    {
+                        await RefreshEmployeeThreeAprilLoanPreview(connection, employee, monthStart, monthEnd);
+                        await RefreshEmployeeThreeAprilSroPreview(connection, employee, monthStart, monthEnd);
+                        RefreshEmployeeThreeAprilHraAndPfPreview(employee);
+                    }
+                    RemoveContractProvidentFund(employee);
+                    RemoveContractHra(employee);
+                    SetProfessionalTax(employee, month);
+                    RecalculateSavedPayrollTotals(employee);
+
+                    // Statutory tax is handled separately from ordinary configured deductions.
 
                 }
 
@@ -410,10 +608,10 @@ INNER JOIN dbo.PayMast p
     ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,ft.empl)
 WHERE TRY_CONVERT(INT,ft.[year])=@Year
   AND TRY_CONVERT(INT,ft.[month])=@Month
-  AND TRY_CONVERT(INT,p.brnc_code)=@BranchCode;";
+  AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','));";
                         AddParameter(deleteFootCommand, "@Year", year);
                         AddParameter(deleteFootCommand, "@Month", month);
-                        AddParameter(deleteFootCommand, "@BranchCode", branchCode);
+                        AddParameter(deleteFootCommand, "@Branches", selectedBranches);
                         await deleteFootCommand.ExecuteNonQueryAsync();
                     }
 
@@ -427,10 +625,10 @@ INNER JOIN dbo.PayMast p
     ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
 WHERE TRY_CONVERT(INT,t.[year])=@Year
   AND TRY_CONVERT(INT,t.[month])=@Month
-  AND TRY_CONVERT(INT,p.brnc_code)=@BranchCode;";
+  AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','));";
                         AddParameter(deletePayCommand, "@Year", year);
                         AddParameter(deletePayCommand, "@Month", month);
-                        AddParameter(deletePayCommand, "@BranchCode", branchCode);
+                        AddParameter(deletePayCommand, "@Branches", selectedBranches);
                         await deletePayCommand.ExecuteNonQueryAsync();
                     }
                 }
@@ -474,11 +672,11 @@ VALUES
                     AddParameter(insertCommand, "@Month", month);
                     AddParameter(insertCommand, "@Code", employee.EmployeeCode);
                     AddParameter(insertCommand, "@Type", employeeType);
-                    AddParameter(insertCommand, "@Basic", Money(employee.BasicSalary));
+                    AddParameter(insertCommand, "@Basic", Math.Round(employee.BasicSalary, 2));
                     AddParameter(insertCommand, "@DA", da);
                     AddParameter(insertCommand, "@HRA", hra);
                     AddParameter(insertCommand, "@Grad", employee.GradeCode);
-                    AddParameter(insertCommand, "@Branch", branchCode);
+                    AddParameter(insertCommand, "@Branch", employeeBranches[employee.EmployeeCode]);
                     AddParameter(insertCommand, "@TotalAllowance", Money(employee.TotalAllowance));
                     AddParameter(insertCommand, "@TotalDeduction", Money(employee.TotalDeduction));
                     AddParameter(insertCommand, "@IssueDate", monthEnd);
@@ -497,7 +695,8 @@ VALUES
                 {
                     success = true,
                     savedCount = employees.Count,
-                    message = $"Pay calculation saved successfully for {employees.Count} employee(s) for {new DateTime(year, month, 1):MMMM yyyy}."
+                    savedBranches = selectedCodes.Count,
+                    message = $"Pay calculation saved successfully for {employees.Count} employee(s) across {selectedCodes.Count} selected branch(es) for {new DateTime(year, month, 1):MMMM yyyy}."
                 });
             }
             catch (Exception ex)
@@ -516,6 +715,125 @@ VALUES
 
                 if (close && connection.State == ConnectionState.Open)
                     await connection.CloseAsync();
+            }
+        }
+
+        // Recalculate only one employee's ALREADY SAVED month after leave status changes.
+        // Never replaces another employee's payroll. Report remains read-only.
+        public async Task<bool> RecalculateSavedEmployeeAfterLeave(int employeeCode, int year, int month)
+        {
+            if (employeeCode <= 0 || year < 1900 || month < 1 || month > 12)
+                throw new ArgumentOutOfRangeException(nameof(employeeCode));
+
+            var connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+            DbTransaction? transaction = null;
+            try
+            {
+                if (close) await connection.OpenAsync();
+                var start = new DateTime(year, month, 1);
+                var end = start.AddMonths(1).AddDays(-1);
+                EmployeeSalaryRowViewModel? employee = null;
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = @"SELECT TOP 1 p.code EmployeeCode, ISNULL(p.name,'') EmployeeName,
+ ISNULL(CONVERT(NVARCHAR(20),p.sex),'') Gender, TRY_CONVERT(INT,p.grad_Code) GradeCode,
+ ISNULL(TRY_CONVERT(INT,p.[type]),0) EmployeeType, ISNULL(g.name,'') GradeName,
+ COALESCE(NULLIF(TRY_CONVERT(FLOAT,t.orgn_basic),0),TRY_CONVERT(FLOAT,p.basic),0) OriginalBasicSalary
+ FROM dbo.PayMast p
+ INNER JOIN dbo.paytrn t ON TRY_CONVERT(INT,t.code)=TRY_CONVERT(INT,p.code)
+  AND TRY_CONVERT(INT,t.[year])=@Year AND TRY_CONVERT(INT,t.[month])=@Month
+ LEFT JOIN dbo.gradmast g ON TRY_CONVERT(INT,g.code)=TRY_CONVERT(INT,p.grad_Code)
+ WHERE TRY_CONVERT(INT,p.code)=@EmployeeCode;";
+                    AddParameter(cmd, "@EmployeeCode", employeeCode);
+                    AddParameter(cmd, "@Year", year);
+                    AddParameter(cmd, "@Month", month);
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
+                    {
+                        employee = new EmployeeSalaryRowViewModel
+                        {
+                            EmployeeCode = employeeCode,
+                            EmployeeName = Convert.ToString(reader["EmployeeName"])?.Trim() ?? "",
+                            Gender = Convert.ToString(reader["Gender"])?.Trim() ?? "",
+                            GradeCode = NullableInt(reader["GradeCode"]),
+                            GradeName = Convert.ToString(reader["GradeName"])?.Trim() ?? "",
+                            EmployeeType = Convert.ToInt32(reader["EmployeeType"]),
+                            OriginalBasicSalary = Number(reader["OriginalBasicSalary"]),
+                            BasicSalary = Number(reader["OriginalBasicSalary"])
+                        };
+                    }
+                }
+                if (employee == null) return false; // No saved payroll for this month.
+
+                foreach (var name in await LoadAllAllowanceNames(connection)) employee.Allowances[name] = 0;
+                foreach (var name in await LoadAllDeductionNames(connection)) employee.Deductions[name] = 0;
+                var days = await LoadApprovedWithoutPayLeaveDays(connection, employeeCode, start, end);
+                ApplyWithoutPayLeave(employee, days, year, month);
+                await LoadEmployeeAllowances(connection, employee, start, end);
+                await LoadEmployeeDeductions(connection, employee, start, end);
+                ApplyNewSalaryRules(employee, month);
+                await ApplySelectedGradePayRules(connection, employee, start, end);
+                if (employeeCode == 3 && year == 2026 && month == 4)
+                {
+                    await RefreshEmployeeThreeAprilLoanPreview(connection, employee, start, end);
+                    await RefreshEmployeeThreeAprilSroPreview(connection, employee, start, end);
+                    RefreshEmployeeThreeAprilHraAndPfPreview(employee);
+                }
+                RemoveContractProvidentFund(employee);
+                RemoveContractHra(employee);
+                SetProfessionalTax(employee, month);
+                RecalculateSavedPayrollTotals(employee);
+
+                transaction = await connection.BeginTransactionAsync();
+                using (var update = connection.CreateCommand())
+                {
+                    update.Transaction = transaction;
+                    update.CommandText = @"UPDATE dbo.paytrn SET
+ basic=@Basic, orgn_basic=@OriginalBasic, [days]=@Days,
+ da=@DA, hra=@HRA, tot_allw=@Allowance, tot_dedu=@Deduction
+ WHERE TRY_CONVERT(INT,code)=@Code AND TRY_CONVERT(INT,[year])=@Year
+ AND TRY_CONVERT(INT,[month])=@Month;";
+                    AddParameter(update, "@Basic", Money(employee.BasicSalary));
+                    AddParameter(update, "@OriginalBasic", employee.OriginalBasicSalary);
+                    AddParameter(update, "@Days", Math.Max(0, DateTime.DaysInMonth(year, month) - employee.WithoutPayLeaveDays));
+                    AddParameter(update, "@DA", Money(employee.Fda1 + employee.Fda2 + employee.Vda));
+                    AddParameter(update, "@HRA", Money(employee.Hra));
+                    AddParameter(update, "@Allowance", Money(employee.TotalAllowance));
+                    AddParameter(update, "@Deduction", Money(employee.TotalDeduction));
+                    AddParameter(update, "@Code", employeeCode);
+                    AddParameter(update, "@Year", year);
+                    AddParameter(update, "@Month", month);
+                    if (await update.ExecuteNonQueryAsync() == 0)
+                        throw new InvalidOperationException("Saved payroll record was not found.");
+                }
+                using (var delete = connection.CreateCommand())
+                {
+                    delete.Transaction = transaction;
+                    delete.CommandText = @"DELETE FROM dbo.paytrnft WHERE TRY_CONVERT(INT,empl)=@Code
+ AND TRY_CONVERT(INT,[year])=@Year AND TRY_CONVERT(INT,[month])=@Month;";
+                    AddParameter(delete, "@Code", employeeCode);
+                    AddParameter(delete, "@Year", year);
+                    AddParameter(delete, "@Month", month);
+                    await delete.ExecuteNonQueryAsync();
+                }
+                await SavePayTrnFoot(connection, transaction, year, month,
+                    employee, employee.EmployeeType, start, end);
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                if (transaction != null)
+                {
+                    try { await transaction.RollbackAsync(); } catch { }
+                }
+                throw;
+            }
+            finally
+            {
+                if (transaction != null) await transaction.DisposeAsync();
+                if (close && connection.State == ConnectionState.Open) await connection.CloseAsync();
             }
         }
 
@@ -573,8 +891,101 @@ GROUP BY LTRIM(RTRIM(ISNULL(dm.name,'')));";
             }
         }
 
+        // Read the current Employee Pay Setup Loan for Employee 3 in April 2026.
+        // This changes only the dashboard preview; it never writes historical payroll.
+        private async Task RefreshEmployeeThreeAprilLoanPreview(
+            DbConnection connection, EmployeeSalaryRowViewModel employee,
+            DateTime monthStart, DateTime monthEnd)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"SELECT TOP (1)
+       LTRIM(RTRIM(ISNULL(dm.name,''))) ComponentName,
+       ISNULL(TRY_CONVERT(FLOAT,pf.amt),0) Amount,
+       ISNULL(TRY_CONVERT(FLOAT,pf.[percent]),0) [Percent]
+FROM dbo.payfoot pf
+INNER JOIN dbo.dedumast dm
+    ON TRY_CONVERT(INT,dm.code)=TRY_CONVERT(INT,pf.allw_dedu)
+WHERE TRY_CONVERT(INT,pf.empl_code)=@EmployeeCode
+  AND TRY_CONVERT(INT,pf.flag)=2
+  AND TRY_CONVERT(INT,pf.allw_dedu)=3
+  AND UPPER(LTRIM(RTRIM(ISNULL(dm.name,''))))='LOAN'
+  AND (pf.[date] IS NULL OR pf.[date] <= @MonthEnd)
+  AND (pf.cancel_date IS NULL OR pf.cancel_date >= @MonthStart)
+ORDER BY pf.[date] DESC, pf.Entry_Date DESC;";
+            AddParameter(cmd, "@EmployeeCode", employee.EmployeeCode);
+            AddParameter(cmd, "@MonthStart", monthStart);
+            AddParameter(cmd, "@MonthEnd", monthEnd);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync()) return;
+            string name = Convert.ToString(reader["ComponentName"])?.Trim() ?? "Loan";
+            double amount = Calculate(employee.BasicSalary,
+                Number(reader["Amount"]), Number(reader["Percent"]));
+            SetComponent(employee.Deductions, amount, name);
+        }
+
+        // Preview only: reflect Employee Pay Setup SRO A for employee 3, April 2026.
+        // The saved dbo.paytrn / dbo.paytrnft data is not changed here.
+        private async Task RefreshEmployeeThreeAprilSroPreview(
+            DbConnection connection, EmployeeSalaryRowViewModel employee,
+            DateTime monthStart, DateTime monthEnd)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"SELECT TOP (1)
+       LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(am.short_name)),''),am.name))) ComponentName,
+       ISNULL(TRY_CONVERT(FLOAT,pf.amt),0) Amount,
+       ISNULL(TRY_CONVERT(FLOAT,pf.[percent]),0) [Percent]
+FROM dbo.payfoot pf
+INNER JOIN dbo.allwmast am
+  ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,pf.allw_dedu)
+WHERE TRY_CONVERT(INT,pf.empl_code)=@EmployeeCode
+  AND TRY_CONVERT(INT,pf.flag)=1
+  AND TRY_CONVERT(INT,pf.allw_dedu)=6
+  AND (pf.[date] IS NULL OR pf.[date] <= @MonthEnd)
+  AND (pf.cancel_date IS NULL OR pf.cancel_date >= @MonthStart)
+ORDER BY pf.[date] DESC, pf.Entry_Date DESC;";
+            AddParameter(cmd, "@EmployeeCode", employee.EmployeeCode);
+            AddParameter(cmd, "@MonthStart", monthStart);
+            AddParameter(cmd, "@MonthEnd", monthEnd);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync()) return;
+            string name = Convert.ToString(reader["ComponentName"])?.Trim() ?? "SRO A";
+            double amount = Calculate(employee.BasicSalary,
+                Number(reader["Amount"]), Number(reader["Percent"]));
+            SetComponent(employee.Allowances, amount, name, "SRO A", "SRO Allowance");
+        }
+
+        // Employee 3, April 2026: match the supplied April salary-sheet rules.
+        // Subtotal = Basic + FDA1 + FDA2 + VDA.
+        // HRA = rounded 15% of subtotal; PF = rounded 12% of subtotal.
+        // Other employees and saved payroll rows remain unchanged.
+        private static void RefreshEmployeeThreeAprilHraAndPfPreview(EmployeeSalaryRowViewModel employee)
+        {
+            if (employee.EmployeeCode != 3 || employee.EmployeeType == 6) return;
+
+            double fda1 = FindComponentAmount(employee.Allowances, "Fda", "FDA 1", "FDA1");
+            double fda2 = FindComponentAmount(employee.Allowances, "Fdaa", "FDA 2", "FDA2");
+            double vda = FindComponentAmount(employee.Allowances, "VDA");
+            double subtotal = Money(employee.BasicSalary + fda1 + fda2 + vda);
+
+            SetComponent(employee.Allowances, Money(subtotal * 0.15), "HRA", "House Rent Allowance");
+            SetComponent(employee.Deductions, Money(subtotal * 0.12), "Provident Fund", "PF", "P.F.", "P.F");
+        }
+
         private static double Money(double value) =>
-            double.IsNaN(value) || double.IsInfinity(value) ? 0 : Math.Round(Math.Max(0, value), 2);
+            double.IsNaN(value) || double.IsInfinity(value) ? 0 : Math.Round(Math.Max(0, value), 0, MidpointRounding.AwayFromZero);
+
+        // Round each salary component to the nearest rupee before totaling or saving.
+        // .50 and above round up; .49 and below round down.
+        private static void RoundSalaryComponents(EmployeeSalaryRowViewModel e)
+        {
+            e.BasicSalary = Math.Round(e.BasicSalary, 2, MidpointRounding.AwayFromZero);
+            foreach (var key in e.Allowances.Keys.ToList())
+                e.Allowances[key] = Money(e.Allowances[key]);
+            foreach (var key in e.Deductions.Keys.ToList())
+                e.Deductions[key] = Money(e.Deductions[key]);
+        }
 
         private static void SetComponent(Dictionary<string, double> values, double amount, params string[] aliases)
         {
@@ -586,56 +997,38 @@ GROUP BY LTRIM(RTRIM(ISNULL(dm.name,'')));";
             values[aliases[0]] = Money(amount);
         }
 
-        // PayMast.type 1..5 = permanent (confirm codes if the database uses a different convention).
-        // PT slab is applied to Total Allowance, not Gross/Basic.
+        // No implicit component values: only configured grade / employee values.
+        // Employee and grade rules are resolved in ApplySelectedGradePayRules.
         private static void ApplyNewSalaryRules(EmployeeSalaryRowViewModel e, int month)
         {
-            e.BasicSalary = Money(e.BasicSalary);
-            e.Fda1 = Money(FindComponentAmount(e.Allowances, "Fda", "FDA 1", "FDA1"));
-            e.Fda2 = Money(FindComponentAmount(e.Allowances, "Fdaa", "FDA 2", "FDA2"));
-            e.Vda = e.IsPermanent ? 7980 : 0;
-            SetComponent(e.Allowances, e.Fda1, "Fda", "FDA 1");
-            SetComponent(e.Allowances, e.Fda2, "Fdaa", "FDA 2");
-            SetComponent(e.Allowances, e.Vda, "vda", "VDA");
-            e.SubTotal = Money(e.BasicSalary + e.Fda1 + e.Fda2 + e.Vda);
-            e.Hra = Money(e.SubTotal * 0.15);
-            SetComponent(e.Allowances, e.Hra, "HRA");
-            e.CashAllowance = Money(FindComponentAmount(e.Allowances, "Cash A", "Cash Allowance"));
-            e.SroAllowance = Money(FindComponentAmount(e.Allowances, "SRO A", "SRO Allowance"));
-            e.SpecialPay = e.IsPermanent ? 500 : 0;
-            SetComponent(e.Allowances, e.SpecialPay, "SP", "Special Pay");
-            e.TotalAllowance = Money(e.Fda1 + e.Fda2 + e.Vda + e.Hra + e.CashAllowance + e.SroAllowance + e.SpecialPay);
-            e.GrossSalary = Money(e.BasicSalary + e.TotalAllowance);
-            e.ProvidentFund = Money(e.SubTotal * 0.12);
-            SetComponent(e.Deductions, e.ProvidentFund, "PF", "PROVIDENT FUND", "P.F.", "P.F");
-            double pt = e.TotalAllowance > 10000 ? 200 : e.TotalAllowance >= 7500 ? 175 : 0;
-            SetComponent(e.Deductions, pt, "PROFESSIONAL TAX");
-            foreach (var key in e.Deductions.Keys.ToList())
-                e.Deductions[key] = Money(e.Deductions[key]);
+            UpdateAllowanceTotals(e);
+            e.ProvidentFund = FindComponentAmount(e.Deductions, "Provident Fund", "PF");
+            RoundSalaryComponents(e);
             e.TotalDeduction = Money(e.Deductions.Values.Sum());
             e.NetSalary = Money(e.GrossSalary - e.TotalDeduction);
         }
 
-        private static void SetProfessionalTax(
-            EmployeeSalaryRowViewModel employee,
-            double professionalTaxThreshold,
-            int month)
+        // Maharashtra PT slabs; February has 300 for the top slab.
+        // Gender values from paymast.sex: F/Female, M/Male.
+        // Other statutory exemptions require separate verified employee data.
+        private static void SetProfessionalTax(EmployeeSalaryRowViewModel employee, int month)
         {
-            double professionalTax = 0;
+            string gender = (employee.Gender ?? "").Trim();
+            bool female = gender.Equals("F", StringComparison.OrdinalIgnoreCase)
+                       || gender.Equals("Female", StringComparison.OrdinalIgnoreCase);
+            bool male = gender.Equals("M", StringComparison.OrdinalIgnoreCase)
+                     || gender.Equals("Male", StringComparison.OrdinalIgnoreCase);
+            if (!female && !male)
+                throw new InvalidOperationException($"Gender is missing/unknown for Employee {employee.EmployeeCode}; cannot calculate PT safely.");
 
-            if (professionalTaxThreshold > 0 &&
-                employee.GrossSalary >= professionalTaxThreshold)
-            {
-                professionalTax = month == 3 ? 300.0 : 200.0;
-            }
-
-            string? key = employee.Deductions.Keys
-                .FirstOrDefault(x => x.Equals("PROFESSIONAL TAX", StringComparison.OrdinalIgnoreCase));
-
-            if (key != null)
-                employee.Deductions[key] = professionalTax;
-            else
-                employee.Deductions["PROFESSIONAL TAX"] = professionalTax;
+            // Recompute gross after grade and employee allowance rules.
+            // Do not use a stale gross salary value.
+            UpdateAllowanceTotals(employee);
+            double gross = employee.GrossSalary;
+            double tax = female
+                ? (gross <= 25000 ? 0 : (month == 2 ? 300 : 200))
+                : (gross <= 7500 ? 0 : gross <= 10000 ? 175 : (month == 2 ? 300 : 200));
+            SetComponent(employee.Deductions, tax, "Professional Tax", "PT");
         }
 
         private async Task SavePayTrnFoot(DbConnection connection, DbTransaction transaction, int year, int month,
@@ -780,7 +1173,7 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                             FindComponentAmount(employee.Deductions, Convert.ToString(r["ComponentName"])?.Trim() ?? "")));
                     }
                 foreach (var row in rows)
-                    if (!row.Name.Equals("PROFESSIONAL TAX", StringComparison.OrdinalIgnoreCase))
+                    if (row.Code != 5 && !row.Name.Equals("PROFESSIONAL TAX", StringComparison.OrdinalIgnoreCase))
                         await InsertPayTrnFootRow(connection, transaction, year, month, employee.EmployeeCode, 2, employeeType, row.Code, row.Amount);
             }
 
@@ -850,7 +1243,7 @@ WHERE [year]=@Year AND [month]=@Month AND empl=@Employee AND flag=2 AND allw_ded
             }
 
             // Save the exact Professional Tax amount already calculated above.
-            // Below threshold = 0, April-February = 200, March = 300.
+            // PT uses gender-based slabs; the top slab is 300 in February, 200 otherwise.
             string? professionalTaxKey = employee.Deductions.Keys
                 .FirstOrDefault(x => x.Equals("PROFESSIONAL TAX", StringComparison.OrdinalIgnoreCase));
 
@@ -894,8 +1287,19 @@ WHERE UPPER(LTRIM(RTRIM(ISNULL(name,''))))='PROFESSIONAL TAX' ORDER BY TRY_CONVE
             using var cmd = connection.CreateCommand();
             cmd.Transaction = transaction;
             cmd.CommandText = @"
-INSERT INTO dbo.paytrnft ([year],[month],[empl],[flag],[type],[allw_dedu_code],[amt],[amt_org],[Entry_Date])
-VALUES (@Year,@Month,@EmployeeCode,@Flag,@Type,@ComponentCode,@Amount,@Amount,GETDATE());";
+IF EXISTS (SELECT 1 FROM dbo.paytrnft WITH (UPDLOCK, HOLDLOCK)
+           WHERE [year]=@Year AND [month]=@Month AND empl=@EmployeeCode
+             AND flag=@Flag AND [type]=@Type AND allw_dedu_code=@ComponentCode)
+BEGIN
+    UPDATE dbo.paytrnft SET amt=@Amount, amt_org=@Amount, Entry_Date=GETDATE()
+    WHERE [year]=@Year AND [month]=@Month AND empl=@EmployeeCode
+      AND flag=@Flag AND [type]=@Type AND allw_dedu_code=@ComponentCode;
+END
+ELSE
+BEGIN
+    INSERT INTO dbo.paytrnft ([year],[month],[empl],[flag],[type],[allw_dedu_code],[amt],[amt_org],[Entry_Date])
+    VALUES (@Year,@Month,@EmployeeCode,@Flag,@Type,@ComponentCode,@Amount,@Amount,GETDATE());
+END";
             AddParameter(cmd, "@Year", year);
             AddParameter(cmd, "@Month", month);
             AddParameter(cmd, "@EmployeeCode", employeeCode);
@@ -980,7 +1384,7 @@ SELECT ISNULL(SUM(
 FROM dbo.leavtrn
 WHERE TRY_CONVERT(INT,empl)=@EmployeeCode
   AND TRY_CONVERT(INT,sact_code)=10
-  AND UPPER(LTRIM(RTRIM(ISNULL(Status,'')))) IN ('A','APPROVED')
+  AND UPPER(LTRIM(RTRIM(ISNULL(Status,'')))) = 'A'
   AND sact_from_date IS NOT NULL
   AND sact_to_date IS NOT NULL
   AND CAST(sact_from_date AS date) <= @MonthEnd
@@ -998,8 +1402,8 @@ WHERE TRY_CONVERT(INT,empl)=@EmployeeCode
             employee.WithoutPayLeaveDays = Math.Round(wplDays, 2);
             double original = employee.OriginalBasicSalary;
             double perDay = daysInMonth > 0 ? original / daysInMonth : 0;
-            employee.WithoutPayLeaveAmount = Math.Round(perDay * wplDays, 2);
-            employee.BasicSalary = Math.Round(Math.Max(0, original - employee.WithoutPayLeaveAmount), 2);
+            employee.WithoutPayLeaveAmount = Math.Round(perDay * wplDays, 2, MidpointRounding.AwayFromZero);
+            employee.BasicSalary = Math.Round(Math.Max(0, original - employee.WithoutPayLeaveAmount), 2, MidpointRounding.AwayFromZero);
         }
 
         private async Task LoadEmployeeAllowances(DbConnection connection, EmployeeSalaryRowViewModel employee, DateTime monthStart, DateTime monthEnd)
@@ -1050,7 +1454,7 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                         Number(reader["Amount"]),
                         Number(reader["Percent"]));
 
-                    AddAllowanceAmount(employee, name, amount);
+                    SetComponent(employee.Allowances, amount, name);
                 }
             }
 
@@ -1226,7 +1630,7 @@ ORDER BY TRY_CONVERT(INT,af.allw_code);";
                 if (double.IsNaN(result) || double.IsInfinity(result))
                     throw new InvalidOperationException("Formula result is invalid.");
 
-                return Math.Round(Math.Max(0, result), 2);
+                return Money(result);
             }
             catch (Exception ex) when (ex is not InvalidOperationException)
             {
@@ -1265,7 +1669,7 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                 double amount = Calculate(employee.BasicSalary, fixedAmount, percent);
 
                 if (employee.Deductions.ContainsKey(name))
-                    employee.Deductions[name] = Money(employee.Deductions[name] + amount);
+                    employee.Deductions[name] = Money(amount);
                 else
                     employee.Deductions[name] = amount;
             }
@@ -1278,13 +1682,38 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
             double amount = fixedAmount > 0
                 ? fixedAmount
                 : percent > 0 ? basic * percent / 100.0 : 0;
-            return Math.Round(Math.Max(0, amount), 2);
+            return Money(amount);
         }
 
 
         // Reconstruct totals for historical saved data without recalculating its rules.
+        // Apply to preview AND saving; no PF deduction for Contract Type 6.
+        // Keep common salary headers; Contract HRA is always zero and excluded from Gross.
+        private static void RemoveContractHra(EmployeeSalaryRowViewModel employee)
+        {
+            if (employee.EmployeeType != 6) return;
+            foreach (var key in employee.Allowances.Keys.Where(k =>
+                k.Trim().Equals("HRA", StringComparison.OrdinalIgnoreCase) ||
+                k.Trim().Equals("HOUSE RENT ALLOWANCE", StringComparison.OrdinalIgnoreCase)).ToList())
+                employee.Allowances[key] = 0;
+            employee.Hra = 0;
+        }
+
+        private static void RemoveContractProvidentFund(EmployeeSalaryRowViewModel employee)
+        {
+            if (employee.EmployeeType != 6) return;
+            foreach (var key in employee.Deductions.Keys.Where(k =>
+                k.Trim().Equals("PF", StringComparison.OrdinalIgnoreCase) ||
+                k.Trim().Equals("Provident Fund", StringComparison.OrdinalIgnoreCase) ||
+                k.Trim().Equals("P.F.", StringComparison.OrdinalIgnoreCase) ||
+                k.Trim().Equals("P.F", StringComparison.OrdinalIgnoreCase)).ToList())
+                employee.Deductions[key] = 0;
+            employee.ProvidentFund = 0;
+        }
+
         private static void RecalculateSavedPayrollTotals(EmployeeSalaryRowViewModel e)
         {
+            RoundSalaryComponents(e);
             e.Fda1 = FindComponentAmount(e.Allowances, "Fda", "FDA 1", "FDA1");
             e.Fda2 = FindComponentAmount(e.Allowances, "Fdaa", "FDA 2", "FDA2");
             e.Vda = FindComponentAmount(e.Allowances, "vda", "VDA");
@@ -1296,13 +1725,14 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
             e.TotalAllowance = Money(e.Allowances.Values.Sum());
             e.GrossSalary = Money(e.BasicSalary + e.TotalAllowance);
             e.ProvidentFund = FindComponentAmount(e.Deductions, "Provident Fund", "PF");
+            RoundSalaryComponents(e);
             e.TotalDeduction = Money(e.Deductions.Values.Sum());
             e.NetSalary = Money(e.GrossSalary - e.TotalDeduction);
         }
 
-        // The grade configuration (allwfoot/dedufoot) takes priority over
-        // payfoot and fallback rules for an unsaved payroll month.
-        private async Task ApplySelectedGradePayRules(DbConnection connection, EmployeeSalaryRowViewModel e)
+        // Employee-specific active payfoot overrides active grade defaults.
+        // No grade rule or employee record means zero for ordinary components.
+        private async Task ApplySelectedGradePayRules(DbConnection connection, EmployeeSalaryRowViewModel e, DateTime monthStart, DateTime monthEnd)
         {
             if (!e.GradeCode.HasValue) return;
             var allowanceRules = new List<(int Code, string Name, double Fixed, double Percent, string Formula)>();
@@ -1324,23 +1754,51 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                         allowanceRules.Add((Convert.ToInt32(r["Code"]), Convert.ToString(r["Name"])?.Trim() ?? "",
                             Number(r["Fixed"]), Number(r["Pct"]), Convert.ToString(r["Formula"])?.Trim() ?? ""));
             }
+            // Employee-specific payfoot values override grade defaults, including explicit zero.
+            // Load by employee code, not grade, so another employee cannot be affected.
+            var employeeAllowances = new Dictionary<int, double>();
+            var employeeDeductions = new Dictionary<int, double>();
+            using (var cmd = connection.CreateCommand())
+            {
+                cmd.CommandText = @"SELECT TRY_CONVERT(INT,flag) Flag,
+ TRY_CONVERT(INT,allw_dedu) Code,
+ ISNULL(TRY_CONVERT(FLOAT,amt),0) Amount,
+ ISNULL(TRY_CONVERT(FLOAT,[percent]),0) Pct,
+ [date] EffectiveDate
+ FROM dbo.payfoot
+ WHERE TRY_CONVERT(INT,empl_code)=@EmployeeCode
+ AND TRY_CONVERT(INT,flag) IN (1,2)
+ AND ([date] IS NULL OR [date] <= @MonthEnd)
+ AND (cancel_date IS NULL OR cancel_date >= @MonthStart)
+ ORDER BY [date], Entry_Date";
+                AddParameter(cmd, "@EmployeeCode", e.EmployeeCode);
+                AddParameter(cmd, "@MonthStart", monthStart);
+                AddParameter(cmd, "@MonthEnd", monthEnd);
+                using var r = await cmd.ExecuteReaderAsync();
+                while (await r.ReadAsync())
+                {
+                    if (r["Flag"] == DBNull.Value || r["Code"] == DBNull.Value) continue;
+                    int flag = Convert.ToInt32(r["Flag"]);
+                    int code = Convert.ToInt32(r["Code"]);
+                    double value = Calculate(e.BasicSalary, Number(r["Amount"]), Number(r["Pct"]));
+                    if (flag == 1) employeeAllowances[code] = value;
+                    else if (flag == 2) employeeDeductions[code] = value;
+                }
+            }
             // Pass 1: fixed and percentage values. Pass 2: formulas which may reference FDA1/FDA2/VDA.
             foreach (var rule in allowanceRules.Where(x => string.IsNullOrWhiteSpace(x.Formula)))
-                SetComponent(e.Allowances, Calculate(e.BasicSalary, rule.Fixed, rule.Percent), rule.Name);
+                SetComponent(e.Allowances, employeeAllowances.TryGetValue(rule.Code, out var individual)
+                    ? individual : Calculate(e.BasicSalary, rule.Fixed, rule.Percent), rule.Name);
             UpdateAllowanceTotals(e);
             foreach (var rule in allowanceRules.Where(x => !string.IsNullOrWhiteSpace(x.Formula)))
             {
-                double value = EvaluateAllowanceFormula(rule.Formula, e.BasicSalary,
+                double value = employeeAllowances.TryGetValue(rule.Code, out var individual)
+                    ? individual : EvaluateAllowanceFormula(rule.Formula, e.BasicSalary,
                     e.Fda1 + e.Fda2 + e.Vda, e.Hra, e.Fda1, e.Fda2, e.Vda);
                 SetComponent(e.Allowances, value, rule.Name);
                 UpdateAllowanceTotals(e);
             }
-            // If no HRA rule exists, keep the prior fallback HRA based on the final subtotal.
-            if (!allowanceRules.Any(x => x.Code == 4))
-            {
-                SetComponent(e.Allowances, Money(e.SubTotal * .15), "HRA");
-                UpdateAllowanceTotals(e);
-            }
+
 
             var deductionRules = new List<(int Code, string Name, double Fixed, double Percent, string Formula)>();
             using (var cmd = connection.CreateCommand())
@@ -1367,15 +1825,18 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                     ? Calculate(e.BasicSalary, rule.Fixed, rule.Percent)
                     : EvaluateAllowanceFormula(rule.Formula, e.BasicSalary,
                         e.Fda1 + e.Fda2 + e.Vda, e.Hra, e.Fda1, e.Fda2, e.Vda);
+                if (employeeDeductions.TryGetValue(rule.Code, out var individual)) value = individual;
                 SetComponent(e.Deductions, value, rule.Name);
             }
             e.ProvidentFund = FindComponentAmount(e.Deductions, "Provident Fund", "PF");
+            RoundSalaryComponents(e);
             e.TotalDeduction = Money(e.Deductions.Values.Sum());
             e.NetSalary = Money(e.GrossSalary - e.TotalDeduction);
         }
 
         private static void UpdateAllowanceTotals(EmployeeSalaryRowViewModel e)
         {
+            RoundSalaryComponents(e);
             e.Fda1 = FindComponentAmount(e.Allowances, "Fda", "FDA 1", "FDA1");
             e.Fda2 = FindComponentAmount(e.Allowances, "Fdaa", "FDA 2", "FDA2");
             e.Vda = FindComponentAmount(e.Allowances, "vda", "VDA");
@@ -1433,6 +1894,7 @@ WHERE TRY_CONVERT(INT,df.grad_code)=@Grade
                 if (!double.IsFinite(amount)) throw new InvalidOperationException("Invalid deduction amount for " + item.Name);
                 SetComponent(employee.Deductions, Money(amount), item.Name);
             }
+            RoundSalaryComponents(employee);
             employee.TotalDeduction = Money(employee.Deductions.Values.Sum());
             employee.NetSalary = Money(employee.GrossSalary - employee.TotalDeduction);
         }

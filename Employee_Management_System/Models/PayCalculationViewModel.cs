@@ -15,12 +15,17 @@ namespace Employee_Management_System.Models
         public int BranchCode { get; set; }
         public string BranchName { get; set; } = "";
         public int EmployeeCount { get; set; }
+        public double TotalBasic { get; set; }
+        public double TotalAllowance { get; set; }
+        public double TotalDeduction { get; set; }
+        public double TotalNetSalary { get; set; }
     }
 
     public class EmployeeSalaryRowViewModel
     {
         public int EmployeeCode { get; set; }
         public string EmployeeName { get; set; } = "";
+        public string Gender { get; set; } = "";
         public int? GradeCode { get; set; }
         public string GradeName { get; set; } = "";
         public int EmployeeType { get; set; }

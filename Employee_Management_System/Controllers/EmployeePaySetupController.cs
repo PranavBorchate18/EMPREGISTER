@@ -246,6 +246,10 @@ namespace Employee_Management_System.Controllers
                             .ToListAsync();
 
 
+                    // Contract Type 6: HRA is not selectable.
+                    if (await IsContractEmployeeAsync(employeeCode))
+                        allowances = allowances.Where(x => !IsHraName(x.name)).ToList();
+
                     return Json(new
                     {
                         success = true,
@@ -411,6 +415,10 @@ namespace Employee_Management_System.Controllers
                     });
                 }
 
+
+                if (flag == 1 && await IsContractEmployeeAsync(employeeCode) &&
+                    await IsHraAllowanceAsync(componentCode))
+                    return Json(new { success = false, message = "HRA is not applicable for Contract (Type 6) employees." });
 
                 int gradeCode =
                     employee.GradeId.Value;
@@ -911,7 +919,21 @@ ORDER BY flag, allw_dedu";
                     rows.Add(saved);
                 }
 
+                // Contract Type 6: hide HRA including previously saved legacy payfoot rows.
+                if (await IsContractEmployeeAsync(employeeCode))
+                    rows = rows.Where(x => !(x.Flag == 1 && IsHraName(x.ComponentName))).ToList();
+
                 rows = rows.OrderBy(x => x.Flag).ThenBy(x => x.ComponentCode).ToList();
+
+                if (await IsContractEmployeeAsync(employeeCode))
+                {
+                    foreach (var pfRow in rows.Where(x => x.Flag == 2 && x.ComponentCode.HasValue &&
+                        (x.ComponentName ?? "").Trim().ToUpper() is "PF" or "PROVIDENT FUND" or "P.F." or "P.F"))
+                    {
+                        pfRow.Percentage = 0;
+                        pfRow.Amount = 0;
+                    }
+                }
 
                 return Json(new { success = true, gradeCode, data = rows });
             }
@@ -1154,6 +1176,17 @@ WHERE empl_code = @EmployeeCode
                         .ToListAsync();
 
 
+                if (await IsContractEmployeeAsync(employeeCode))
+                {
+                    var hraCodes = await _context.AllowanceMasters.AsNoTracking()
+                        .Where(x => x.Name != null &&
+                            (x.Name.Trim().ToUpper() == "HRA" ||
+                             x.Name.Trim().ToUpper() == "HOUSE RENT ALLOWANCE"))
+                        .Select(x => x.Code).ToListAsync();
+                    allowanceRules = allowanceRules
+                        .Where(x => !hraCodes.Contains(Convert.ToInt32(x.AllowCode))).ToList();
+                }
+
                 var deductionRules =
                     await _context.DeduFoots
                         .AsNoTracking()
@@ -1307,6 +1340,22 @@ WHERE empl_code = @EmployeeCode
                 }
 
 
+                if (model.Flag == 1 && model.ComponentCode.HasValue &&
+                    await IsContractEmployeeAsync(model.EmployeeCode.Value) &&
+                    await IsHraAllowanceAsync(model.ComponentCode.Value))
+                    return Json(new { success = false, message = "HRA is not applicable for Contract (Type 6) employees." });
+
+                if (model.Flag == 2 && model.ComponentCode.HasValue &&
+                    await IsContractEmployeeAsync(model.EmployeeCode.Value) &&
+                    await IsProvidentFundAsync(model.ComponentCode.Value))
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Provident Fund is not applicable for Contract (Type 6) employees. PF deduction is 0."
+                    });
+                }
+
                 int gradeCode =
                     employee.GradeId.Value;
 
@@ -1395,15 +1444,7 @@ WHERE empl_code = @EmployeeCode
                             });
                         }
 
-                        if (employeePercentage >= rulePercent)
-                        {
-                            return Json(new
-                            {
-                                success = false,
-                                message =
-                                    $"Percentage must be less than Calculation Rule Percentage ({rulePercent}%)."
-                            });
-                        }
+
 
                         percentage =
                             employeePercentage;
@@ -1420,12 +1461,7 @@ WHERE empl_code = @EmployeeCode
                         if (employeeAmount < 0)
                             return Json(new { success = false, message = "Amount cannot be less than 0." });
 
-                        if (employeeAmount >= ruleAmount)
-                            return Json(new
-                            {
-                                success = false,
-                                message = $"Amount must be less than Calculation Rule Fixed Amount ({ruleAmount})."
-                            });
+
 
                         percentage = 0;
                         amount = employeeAmount;
@@ -1505,15 +1541,7 @@ WHERE empl_code = @EmployeeCode
                             });
                         }
 
-                        if (employeePercentage >= rulePercent)
-                        {
-                            return Json(new
-                            {
-                                success = false,
-                                message =
-                                    $"Percentage must be less than Calculation Rule Percentage ({rulePercent}%)."
-                            });
-                        }
+
 
                         percentage =
                             employeePercentage;
@@ -1527,12 +1555,7 @@ WHERE empl_code = @EmployeeCode
                         if (employeeAmount < 0)
                             return Json(new { success = false, message = "Amount cannot be less than 0." });
 
-                        if (employeeAmount >= ruleAmount)
-                            return Json(new
-                            {
-                                success = false,
-                                message = $"Amount must be less than Calculation Rule Fixed Amount ({ruleAmount})."
-                            });
+
 
                         percentage = 0;
                         amount = employeeAmount;
@@ -2321,6 +2344,47 @@ WHERE NOT EXISTS
                     ordinal));
         }
 
+
+
+        // Contract employees (dbo.paymast.type = 6) must not have PF deducted.
+        private async Task<bool> IsContractEmployeeAsync(int employeeCode)
+        {
+            var connection = _context.Database.GetDbConnection();
+            bool close = connection.State != ConnectionState.Open;
+            try
+            {
+                if (close) await connection.OpenAsync();
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = @"SELECT CASE WHEN TRY_CONVERT(INT,[type]) = 6 THEN 1 ELSE 0 END
+FROM dbo.paymast WHERE TRY_CONVERT(INT,code) = @EmployeeCode";
+                AddParameter(cmd, "@EmployeeCode", employeeCode);
+                return Convert.ToInt32(await cmd.ExecuteScalarAsync() ?? 0) == 1;
+            }
+            finally
+            {
+                if (close && connection.State == ConnectionState.Open) await connection.CloseAsync();
+            }
+        }
+
+        private static bool IsHraName(string? name) =>
+            string.Equals(name?.Trim(), "HRA", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name?.Trim(), "HOUSE RENT ALLOWANCE", StringComparison.OrdinalIgnoreCase);
+
+        private async Task<bool> IsHraAllowanceAsync(int componentCode) =>
+            await _context.AllowanceMasters.AsNoTracking().AnyAsync(x =>
+                x.Code == componentCode && x.Name != null &&
+                (x.Name.Trim().ToUpper() == "HRA" ||
+                 x.Name.Trim().ToUpper() == "HOUSE RENT ALLOWANCE"));
+
+        private async Task<bool> IsProvidentFundAsync(int componentCode)
+        {
+            return await _context.DeductionMasters.AsNoTracking().AnyAsync(x =>
+                x.Code == componentCode && x.Name != null &&
+                (x.Name.Trim().ToUpper() == "PF" ||
+                 x.Name.Trim().ToUpper() == "PROVIDENT FUND" ||
+                 x.Name.Trim().ToUpper() == "P.F." ||
+                 x.Name.Trim().ToUpper() == "P.F"));
+        }
 
         private static void AddParameter(
             DbCommand command,

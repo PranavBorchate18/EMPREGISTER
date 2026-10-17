@@ -54,7 +54,7 @@ namespace Employee_Management_System.Controllers
         // IMPORTANT:
         // Branch master comes from dbo.brncmast.
         // EmployeeCount is ONLY from dbo.paytrn for the selected From/To period.
-        // PayMast is used to map saved payroll employees to their branch.
+        // Branch attribution comes ONLY from dbo.paytrn.brnc.
         private async Task<List<SalaryReportBranchViewModel>> LoadBranches(int fromYear, int fromMonth, int toYear, int toMonth, int employeeType = 0)
         {
             var result = new List<SalaryReportBranchViewModel>();
@@ -80,10 +80,8 @@ SELECT TRY_CONVERT(INT,b.code) BranchCode,
            ISNULL(TRY_CONVERT(FLOAT,t.tot_allw),0) -
            ISNULL(TRY_CONVERT(FLOAT,t.tot_dedu),0) ELSE 0 END),0) TotalNetSalary
 FROM dbo.brncmast b
-LEFT JOIN dbo.PayMast p
-  ON TRY_CONVERT(INT,p.brnc_code)=TRY_CONVERT(INT,b.code)
 LEFT JOIN dbo.paytrn t
-  ON TRY_CONVERT(INT,t.code)=TRY_CONVERT(INT,p.code)
+  ON TRY_CONVERT(INT,t.brnc)=TRY_CONVERT(INT,b.code)
  AND ((TRY_CONVERT(INT,t.[year]) * 12 + TRY_CONVERT(INT,t.[month]))
       BETWEEN (@FromYear * 12 + @FromMonth) AND (@ToYear * 12 + @ToMonth))
  AND (
@@ -203,28 +201,24 @@ ORDER BY TRY_CONVERT(INT,b.code);";
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = @"
-SELECT p.code EmployeeCode,
+SELECT DISTINCT p.code EmployeeCode,
        ISNULL(p.name,'') EmployeeName,
        TRY_CONVERT(INT,p.grad_Code) GradeCode,
        ISNULL(g.name,'') GradeName,
-       ISNULL(TRY_CONVERT(FLOAT,p.basic),0) BasicSalary
-FROM dbo.PayMast p
+       ISNULL(TRY_CONVERT(FLOAT,t.basic),0) BasicSalary
+FROM dbo.paytrn t
+INNER JOIN dbo.PayMast p
+  ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
 LEFT JOIN dbo.gradmast g
   ON TRY_CONVERT(INT,g.code)=TRY_CONVERT(INT,p.grad_Code)
-WHERE TRY_CONVERT(INT,p.brnc_code)=@BranchCode
-  AND EXISTS
-  (
-      SELECT 1
-      FROM dbo.paytrn et
-      WHERE TRY_CONVERT(INT,et.code)=TRY_CONVERT(INT,p.code)
-        AND TRY_CONVERT(INT,et.[year])=@Year
-        AND TRY_CONVERT(INT,et.[month])=@Month
-        AND (
-            @EmployeeType = 0
-            OR (@EmployeeType = 1 AND TRY_CONVERT(INT,et.[type]) IN (1,2,3,4,5))
-            OR (@EmployeeType = 6 AND TRY_CONVERT(INT,et.[type]) = 6)
-            OR (@EmployeeType = 7 AND TRY_CONVERT(INT,et.[type]) = 7)
-        )
+WHERE TRY_CONVERT(INT,t.brnc)=@BranchCode
+  AND TRY_CONVERT(INT,t.[year])=@Year
+  AND TRY_CONVERT(INT,t.[month])=@Month
+  AND (
+      @EmployeeType = 0
+      OR (@EmployeeType = 1 AND TRY_CONVERT(INT,t.[type]) IN (1,2,3,4,5))
+      OR (@EmployeeType = 6 AND TRY_CONVERT(INT,t.[type]) = 6)
+      OR (@EmployeeType = 7 AND TRY_CONVERT(INT,t.[type]) = 7)
   )
 ORDER BY p.code;";
 
@@ -268,47 +262,25 @@ ORDER BY p.code;";
                     employee.OriginalBasicSalary = await LoadPayTrnOriginalBasic(
                         connection, employee.EmployeeCode, year, month);
 
-                    // IMPORTANT: reduce the ORIGINAL monthly Basic only once.
-                    // Reduced Basic = Original Basic - ((Original Basic / calendar days) * WPL days)
-                    double originalBasic = employee.BasicSalary;
-                    int daysInMonth = DateTime.DaysInMonth(year, month);
-                    double payableDays = Math.Max(0, daysInMonth - employee.WithoutPayLeaveDays);
-
-                    employee.BasicSalary = originalBasic <= 0
-                        ? 0
-                        : Math.Round((originalBasic / daysInMonth) * payableDays, 2);
-
-                    await LoadEmployeeAllowances(connection, employee, monthStart, monthEnd);
-                    await LoadEmployeeDeductions(connection, employee, monthStart, monthEnd);
-
-                    employee.TotalAllowance =
-                        Math.Round(employee.Allowances.Values.Sum(), 2);
-
-                    employee.GrossSalary =
-                        Math.Round(employee.BasicSalary + employee.TotalAllowance, 2);
-
-                    // Same Professional Tax rule as Pay Calculation:
-                    // Gross below threshold = 0
-                    // Gross >= threshold: March = 300, April-February = 200
-                    SetProfessionalTax(employee, professionalTaxThreshold, month);
-
-                    employee.TotalDeduction =
-                        Math.Round(employee.Deductions.Values.Sum(), 2);
-
-                    employee.NetSalary =
-                        Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
-
-                    // Keep the saved monthly payroll summary in sync with Salary Report.
-                    // Only an existing dbo.paytrn row is updated; Salary Report does not create payroll rows.
-                    await UpdateSavedPayTrnSummary(
-                        connection, employee.EmployeeCode, year, month,
-                        employee.BasicSalary, employee.TotalAllowance, employee.TotalDeduction,
-                        employee.Allowances, daysInMonth, employee.WithoutPayLeaveDays);
-
-                    // Keep existing saved detail rows in dbo.paytrnft in sync too.
-                    await UpdateSavedPayTrnFtValues(
-                        connection, employee.EmployeeCode, year, month,
-                        employee.Allowances, employee.Deductions);
+                    // Read saved payroll amounts. Never apply WPL a second time.
+                    var savedHistory = new SalaryReportMonthHistoryViewModel
+                    {
+                        Year = year,
+                        Month = month,
+                        BasicSalary = employee.BasicSalary,
+                        OriginalBasicSalary = employee.OriginalBasicSalary,
+                        WithoutPayLeaveDays = employee.WithoutPayLeaveDays
+                    };
+                    await LoadSavedPayTrnFtAllowances(connection, savedHistory, employee.EmployeeCode, year, month);
+                    await LoadSavedPayTrnFtDeductions(connection, savedHistory, employee.EmployeeCode, year, month);
+                    foreach (var component in savedHistory.Allowances)
+                        employee.Allowances[component.Key] = component.Value;
+                    foreach (var component in savedHistory.Deductions)
+                        employee.Deductions[component.Key] = component.Value;
+                    employee.TotalAllowance = Math.Round(employee.Allowances.Values.Sum(), 2);
+                    employee.GrossSalary = Math.Round(employee.BasicSalary + employee.TotalAllowance, 2);
+                    employee.TotalDeduction = Math.Round(employee.Deductions.Values.Sum(), 2);
+                    employee.NetSalary = Math.Round(employee.GrossSalary - employee.TotalDeduction, 2);
                 }
 
                 return Json(new
@@ -374,28 +346,23 @@ ORDER BY p.code;";
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = @"
-SELECT p.code EmployeeCode,
+SELECT DISTINCT p.code EmployeeCode,
        ISNULL(p.name,'') EmployeeName,
        TRY_CONVERT(INT,p.grad_Code) GradeCode,
        ISNULL(g.name,'') GradeName
-FROM dbo.PayMast p
+FROM dbo.paytrn t
+INNER JOIN dbo.PayMast p
+  ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
 LEFT JOIN dbo.gradmast g
   ON TRY_CONVERT(INT,g.code)=TRY_CONVERT(INT,p.grad_Code)
-WHERE TRY_CONVERT(INT,p.brnc_code)=@BranchCode
-  AND EXISTS
-  (
-      SELECT 1
-      FROM dbo.paytrn et
-      WHERE TRY_CONVERT(INT,et.code)=TRY_CONVERT(INT,p.code)
-        AND ((TRY_CONVERT(INT,et.[year]) * 12 + TRY_CONVERT(INT,et.[month]))
-             BETWEEN (@FromYear * 12 + @FromMonth)
-                 AND (@ToYear * 12 + @ToMonth))
-        AND (
-            @EmployeeType = 0
-            OR (@EmployeeType = 1 AND TRY_CONVERT(INT,et.[type]) IN (1,2,3,4,5))
-            OR (@EmployeeType = 6 AND TRY_CONVERT(INT,et.[type]) = 6)
-            OR (@EmployeeType = 7 AND TRY_CONVERT(INT,et.[type]) = 7)
-        )
+WHERE TRY_CONVERT(INT,t.brnc)=@BranchCode
+  AND ((TRY_CONVERT(INT,t.[year]) * 12 + TRY_CONVERT(INT,t.[month]))
+       BETWEEN (@FromYear * 12 + @FromMonth) AND (@ToYear * 12 + @ToMonth))
+  AND (
+      @EmployeeType = 0
+      OR (@EmployeeType = 1 AND TRY_CONVERT(INT,t.[type]) IN (1,2,3,4,5))
+      OR (@EmployeeType = 6 AND TRY_CONVERT(INT,t.[type]) = 6)
+      OR (@EmployeeType = 7 AND TRY_CONVERT(INT,t.[type]) = 7)
   )
 ORDER BY p.code;";
 
@@ -446,29 +413,19 @@ ORDER BY p.code;";
                         foreach (var name in deductionNames)
                             history.Deductions[name] = 0;
 
-                        // IMPORTANT: always calculate WPL from the original monthly Basic.
-                        // paytrn.orgn_basic is preferred; PayMast.basic is the fallback.
-                        // This prevents the same WPL from reducing an already-reduced Basic again.
-                        double savedBasic = await LoadOriginalBasicForMonth(
-                            connection, employee.EmployeeCode, cursor.Year, cursor.Month);
+                        if (!await HasSavedPayrollForBranch(connection, employee.EmployeeCode, cursor.Year, cursor.Month, branchCode, employeeType))
+                        {
+                            employee.History.Add(history);
+                            continue;
+                        }
 
-                        // Approved WITHOUT PAY LEAVE:
-                        // dbo.leavtrn -> sact_code = 10 and Status = 'A'.
+                        // Basic is already WPL-adjusted in saved dbo.paytrn.basic.
+                        history.BasicSalary = await LoadSavedBasic(
+                            connection, employee.EmployeeCode, cursor.Year, cursor.Month);
                         history.WithoutPayLeaveDays = await LoadWithoutPayLeaveDays(
                             connection, employee.EmployeeCode, cursor.Year, cursor.Month);
-
-                        // Display value comes exactly from dbo.paytrn.orgn_basic.
                         history.OriginalBasicSalary = await LoadPayTrnOriginalBasic(
                             connection, employee.EmployeeCode, cursor.Year, cursor.Month);
-
-                        // Reduce Basic month-wise according to WPL days.
-                        // Per-day Basic = saved monthly Basic / calendar days in that month.
-                        int daysInMonth = DateTime.DaysInMonth(cursor.Year, cursor.Month);
-                        double payableDays = Math.Max(0, daysInMonth - history.WithoutPayLeaveDays);
-
-                        history.BasicSalary = savedBasic <= 0
-                            ? 0
-                            : Math.Round((savedBasic / daysInMonth) * payableDays, 2);
 
                         employee.WithoutPayLeaveDays += history.WithoutPayLeaveDays;
 
@@ -492,10 +449,6 @@ ORDER BY p.code;";
                             Math.Round(history.GrossSalary - history.TotalDeduction, 2);
 
                         // Synchronize the Salary Report result back to the existing dbo.paytrn row.
-                        await UpdateSavedPayTrnSummary(
-                            connection, employee.EmployeeCode, cursor.Year, cursor.Month,
-                            history.BasicSalary, history.TotalAllowance, history.TotalDeduction,
-                            history.Allowances, daysInMonth, history.WithoutPayLeaveDays);
 
                         employee.History.Add(history);
 
@@ -622,21 +575,20 @@ SELECT DISTINCT
        ISNULL(p.name,'') EmployeeName,
        TRY_CONVERT(INT,p.grad_Code) GradeCode,
        ISNULL(g.name,'') GradeName
-FROM dbo.PayMast p
+FROM dbo.paytrn t
+INNER JOIN dbo.PayMast p
+  ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
 LEFT JOIN dbo.gradmast g
   ON TRY_CONVERT(INT,g.code)=TRY_CONVERT(INT,p.grad_Code)
-INNER JOIN dbo.paytrn t
-  ON TRY_CONVERT(INT,t.code)=TRY_CONVERT(INT,p.code)
- AND ((TRY_CONVERT(INT,t.[year]) * 12 + TRY_CONVERT(INT,t.[month]))
-      BETWEEN (@FromYear * 12 + @FromMonth)
-          AND (@ToYear * 12 + @ToMonth))
-WHERE TRY_CONVERT(INT,p.brnc_code)=@BranchCode
+WHERE TRY_CONVERT(INT,t.brnc)=@BranchCode
+  AND ((TRY_CONVERT(INT,t.[year]) * 12 + TRY_CONVERT(INT,t.[month]))
+       BETWEEN (@FromYear * 12 + @FromMonth) AND (@ToYear * 12 + @ToMonth))
   AND (
-            @EmployeeType = 0
-            OR (@EmployeeType = 1 AND TRY_CONVERT(INT,t.[type]) IN (1,2,3,4,5))
-            OR (@EmployeeType = 6 AND TRY_CONVERT(INT,t.[type]) = 6)
-            OR (@EmployeeType = 7 AND TRY_CONVERT(INT,t.[type]) = 7)
-        )
+      @EmployeeType = 0
+      OR (@EmployeeType = 1 AND TRY_CONVERT(INT,t.[type]) IN (1,2,3,4,5))
+      OR (@EmployeeType = 6 AND TRY_CONVERT(INT,t.[type]) = 6)
+      OR (@EmployeeType = 7 AND TRY_CONVERT(INT,t.[type]) = 7)
+  )
 ORDER BY p.code;";
 
                     AddParameter(command, "@FromYear", fromYear);
@@ -684,18 +636,22 @@ ORDER BY p.code;";
                         foreach (var name in deductionNames)
                             history.Deductions[name] = 0;
 
+                        if (!await HasSavedPayrollForBranch(connection, employee.EmployeeCode, cursor.Year, cursor.Month, branchCode, employeeType))
+                        {
+                            employee.History.Add(history);
+                            continue;
+                        }
+
                         double savedBasic = await LoadSavedBasic(
                             connection, employee.EmployeeCode, cursor.Year, cursor.Month);
 
                         history.WithoutPayLeaveDays = await LoadWithoutPayLeaveDays(
                             connection, employee.EmployeeCode, cursor.Year, cursor.Month);
 
-                        int daysInMonth = DateTime.DaysInMonth(cursor.Year, cursor.Month);
-                        double payableDays = Math.Max(0, daysInMonth - history.WithoutPayLeaveDays);
-
-                        history.BasicSalary = savedBasic <= 0
-                            ? 0
-                            : Math.Round((savedBasic / daysInMonth) * payableDays, 2);
+                        // Saved basic already includes the WPL adjustment.
+                        history.BasicSalary = savedBasic;
+                        history.OriginalBasicSalary = await LoadPayTrnOriginalBasic(
+                            connection, employee.EmployeeCode, cursor.Year, cursor.Month);
 
                         employee.WithoutPayLeaveDays += history.WithoutPayLeaveDays;
 
@@ -786,6 +742,29 @@ ORDER BY p.code;";
         // leave date range and the requested month. Num_of_days is used as
         // a safety cap when it is available.
         // ============================================================
+        // Restrict each history month to the selected SAVED payroll branch.
+        private async Task<bool> HasSavedPayrollForBranch(
+            DbConnection connection, int employeeCode, int year, int month,
+            int branchCode, int employeeType)
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = @"SELECT TOP (1) 1 FROM dbo.paytrn t
+WHERE TRY_CONVERT(INT,t.code)=@EmployeeCode
+  AND TRY_CONVERT(INT,t.[year])=@Year
+  AND TRY_CONVERT(INT,t.[month])=@Month
+  AND TRY_CONVERT(INT,t.brnc)=@BranchCode
+  AND (@EmployeeType=0
+       OR (@EmployeeType=1 AND TRY_CONVERT(INT,t.[type]) IN (1,2,3,4,5))
+       OR (@EmployeeType=6 AND TRY_CONVERT(INT,t.[type])=6)
+       OR (@EmployeeType=7 AND TRY_CONVERT(INT,t.[type])=7));";
+            AddParameter(command, "@EmployeeCode", employeeCode);
+            AddParameter(command, "@Year", year);
+            AddParameter(command, "@Month", month);
+            AddParameter(command, "@BranchCode", branchCode);
+            AddParameter(command, "@EmployeeType", employeeType);
+            return await command.ExecuteScalarAsync() != null;
+        }
+
         private async Task<double> LoadWithoutPayLeaveDays(
             DbConnection connection,
             int employeeCode,
@@ -1263,29 +1242,21 @@ FROM dbo.daptsys;";
         }
 
         // Same Professional Tax calculation as Pay Calculation.
-        private static void SetProfessionalTax(
-            SalaryReportEmployeeRowViewModel employee,
-            double professionalTaxThreshold,
-            int month)
+        private static async Task SetProfessionalTax(DbConnection connection, SalaryReportEmployeeRowViewModel employee, int month)
         {
-            double professionalTax = 0;
-
-            if (professionalTaxThreshold > 0 &&
-                employee.GrossSalary >= professionalTaxThreshold)
-            {
-                professionalTax = month == 3 ? 300.0 : 200.0;
-            }
-
-            string? key = employee.Deductions.Keys
-                .FirstOrDefault(x =>
-                    x.Equals(
-                        "PROFESSIONAL TAX",
-                        StringComparison.OrdinalIgnoreCase));
-
-            if (key != null)
-                employee.Deductions[key] = professionalTax;
-            else
-                employee.Deductions["PROFESSIONAL TAX"] = professionalTax;
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"SELECT TOP 1 ISNULL(CONVERT(NVARCHAR(20),sex),'') FROM dbo.paymast WHERE TRY_CONVERT(INT,code)=@Code";
+            AddParameter(cmd, "@Code", employee.EmployeeCode);
+            string gender = (Convert.ToString(await cmd.ExecuteScalarAsync()) ?? "").Trim();
+            bool female = gender.Equals("F", StringComparison.OrdinalIgnoreCase) || gender.Equals("Female", StringComparison.OrdinalIgnoreCase);
+            bool male = gender.Equals("M", StringComparison.OrdinalIgnoreCase) || gender.Equals("Male", StringComparison.OrdinalIgnoreCase);
+            if (!female && !male)
+                throw new InvalidOperationException($"Gender is missing/unknown for Employee {employee.EmployeeCode}; cannot calculate PT safely.");
+            double gross = employee.GrossSalary;
+            double tax = female ? (gross <= 25000 ? 0 : (month == 2 ? 300 : 200))
+                : (gross <= 7500 ? 0 : gross <= 10000 ? 175 : (month == 2 ? 300 : 200));
+            string? key = employee.Deductions.Keys.FirstOrDefault(x => x.Equals("Professional Tax", StringComparison.OrdinalIgnoreCase));
+            employee.Deductions[key ?? "Professional Tax"] = tax;
         }
 
         // Same agreed calculation rule as Pay Calculation.

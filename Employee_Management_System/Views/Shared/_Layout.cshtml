@@ -686,7 +686,7 @@
                     <form asp-controller="Account"
                           asp-action="Logout"
                           method="post"
-                          class="m-0">
+                          class="m-0 js-logout-form">
 
 
                         @Html.AntiForgeryToken()
@@ -719,6 +719,15 @@
 
         </div>
 
+
+        <!-- TOP RIGHT LOGOUT BUTTON: reuses existing Account/Logout POST action -->
+        <form asp-controller="Account" asp-action="Logout" method="post"
+              class="ms-3 me-3 js-logout-form">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-danger d-inline-flex align-items-center gap-2">
+                <i class="bi bi-box-arrow-right"></i><span>Logout</span>
+            </button>
+        </form>
 
     </header>
 
@@ -774,6 +783,27 @@
     </footer>
 
 
+
+
+    <!-- Logout confirmation popup (Bootstrap 5) -->
+    <div class="modal fade" id="logoutConfirmModal" tabindex="-1"
+         aria-labelledby="logoutConfirmTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logoutConfirmTitle">
+                        <i class="bi bi-box-arrow-right text-danger me-2"></i>Logout Confirmation
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">Are you sure you want to logout?</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">No, Cancel</button>
+                    <button type="button" class="btn btn-danger" id="btnConfirmLogout">Yes, Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- =========================================================
          JAVASCRIPT
@@ -1035,6 +1065,33 @@
     </script>
 
 
+
+
+    <script>
+        // Both the top-right button and the existing dropdown Logout share this popup.
+        (function () {
+            let requestedLogoutForm = null;
+            document.querySelectorAll('form.js-logout-form').forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    requestedLogoutForm = form;
+                    bootstrap.Modal.getOrCreateInstance(
+                        document.getElementById('logoutConfirmModal')).show();
+                });
+            });
+            document.getElementById('btnConfirmLogout').addEventListener('click', function () {
+                if (!requestedLogoutForm) return;
+                this.disabled = true;
+                // Native form.submit() bypasses the intercepted submit handler.
+                // Existing anti-forgery token and POST endpoint remain intact.
+                requestedLogoutForm.submit();
+            });
+            document.getElementById('logoutConfirmModal').addEventListener('hidden.bs.modal', function () {
+                requestedLogoutForm = null;
+                document.getElementById('btnConfirmLogout').disabled = false;
+            });
+        })();
+    </script>
 
     <!-- =========================================================
          PAGE SPECIFIC SCRIPTS

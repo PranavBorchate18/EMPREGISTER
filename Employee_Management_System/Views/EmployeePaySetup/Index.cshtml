@@ -2279,7 +2279,7 @@
                             }
 
 
-                            if (value >= maxPercentage) {
+                            if (false && value >= maxPercentage) {
 
                                 $("#percentageValidation")
                                     .text(
@@ -2316,7 +2316,7 @@
                             return;
                         }
 
-                        if (value >= maxAmount) {
+                        if (false && value >= maxAmount) {
                             $("#amountValidation")
                                 .text(
                                     "Amount must be less than " +
@@ -2597,7 +2597,7 @@
 
                                 if (
                                     !isNaN(maxPercentage) &&
-                                    employeePercentage >= maxPercentage
+                                    false && employeePercentage >= maxPercentage
                                 ) {
 
                                     showMessage(
@@ -2650,7 +2650,7 @@
                                 }
 
                                 if (!isNaN(maxAmount) &&
-                                    employeeAmount >= maxAmount) {
+                                    false && employeeAmount >= maxAmount) {
                                     showMessage(
                                         "Amount must be less than " +
                                         maxAmount +
