@@ -1,16 +1,20 @@
 ﻿@model Employee_Management_System.Models.LoginViewModel
+@using Employee_Management_System.Models
 
 @{
     ViewData["Title"] = "Login";
     Layout = null;
 
     string workingDateValue =
-        ViewBag.WorkingDate as string ?? DateTime.Today.ToString("yyyy-MM-dd");
+        ViewBag.WorkingDate as string
+        ?? DateTime.Today.ToString("yyyy-MM-dd");
+
+    var existing =
+        ViewBag.ExistingSession as ActiveLoginSession;
 }
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8" />
 
@@ -20,7 +24,7 @@
     <title>Login - Employee Management System</title>
 
     <link rel="stylesheet"
-          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+          href="/lib/bootstrap/dist/css/bootstrap.min.css" />
 
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
@@ -34,7 +38,7 @@
             margin: 0;
             min-height: 100vh;
             font-family: Arial, Helvetica, sans-serif;
-            background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 50%, #e5f0ff 100%);
+            background: linear-gradient( 135deg, #f8fbff 0%, #eef5ff 50%, #e5f0ff 100% );
             display: flex;
             align-items: center;
             justify-content: center;
@@ -53,15 +57,15 @@
         .login-card {
             width: 100%;
             max-width: 560px;
-            background: #ffffff;
+            background: #fff;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 10px 35px rgba(0,0,0,.13);
         }
 
         .login-header {
-            background: linear-gradient(135deg, #0d6efd, #1f78ff);
-            color: white;
+            background: linear-gradient( 135deg, #0d6efd, #1f78ff );
+            color: #fff;
             text-align: center;
             padding: 35px 25px;
         }
@@ -153,19 +157,56 @@
 
             <div class="login-body">
 
-                <form asp-controller="Account"
-                      asp-action="Login"
+                <!-- Explicit POST action -->
+                <form id="loginForm"
+                      action="/Account/Login"
                       method="post">
 
                     @Html.AntiForgeryToken()
 
-                    <div asp-validation-summary="ModelOnly"
-                         class="text-danger mb-3">
+                    <input type="hidden"
+                           name="forceLogin"
+                           id="forceLogin"
+                           value="false" />
+
+                    <input type="hidden"
+                           name="expectedSessionToken"
+                           id="expectedSessionToken"
+                           value="@(ViewBag.ExpectedSessionToken as string ?? "")" />
+
+                    <!-- Server-side errors -->
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger mb-3"
+                             role="alert">
+
+                            <ul class="mb-0">
+
+                                @foreach (
+                                                            var entry in ViewData.ModelState.Values
+                                                            )
+                                {
+                                    foreach (var error in entry.Errors)
+                                    {
+                                        <li>@error.ErrorMessage</li>
+                                    }
+                                }
+
+                            </ul>
+
+                        </div>
+                    }
+
+                    <!-- Client-side errors -->
+                    <div id="loginClientMessage"
+                         class="alert alert-warning d-none"
+                         role="alert">
                     </div>
 
+                    <!-- LOGIN ID -->
                     <div class="mb-4">
 
-                        <label asp-for="LoginId"
+                        <label for="LoginId"
                                class="login-label">
 
                             Login ID
@@ -179,19 +220,17 @@
                                 <i class="bi bi-person-fill"></i>
                             </span>
 
-                            <input asp-for="LoginId"
+                            <input type="text"
                                    id="LoginId"
-                                   type="text"
+                                   name="LoginId"
+                                   value="@Model?.LoginId"
                                    class="form-control login-input"
                                    placeholder="Enter Login ID"
                                    autocomplete="off"
+                                   required
                                    autofocus />
 
                         </div>
-
-                        <span asp-validation-for="LoginId"
-                              class="text-danger small">
-                        </span>
 
                     </div>
 
@@ -212,9 +251,9 @@
                                 <i class="bi bi-calendar-date-fill"></i>
                             </span>
 
-                            <input id="WorkingDate"
+                            <input type="date"
+                                   id="WorkingDate"
                                    name="workingDate"
-                                   type="date"
                                    class="form-control login-input"
                                    value="@workingDateValue"
                                    required />
@@ -223,13 +262,14 @@
 
                     </div>
 
+                    <!-- LOGIN BUTTON -->
                     <div class="d-grid">
 
                         <button type="submit"
+                                id="btnLogin"
                                 class="btn btn-primary btn-login">
 
                             <i class="bi bi-box-arrow-in-right me-2"></i>
-
                             Login
 
                         </button>
@@ -248,12 +288,221 @@
 
     </div>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <!-- EXISTING ACTIVE SESSION POPUP -->
+    @if (existing != null)
+    {
+        <div class="modal fade"
+             id="activeSessionModal"
+             tabindex="-1"
+             aria-labelledby="activeSessionTitle"
+             aria-hidden="true">
 
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+            <div class="modal-dialog modal-dialog-centered">
 
-    <partial name="_ValidationScriptsPartial" />
+                <div class="modal-content">
+
+                    <div class="modal-header">
+
+                        <h5 class="modal-title"
+                            id="activeSessionTitle">
+
+                            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+
+                            Already Logged In
+
+                        </h5>
+
+                    </div>
+
+                    <div class="modal-body">
+
+                        <p>
+                            This account is already logged in.
+                            Existing active session:
+                        </p>
+
+                        <dl class="row mb-0">
+
+                            <dt class="col-5">Browser</dt>
+                            <dd class="col-7">@existing.BrowserName</dd>
+
+                            <dt class="col-5">Device</dt>
+                            <dd class="col-7">@existing.DeviceName</dd>
+
+                            <dt class="col-5">IP Address</dt>
+                            <dd class="col-7">@existing.IpAddress</dd>
+
+                            <dt class="col-5">Login Time (UTC)</dt>
+                            <dd class="col-7">
+                                @existing.LoginTimeUtc.ToString("dd-MM-yyyy HH:mm")
+                            </dd>
+
+                        </dl>
+
+                        <p class="mt-3 mb-0">
+                            Logout the previous session and continue here?
+                        </p>
+
+                    </div>
+
+                    <div class="modal-footer">
+
+                        <button type="button"
+                                class="btn btn-outline-secondary"
+                                id="cancelTakeover">
+
+                            No, Cancel
+
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-primary"
+                                id="confirmTakeover">
+
+                            Yes, Continue
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    }
+
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const form = document.getElementById("loginForm");
+
+            const loginId = document.getElementById("LoginId");
+
+            const workingDate = document.getElementById("WorkingDate");
+
+            const clientMessage =
+                document.getElementById("loginClientMessage");
+
+            // Diagnostic message for browser developer tools.
+            console.log("Login form initialized.");
+            console.log("Form method:", form.method);
+            console.log("Form action:", form.action);
+
+            form.addEventListener("invalid", function () {
+
+                clientMessage.textContent =
+                    "Please enter Login ID and Working Date.";
+
+                clientMessage.classList.remove("d-none");
+
+            }, true);
+
+            form.addEventListener("submit", function (event) {
+
+                clientMessage.classList.add("d-none");
+
+                if (!loginId.value.trim()) {
+
+                    event.preventDefault();
+
+                    clientMessage.textContent =
+                        "Please enter Login ID.";
+
+                    clientMessage.classList.remove("d-none");
+
+                    loginId.focus();
+
+                    return;
+                }
+
+                if (!workingDate.value) {
+
+                    event.preventDefault();
+
+                    clientMessage.textContent =
+                        "Please select Working Date.";
+
+                    clientMessage.classList.remove("d-none");
+
+                    workingDate.focus();
+
+                    return;
+                }
+
+                console.log(
+                    "Submitting POST request to:",
+                    form.action
+                );
+
+                // Allow normal browser POST submission.
+            });
+
+        });
+    </script>
+
+    @if (existing != null)
+    {
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+
+                const modalElement =
+                    document.getElementById("activeSessionModal");
+
+                if (!modalElement) {
+                    return;
+                }
+
+                if (typeof bootstrap === "undefined") {
+                    console.error(
+                        "Bootstrap JavaScript is not loaded."
+                    );
+                    return;
+                }
+
+                const modal = new bootstrap.Modal(
+                    modalElement,
+                    {
+                        backdrop: "static",
+                        keyboard: false
+                    }
+                );
+
+                modal.show();
+
+                document.getElementById("cancelTakeover")
+                    .addEventListener("click", function () {
+
+                        document.getElementById("forceLogin").value =
+                            "false";
+
+                        document.getElementById(
+                            "expectedSessionToken"
+                        ).value = "";
+
+                        modal.hide();
+                    });
+
+                document.getElementById("confirmTakeover")
+                    .addEventListener("click", function () {
+
+                        document.getElementById("forceLogin").value =
+                            "true";
+
+                        // requestSubmit runs normal validation
+                        // and submit handlers.
+                        document.getElementById(
+                            "loginForm"
+                        ).requestSubmit();
+                    });
+
+            });
+        </script>
+    }
 
 </body>
-
 </html>

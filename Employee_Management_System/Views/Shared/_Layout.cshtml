@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+<!DOCTYPE html>
 
 <html lang="en">
 
@@ -13,6 +14,7 @@
     <title>
         @ViewData["Title"] - Employee_Management_System
     </title>
+    <meta name="tab-antiforgery-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
 
 
     <!-- Bootstrap CSS -->
@@ -1092,6 +1094,8 @@
             });
         })();
     </script>
+
+    <script src="~/js/single-active-tab.js" asp-append-version="true"></script>
 
     <!-- =========================================================
          PAGE SPECIFIC SCRIPTS
