@@ -1,4 +1,5 @@
 ﻿@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject Employee_Management_System.Services.UrlEncryptionService UrlProtection
 <!DOCTYPE html>
 
 <html lang="en">
@@ -104,10 +105,7 @@
              PROJECT NAME
         ====================================================== -->
 
-        <a class="sidebar-brand"
-           asp-area=""
-           asp-controller="Home"
-           asp-action="Index">
+        <a href="@UrlProtection.GetProtectedUrl("Home", "Index")" class="sidebar-brand">
 
             <i class="bi bi-people-fill"></i>
 
@@ -133,10 +131,7 @@
 
             <li>
 
-                <a class="nav-link"
-                   asp-area=""
-                   asp-controller="Home"
-                   asp-action="Index">
+                <a href="@UrlProtection.GetProtectedUrl("Home", "Index")" class="nav-link">
 
                     <i class="bi bi-house-door-fill"></i>
 
@@ -154,10 +149,7 @@
 
             <li>
 
-                <a class="nav-link"
-                   asp-area=""
-                   asp-controller="Home"
-                   asp-action="Privacy">
+                <a href="@UrlProtection.GetProtectedUrl("Home", "Privacy")" class="nav-link">
 
                     <i class="bi bi-shield-lock-fill"></i>
 
@@ -175,10 +167,7 @@
 
             <li>
 
-                <a class="nav-link"
-                   asp-area=""
-                   asp-controller="Employee"
-                   asp-action="Register">
+                <a href="@UrlProtection.GetProtectedUrl("Employee", "Register")" class="nav-link">
 
                     <i class="bi bi-person-fill-add"></i>
 
@@ -222,9 +211,7 @@
 
                         <!-- ALLOWANCE -->
 
-                        <a class="dropdown-item"
-                           asp-controller="Allowance"
-                           asp-action="Index">
+                        <a href="@UrlProtection.GetProtectedUrl("Allowance", "Index")" class="dropdown-item">
 
                             <i class="bi bi-cash-stack me-2"></i>
 
@@ -235,9 +222,7 @@
 
                         <!-- DEDUCTION -->
 
-                        <a class="dropdown-item"
-                           asp-controller="Deduction"
-                           asp-action="Index">
+                        <a href="@UrlProtection.GetProtectedUrl("Deduction", "Index")" class="dropdown-item">
 
                             <i class="bi bi-dash-circle me-2"></i>
 
@@ -287,10 +272,7 @@
 
                         <!-- GRADE WISE ALLOWANCE -->
 
-                        <a class="dropdown-item"
-                           asp-controller="GradeWiseAllowDeduction"
-                           asp-action="Index"
-                           asp-route-section="allowance">
+                        <a href="@UrlProtection.GetProtectedUrl("GradeWiseAllowDeduction", "Index", "section=allowance")" class="dropdown-item">
 
                             <i class="bi bi-cash-stack me-2"></i>
 
@@ -301,10 +283,7 @@
 
                         <!-- GRADE WISE DEDUCTION -->
 
-                        <a class="dropdown-item"
-                           asp-controller="GradeWiseAllowDeduction"
-                           asp-action="Index"
-                           asp-route-section="deduction">
+                        <a href="@UrlProtection.GetProtectedUrl("GradeWiseAllowDeduction", "Index", "section=deduction")" class="dropdown-item">
 
                             <i class="bi bi-dash-circle me-2"></i>
 
@@ -327,10 +306,7 @@
 
             <li>
 
-                <a class="nav-link"
-                   asp-area=""
-                   asp-controller="EmployeePaySetup"
-                   asp-action="Index">
+                <a href="@UrlProtection.GetProtectedUrl("EmployeePaySetup", "Index")" class="nav-link">
 
                     <i class="bi bi-wallet2"></i>
 
@@ -350,10 +326,7 @@
 
             <li>
 
-                <a class="nav-link"
-                   asp-area=""
-                   asp-controller="SalaryRevision"
-                   asp-action="Index">
+                <a href="@UrlProtection.GetProtectedUrl("SalaryRevision", "Index")" class="nav-link">
 
                     <i class="bi bi-arrow-left-right"></i>
 
@@ -367,9 +340,7 @@
 
             <li class="nav-item">
 
-                <a class="nav-link"
-                   asp-controller="PayCalculation"
-                   asp-action="Index">
+                <a href="@UrlProtection.GetProtectedUrl("PayCalculation", "Index")" class="nav-link">
 
                     <i class="bi bi-calculator me-2"></i>
 
@@ -388,9 +359,7 @@
 
             <li class="nav-item">
 
-                <a class="nav-link"
-                   asp-controller="SalarySlip"
-                   asp-action="Index">
+                <a href="@UrlProtection.GetProtectedUrl("SalarySlip", "Index")" class="nav-link">
 
                     <i class="bi bi-receipt-cutoff me-2"></i>
 
@@ -409,9 +378,7 @@
             ================================================== -->
             <!-- SALARY REPORT -->
             <li class="nav-item">
-                <a class="nav-link"
-                   asp-controller="SalaryReport"
-                   asp-action="Index">
+                <a href="@UrlProtection.GetProtectedUrl("SalaryReport", "Index")" class="nav-link">
                     <i class="bi bi-file-earmark-bar-graph me-2"></i>
                     <span>Salary Report</span>
                 </a>
@@ -447,9 +414,7 @@
                              LEAVE APPLICATION
                         ========================================== -->
 
-                        <a class="dropdown-item"
-                           asp-controller="Leave"
-                           asp-action="Index">
+                        <a href="@UrlProtection.GetProtectedUrl("Leave", "Index")" class="dropdown-item">
 
                             <i class="bi bi-file-earmark-plus me-2"></i>
 
@@ -463,9 +428,7 @@
                              LEAVE SANCTION
                         ========================================== -->
 
-                        <a class="dropdown-item"
-                           asp-controller="Leave"
-                           asp-action="SanctionList">
+                        <a href="@UrlProtection.GetProtectedUrl("Leave", "SanctionList")" class="dropdown-item">
 
                             <i class="bi bi-check2-square me-2"></i>
 
@@ -479,9 +442,7 @@
                              LEAVE CREDIT
                         ========================================== -->
 
-                        <a class="dropdown-item"
-                           asp-controller="LeaveCredit"
-                           asp-action="Index">
+                        <a href="@UrlProtection.GetProtectedUrl("LeaveCredit", "Index")" class="dropdown-item">
 
                             <i class="bi bi-calendar-plus me-2"></i>
 
@@ -494,9 +455,7 @@
                              LEAVE DEBIT
                         ========================================== -->
 
-                        <a class="dropdown-item"
-                           asp-controller="LeaveDebit"
-                           asp-action="Index">
+                        <a href="@UrlProtection.GetProtectedUrl("LeaveDebit", "Index")" class="dropdown-item">
 
                             <i class="bi bi-calendar-minus me-2"></i>
 
@@ -509,9 +468,7 @@
                              LEAVE STATEMENT
                         ========================================== -->
 
-                        <a class="dropdown-item"
-                           asp-controller="LeaveStatement"
-                           asp-action="Index">
+                        <a href="@UrlProtection.GetProtectedUrl("LeaveStatement", "Index")" class="dropdown-item">
 
                             <i class="bi bi-file-earmark-text me-2"></i>
 
@@ -524,9 +481,7 @@
                              LEAVE MASTER
                         ========================================== -->
 
-                        <a class="dropdown-item"
-                           asp-controller="LeaveMaster"
-                           asp-action="Index">
+                        <a href="@UrlProtection.GetProtectedUrl("LeaveMaster", "Index")" class="dropdown-item">
 
                             <i class="bi bi-journal-text me-2"></i>
 
@@ -770,9 +725,7 @@
             Employee_Management_System -
 
 
-            <a asp-area=""
-               asp-controller="Home"
-               asp-action="Privacy">
+            <a href="@UrlProtection.GetProtectedUrl("Home", "Privacy")">
 
                 Privacy
 

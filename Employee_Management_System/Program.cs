@@ -5,10 +5,13 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddDataProtection();
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddDistributedMemoryCache();
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -16,7 +19,9 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     options.Cookie.Name = ".EmployeeManagement.Session";
 });
+
 builder.Services.AddSingleton<ActiveSessionService>();
+builder.Services.AddSingleton<UrlEncryptionService>();
 
 var app = builder.Build();
 
@@ -28,12 +33,17 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// Must run before routing so /p/{token} is decoded before MVC matches the route.
+app.UseMiddleware<UrlProtectionMiddleware>();
+
 app.UseRouting();
 app.UseSession();
 
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
+
     if (path.StartsWithSegments("/Account/Login", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWithSegments("/Account/Logout", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWithSegments("/Home/Error", StringComparison.OrdinalIgnoreCase))
@@ -46,11 +56,13 @@ app.Use(async (context, next) =>
     string? token = context.Session.GetString("ActiveSessionToken");
     var sessions = context.RequestServices.GetRequiredService<ActiveSessionService>();
 
-    if (string.IsNullOrWhiteSpace(loginId) || string.IsNullOrWhiteSpace(token) ||
+    if (string.IsNullOrWhiteSpace(loginId) ||
+        string.IsNullOrWhiteSpace(token) ||
         !sessions.IsCurrent(loginId, token))
     {
         app.Logger.LogWarning("Session rejected on {Path}", path);
         context.Session.Clear();
+
         if (string.Equals(context.Request.Headers["X-Requested-With"].ToString(),
             "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))
         {
@@ -65,6 +77,7 @@ app.Use(async (context, next) =>
         {
             context.Response.Redirect("/Account/Login");
         }
+
         return;
     }
 
@@ -72,6 +85,7 @@ app.Use(async (context, next) =>
 });
 
 app.UseAuthorization();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");

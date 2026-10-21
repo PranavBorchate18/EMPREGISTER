@@ -7,193 +7,220 @@
     )?.content;
 
     if (!csrf) {
-        console.error(
-            "Single Active Tab: CSRF token missing in _Layout.cshtml"
-        );
+        console.error("Tab antiforgery token missing.");
         return;
     }
 
-    const tabKey = "ems-active-tab-id";
-    const registeredKey = "ems-active-tab-registered";
+    const STORAGE_KEY = "ems-active-tab-id";
+    const CHANNEL_NAME = "ems-tab-presence";
 
-    const channel = ("BroadcastChannel" in window)
-        ? new BroadcastChannel("ems-tab-presence")
-        : null;
-
-    let tabId = sessionStorage.getItem(tabKey);
-    let registered =
-        sessionStorage.getItem(registeredKey) === "yes";
-
-    let stopped = false;
-    let checking = false;
-
-    if (!tabId) {
-        tabId = crypto.randomUUID();
-        sessionStorage.setItem(tabKey, tabId);
-        registered = false;
+    function createId() {
+        return crypto.randomUUID
+            ? crypto.randomUUID()
+            : Date.now().toString(36) +
+            "-" + Math.random().toString(36).slice(2);
     }
 
-    function makeInactive() {
+    let tabId = sessionStorage.getItem(STORAGE_KEY);
+
+    if (!tabId) {
+        tabId = createId();
+        sessionStorage.setItem(STORAGE_KEY, tabId);
+    }
+
+   
+    const instanceId = createId();
+
+    const channel = "BroadcastChannel" in window
+        ? new BroadcastChannel(CHANNEL_NAME)
+        : null;
+
+    let stopped = false;
+    let initialized = false;
+    let checking = false;
+    let checkTimer = null;
+
+    function redirectToLogin(reason) {
         if (stopped) return;
 
         stopped = true;
 
-        window.location.replace("/Account/TabInactive");
-    }
-
-    async function sendRequest(url) {
-        const data = new URLSearchParams({
-            tabId: tabId
-        });
-
-        const response = await fetch(url, {
-            method: "POST",
-            credentials: "same-origin",
-            cache: "no-store",
-            headers: {
-                "Content-Type":
-                    "application/x-www-form-urlencoded",
-                "RequestVerificationToken": csrf,
-                "X-Requested-With": "XMLHttpRequest"
-            },
-            body: data
-        });
-
-        if (!response.ok) {
-            if (response.status === 401 ||
-                response.status === 403) {
-                makeInactive();
-            }
-
-            throw new Error(
-                "Tab request failed: " + response.status
-            );
+        if (checkTimer !== null) {
+            clearInterval(checkTimer);
+            checkTimer = null;
         }
 
-        return await response.json();
+        const url = new URL(
+            "/Account/Login",
+            window.location.origin
+        );
+
+        url.searchParams.set(reason, "1");
+
+        window.location.replace(url.toString());
     }
 
-    async function claimTab() {
-        try {
-            const result = await sendRequest(
-                "/Account/ClaimTab"
-            );
-
-            if (result.active) {
-                registered = true;
-
-                sessionStorage.setItem(
-                    registeredKey,
-                    "yes"
-                );
-            } else {
-                makeInactive();
-            }
-        } catch (error) {
-            console.warn(
-                "Unable to claim active tab:",
-                error
-            );
-        }
-    }
-
-    async function verifyTab() {
-        if (stopped || checking) return;
-
-        checking = true;
-
-        try {
-            const result = await sendRequest(
-                "/Account/CheckTab"
-            );
-
-            if (result.unclaimed && !registered) {
-                await claimTab();
-            } else if (!result.active) {
-                makeInactive();
-            } else {
-                registered = true;
-
-                sessionStorage.setItem(
-                    registeredKey,
-                    "yes"
-                );
-            }
-        } catch (error) {
-            console.warn(
-                "Tab verification failed:",
-                error
-            );
-        } finally {
-            checking = false;
-        }
-    }
-
-    // Detect duplicated tabs that share sessionStorage.
-    let duplicate = false;
+    // -------------------------------------------
+    // Duplicate Tab Detection
+    // -------------------------------------------
 
     if (channel) {
         channel.onmessage = function (event) {
             const message = event.data;
 
             if (!message ||
-                message.tabId !== tabId) {
+                message.tabId !== tabId ||
+                message.instanceId === instanceId) {
                 return;
             }
 
+         
             if (message.type === "hello") {
                 channel.postMessage({
                     type: "present",
-                    tabId: tabId
+                    tabId: tabId,
+                    instanceId: instanceId,
+                    peerId: message.instanceId
                 });
             }
 
-            if (message.type === "present") {
-                duplicate = true;
+ 
+            if (
+                message.type === "present" &&
+                message.peerId === instanceId
+            ) {
+                redirectToLogin("tabEntry");
             }
         };
 
+    
         channel.postMessage({
             type: "hello",
-            tabId: tabId
+            tabId: tabId,
+            instanceId: instanceId
         });
     }
 
-    setTimeout(async function () {
-        if (duplicate) {
-            tabId = crypto.randomUUID();
+    // -------------------------------------------
+    // Server Request
+    // -------------------------------------------
 
-            sessionStorage.setItem(
-                tabKey,
-                tabId
-            );
-
-            sessionStorage.removeItem(
-                registeredKey
-            );
-
-            registered = false;
-        }
-
-        if (!registered) {
-            await claimTab();
-        } else {
-            await verifyTab();
-        }
-    }, 200);
-
-    // Check active tab every 3 seconds.
-    setInterval(verifyTab, 3000);
-
-    // Check when user returns to the tab.
-    window.addEventListener("focus", verifyTab);
-
-    document.addEventListener(
-        "visibilitychange",
-        function () {
-            if (!document.hidden) {
-                verifyTab();
+    async function post(endpoint) {
+        const response = await fetch(
+            "/Account/" + endpoint,
+            {
+                method: "POST",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {
+                    "Content-Type":
+                        "application/x-www-form-urlencoded",
+                    "RequestVerificationToken": csrf,
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: new URLSearchParams({
+                    tabId: tabId,
+                    page: document.title
+                }).toString()
             }
+        );
+
+        if (response.status === 401) {
+            redirectToLogin("tabLost");
+            return null;
         }
-    );
+
+        if (!response.ok) {
+            throw new Error(
+                endpoint + " returned HTTP " + response.status
+            );
+        }
+
+        return await response.json();
+    }
+
+    // -------------------------------------------
+    // Claim current tab
+    // -------------------------------------------
+
+    async function claimTab() {
+        try {
+            const result = await post("ClaimTab");
+
+            if (!result || stopped) return;
+
+            if (!result.active) {
+                redirectToLogin("tabEntry");
+                return;
+            }
+
+            initialized = true;
+
+            await checkTab();
+
+            if (!stopped) {
+                checkTimer = setInterval(checkTab, 3000);
+            }
+        } catch (error) {
+            console.error("ClaimTab failed:", error);
+        }
+    }
+
+    // -------------------------------------------
+    // Check current tab
+    // -------------------------------------------
+
+    async function checkTab() {
+        if (stopped || !initialized || checking) return;
+
+        checking = true;
+
+        try {
+            const result = await post("CheckTab");
+
+            if (!result || stopped) return;
+
+            if (!result.active) {
+                redirectToLogin(
+                    result.unclaimed ? "tabEntry" : "tabLost"
+                );
+            }
+        } catch (error) {
+            console.error("CheckTab failed:", error);
+        } finally {
+            checking = false;
+        }
+    }
+
+
+    setTimeout(function () {
+        if (!stopped) {
+            claimTab();
+        }
+    }, 1200);
+
+    window.addEventListener("focus", checkTab);
+
+    document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) {
+            checkTab();
+        }
+    });
+
+    document.addEventListener("submit", function (event) {
+        if (stopped) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        }
+    }, true);
+
+    window.addEventListener("pagehide", function () {
+        if (checkTimer !== null) {
+            clearInterval(checkTimer);
+        }
+
+        if (channel) {
+            channel.close();
+        }
+    });
 })();

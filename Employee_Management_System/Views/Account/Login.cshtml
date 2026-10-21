@@ -9,6 +9,9 @@
         ViewBag.WorkingDate as string
         ?? DateTime.Today.ToString("yyyy-MM-dd");
 
+    var tabExisting = ViewBag.TabExistingSession as ActiveLoginSession;
+    string activeTabPage = ViewBag.ActiveTabPage as string ?? "Application";
+    string expectedOldTabId = ViewBag.ExpectedOldTabId as string ?? "";
     var existing =
         ViewBag.ExistingSession as ActiveLoginSession;
 }
@@ -288,6 +291,46 @@
 
     </div>
 
+    @if (tabExisting != null)
+    {
+        <div class="modal fade" id="sameBrowserTabModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Already Active Tab</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>This application is already open in another tab of this browser.</p>
+                        <dl class="row mb-0">
+                            <dt class="col-5">Login ID</dt>
+                            <dd class="col-7">@tabExisting.LoginId</dd>
+                            <dt class="col-5">Browser</dt>
+                            <dd class="col-7">@tabExisting.BrowserName</dd>
+                            <dt class="col-5">Device</dt>
+                            <dd class="col-7">@tabExisting.DeviceName</dd>
+                            <dt class="col-5">Active Page</dt>
+                            <dd class="col-7">@activeTabPage</dd>
+                            <dt class="col-5">Login Time (UTC)</dt>
+                            <dd class="col-7">@tabExisting.LoginTimeUtc.ToString("dd-MM-yyyy HH:mm")</dd>
+                        </dl>
+                        <p class="mt-3 mb-0">Continue in this tab? The previous tab will return to the Login page.</p>
+                        <div id="tabTakeoverError" class="text-danger mt-2" role="alert"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" id="tabCancel">No, Cancel</button>
+                        <button type="button" class="btn btn-primary" id="tabContinue">Yes, Continue</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    @if (ViewBag.TabLost == true)
+    {
+        <div class="alert alert-warning position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index:1050">
+            This tab is no longer active. Please use the new active tab.
+        </div>
+    }
+
     <!-- EXISTING ACTIVE SESSION POPUP -->
     @if (existing != null)
     {
@@ -444,6 +487,57 @@
 
         });
     </script>
+
+    @if (tabExisting != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const modal = bootstrap.Modal.getOrCreateInstance(
+                    document.getElementById('sameBrowserTabModal'), { backdrop: 'static', keyboard: false });
+                modal.show();
+                const key = 'ems-active-tab-id';
+                const channel = 'BroadcastChannel' in window ? new BroadcastChannel('ems-tab-presence') : null;
+                          const tabId = crypto.randomUUID
+                ? crypto.randomUUID()
+                : Date.now().toString(36) +
+                  "-" + Math.random().toString(36).slice(2);
+
+            sessionStorage.setItem("ems-active-tab-id", tabId);
+                sessionStorage.setItem(key, tabId);
+                let duplicate = false;
+                if (channel) {
+                    channel.onmessage = e => {
+                        if (e.data?.id !== tabId) return;
+                        if (e.data.type === 'present') duplicate = true;
+                        if (e.data.type === 'hello') channel.postMessage({ type: 'present', id: tabId });
+                    };
+                    channel.postMessage({ type: 'hello', id: tabId });
+                }
+                document.getElementById('tabCancel').addEventListener('click', () => modal.hide());
+                document.getElementById('tabContinue').addEventListener('click', async () => {
+                    const btn = document.getElementById('tabContinue');
+                    const error = document.getElementById('tabTakeoverError');
+                    btn.disabled = true;
+                    error.textContent = '';
+                    if (duplicate) { tabId = crypto.randomUUID(); sessionStorage.setItem(key, tabId); }
+                    try {
+                        const token = document.querySelector('#loginForm input[name="__RequestVerificationToken"]').value;
+                        const response = await fetch('/Account/TransferTab', {
+                            method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded',
+                                'RequestVerificationToken': token, 'X-Requested-With': 'XMLHttpRequest' },
+                            body: new URLSearchParams({ tabId,
+                                expectedOldTabId: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(expectedOldTabId)) })
+                        });
+                        if (!response.ok) throw new Error('The active tab changed. Please refresh this page.');
+                        const result = await response.json();
+                        if (!result.success) throw new Error('Unable to transfer the tab.');
+                        location.replace(result.redirectUrl || '/Employee/Register');
+                    } catch (e) { error.textContent = e.message; btn.disabled = false; }
+                });
+            });
+        </script>
+    }
 
     @if (existing != null)
     {
