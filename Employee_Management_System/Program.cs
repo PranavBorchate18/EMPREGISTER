@@ -4,12 +4,19 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// MVC
 builder.Services.AddControllersWithViews();
+
+// Data Protection and URL protection
 builder.Services.AddDataProtection();
+builder.Services.AddSingleton<UrlEncryptionService>();
 
+// Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Session
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
@@ -20,11 +27,12 @@ builder.Services.AddSession(options =>
     options.Cookie.Name = ".EmployeeManagement.Session";
 });
 
+// Login session and active-tab state
 builder.Services.AddSingleton<ActiveSessionService>();
-builder.Services.AddSingleton<UrlEncryptionService>();
 
 var app = builder.Build();
 
+// Error handling
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -34,19 +42,28 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Must run before routing so /p/{token} is decoded before MVC matches the route.
+// Rewrite protected URLs before MVC routing.
+// Keep this middleware only if UrlProtectionMiddleware
+// already exists and is implemented in your project.
 app.UseMiddleware<UrlProtectionMiddleware>();
 
 app.UseRouting();
 app.UseSession();
 
+// Validate the active login session.
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
 
-    if (path.StartsWithSegments("/Account/Login", StringComparison.OrdinalIgnoreCase) ||
-        path.StartsWithSegments("/Account/Logout", StringComparison.OrdinalIgnoreCase) ||
-        path.StartsWithSegments("/Home/Error", StringComparison.OrdinalIgnoreCase))
+    if (path.StartsWithSegments(
+            "/Account/Login",
+            StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWithSegments(
+            "/Account/Logout",
+            StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWithSegments(
+            "/Home/Error",
+            StringComparison.OrdinalIgnoreCase))
     {
         await next();
         return;
@@ -54,19 +71,24 @@ app.Use(async (context, next) =>
 
     string? loginId = context.Session.GetString("LoginId");
     string? token = context.Session.GetString("ActiveSessionToken");
-    var sessions = context.RequestServices.GetRequiredService<ActiveSessionService>();
+
+    var sessions = context.RequestServices
+        .GetRequiredService<ActiveSessionService>();
 
     if (string.IsNullOrWhiteSpace(loginId) ||
         string.IsNullOrWhiteSpace(token) ||
         !sessions.IsCurrent(loginId, token))
     {
-        app.Logger.LogWarning("Session rejected on {Path}", path);
         context.Session.Clear();
 
-        if (string.Equals(context.Request.Headers["X-Requested-With"].ToString(),
-            "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(
+            context.Request.Headers["X-Requested-With"].ToString(),
+            "XMLHttpRequest",
+            StringComparison.OrdinalIgnoreCase))
         {
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            context.Response.StatusCode =
+                StatusCodes.Status401Unauthorized;
+
             await context.Response.WriteAsJsonAsync(new
             {
                 success = false,
@@ -86,6 +108,7 @@ app.Use(async (context, next) =>
 
 app.UseAuthorization();
 
+// Default MVC route
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");

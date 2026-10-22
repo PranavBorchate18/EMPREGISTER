@@ -1,1064 +1,500 @@
-﻿@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
-@inject Employee_Management_System.Services.UrlEncryptionService UrlProtection
+﻿
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Employee_Management_System</title>
 
+    <!-- Antiforgery token for AJAX requests -->
+    <meta name="tab-antiforgery-token"
+          content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
 
-    <title>
-        @ViewData["Title"] - Employee_Management_System
-    </title>
-    <meta name="tab-antiforgery-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
-
-
-    <!-- Bootstrap CSS -->
-
-    <link rel="stylesheet"
-          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-
-
-    <!-- Bootstrap Icons -->
-
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
-
-
-    <!-- Site CSS -->
-
     <link rel="stylesheet"
           href="~/css/site.css"
           asp-append-version="true" />
-
-
     <link rel="stylesheet"
           href="~/Employee_Management_System.styles.css"
           asp-append-version="true" />
-
 </head>
 
-
 <body>
-
-
     @{
-        // =========================================================
-        // LOGGED-IN USER INFORMATION
-        // =========================================================
+        var currentLoginId = Context.Session.GetString("LoginId");
+        var currentUserName = Context.Session.GetString("UserName");
+        var currentAuthority = Context.Session.GetString("Authority");
 
-        var currentLoginId =
-        Context.Session.GetString("LoginId");
-
-        var currentUserName =
-        Context.Session.GetString("UserName");
-
-        var currentAuthority =
-        Context.Session.GetString("Authority");
-
-
-        // If UserName is empty,
-        // display Login ID instead.
         if (string.IsNullOrWhiteSpace(currentUserName))
         {
             currentUserName = currentLoginId;
         }
 
-
-        // Final fallback
         if (string.IsNullOrWhiteSpace(currentUserName))
         {
             currentUserName = "User";
         }
     }
 
-
-
-    <!-- =========================================================
-         MOBILE SIDEBAR BUTTON
-    ========================================================== -->
-
-    <button type="button"
-            class="sidebar-toggle"
-            id="sidebarToggle">
-
+    <!-- Mobile sidebar button -->
+    <button type="button" class="sidebar-toggle" id="sidebarToggle">
         <i class="bi bi-list"></i>
-
     </button>
 
-
-
-    <!-- =========================================================
-         LEFT SIDEBAR
-    ========================================================== -->
-
-    <aside class="sidebar"
-           id="sidebar">
-
-
-        <!-- =====================================================
-             PROJECT NAME
-        ====================================================== -->
-
-        <a href="@UrlProtection.GetProtectedUrl("Home", "Index")" class="sidebar-brand">
-
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <a class="sidebar-brand"
+           asp-area=""
+           asp-controller="Home"
+           asp-action="Index">
             <i class="bi bi-people-fill"></i>
-
-            <span>
-                Employee_<br />
-                Management_System
-            </span>
-
+            <span>Employee_<br />Management_System</span>
         </a>
 
-
-
-        <!-- =====================================================
-             MENU
-        ====================================================== -->
-
         <ul class="sidebar-menu">
-
-
-            <!-- =================================================
-                 HOME
-            ================================================== -->
-
             <li>
-
-                <a href="@UrlProtection.GetProtectedUrl("Home", "Index")" class="nav-link">
-
+                <a class="nav-link" asp-controller="Home" asp-action="Index">
                     <i class="bi bi-house-door-fill"></i>
-
                     <span>Home</span>
-
                 </a>
-
             </li>
 
-
-
-            <!-- =================================================
-                 PRIVACY
-            ================================================== -->
-
             <li>
-
-                <a href="@UrlProtection.GetProtectedUrl("Home", "Privacy")" class="nav-link">
-
+                <a class="nav-link" asp-controller="Home" asp-action="Privacy">
                     <i class="bi bi-shield-lock-fill"></i>
-
                     <span>Privacy</span>
-
                 </a>
-
             </li>
 
-
-
-            <!-- =================================================
-                 EMPLOYEE REGISTRATION
-            ================================================== -->
-
             <li>
-
-                <a href="@UrlProtection.GetProtectedUrl("Employee", "Register")" class="nav-link">
-
+                <a class="nav-link"
+                   asp-controller="Employee"
+                   asp-action="Register">
                     <i class="bi bi-person-fill-add"></i>
-
-                    <span>
-                        Employee Registration
-                    </span>
-
+                    <span>Employee Registration</span>
                 </a>
-
             </li>
 
-
-
-            <!-- =================================================
-                 MASTER
-            ================================================== -->
-
+            <!-- Master -->
             <li>
-
                 <button class="nav-link sidebar-dropdown-btn"
                         type="button"
                         data-bs-toggle="collapse"
                         data-bs-target="#masterMenu"
                         aria-expanded="false"
                         aria-controls="masterMenu">
-
                     <i class="bi bi-database-fill"></i>
-
                     <span>Master</span>
-
                     <i class="bi bi-chevron-down ms-auto"></i>
-
                 </button>
 
-
-                <div class="collapse"
-                     id="masterMenu">
-
+                <div class="collapse" id="masterMenu">
                     <div class="sidebar-submenu">
-
-
-                        <!-- ALLOWANCE -->
-
-                        <a href="@UrlProtection.GetProtectedUrl("Allowance", "Index")" class="dropdown-item">
-
-                            <i class="bi bi-cash-stack me-2"></i>
-
-                            Allowance
-
+                        <a class="dropdown-item"
+                           asp-controller="Allowance"
+                           asp-action="Index">
+                            <i class="bi bi-cash-stack me-2"></i>Allowance
                         </a>
 
-
-                        <!-- DEDUCTION -->
-
-                        <a href="@UrlProtection.GetProtectedUrl("Deduction", "Index")" class="dropdown-item">
-
-                            <i class="bi bi-dash-circle me-2"></i>
-
-                            Deduction
-
+                        <a class="dropdown-item"
+                           asp-controller="Deduction"
+                           asp-action="Index">
+                            <i class="bi bi-dash-circle me-2"></i>Deduction
                         </a>
-
-
                     </div>
-
                 </div>
-
             </li>
 
-
-
-            <!-- =================================================
-                 GRADE WISE ALLOW / DEDUCTION
-            ================================================== -->
-
+            <!-- Grade Wise Allow/Deduction -->
             <li>
-
                 <button class="nav-link sidebar-dropdown-btn"
                         type="button"
                         data-bs-toggle="collapse"
                         data-bs-target="#gradeWiseMenu"
                         aria-expanded="false"
                         aria-controls="gradeWiseMenu">
-
                     <i class="bi bi-table"></i>
-
-                    <span>
-                        Grade Wise<br />
-                        Allow/Deduction
-                    </span>
-
+                    <span>Grade Wise<br />Allow/Deduction</span>
                     <i class="bi bi-chevron-down ms-auto"></i>
-
                 </button>
 
-
-                <div class="collapse"
-                     id="gradeWiseMenu">
-
+                <div class="collapse" id="gradeWiseMenu">
                     <div class="sidebar-submenu">
-
-
-                        <!-- GRADE WISE ALLOWANCE -->
-
-                        <a href="@UrlProtection.GetProtectedUrl("GradeWiseAllowDeduction", "Index", "section=allowance")" class="dropdown-item">
-
-                            <i class="bi bi-cash-stack me-2"></i>
-
-                            Allowance
-
+                        <a class="dropdown-item"
+                           asp-controller="GradeWiseAllowDeduction"
+                           asp-action="Index"
+                           asp-route-section="allowance">
+                            <i class="bi bi-cash-stack me-2"></i>Allowance
                         </a>
 
-
-                        <!-- GRADE WISE DEDUCTION -->
-
-                        <a href="@UrlProtection.GetProtectedUrl("GradeWiseAllowDeduction", "Index", "section=deduction")" class="dropdown-item">
-
-                            <i class="bi bi-dash-circle me-2"></i>
-
-                            Deduction
-
+                        <a class="dropdown-item"
+                           asp-controller="GradeWiseAllowDeduction"
+                           asp-action="Index"
+                           asp-route-section="deduction">
+                            <i class="bi bi-dash-circle me-2"></i>Deduction
                         </a>
-
-
                     </div>
-
                 </div>
-
             </li>
 
-
-
-            <!-- =================================================
-                 EMPLOYEE PAY SETUP
-            ================================================== -->
-
             <li>
-
-                <a href="@UrlProtection.GetProtectedUrl("EmployeePaySetup", "Index")" class="nav-link">
-
+                <a class="nav-link"
+                   asp-controller="EmployeePaySetup"
+                   asp-action="Index">
                     <i class="bi bi-wallet2"></i>
-
-                    <span>
-                        Employee Pay Setup
-                    </span>
-
+                    <span>Employee Pay Setup</span>
                 </a>
-
             </li>
-
-
-
-            <!-- =================================================
-                 SALARY REVISION
-            ================================================== -->
 
             <li>
-
-                <a href="@UrlProtection.GetProtectedUrl("SalaryRevision", "Index")" class="nav-link">
-
+                <a class="nav-link"
+                   asp-controller="SalaryRevision"
+                   asp-action="Index">
                     <i class="bi bi-arrow-left-right"></i>
-
-                    <span>
-                        Salary Revision
-                    </span>
-
+                    <span>Salary Revision</span>
                 </a>
-
             </li>
 
             <li class="nav-item">
-
-                <a href="@UrlProtection.GetProtectedUrl("PayCalculation", "Index")" class="nav-link">
-
+                <a class="nav-link"
+                   asp-controller="PayCalculation"
+                   asp-action="Index">
                     <i class="bi bi-calculator me-2"></i>
-
-                    <span>
-                        Pay Calculation
-                    </span>
-
+                    <span>Pay Calculation</span>
                 </a>
-
             </li>
 
-
-            <!-- =================================================
-                 SALARY SLIP
-            ================================================== -->
-
             <li class="nav-item">
-
-                <a href="@UrlProtection.GetProtectedUrl("SalarySlip", "Index")" class="nav-link">
-
+                <a class="nav-link"
+                   asp-controller="SalarySlip"
+                   asp-action="Index">
                     <i class="bi bi-receipt-cutoff me-2"></i>
-
-                    <span>
-                        Salary Slip
-                    </span>
-
+                    <span>Salary Slip</span>
                 </a>
-
             </li>
 
-
-
-            <!-- =================================================
-                 LEAVE APPLICATION DROPDOWN
-            ================================================== -->
-            <!-- SALARY REPORT -->
             <li class="nav-item">
-                <a href="@UrlProtection.GetProtectedUrl("SalaryReport", "Index")" class="nav-link">
+                <a class="nav-link"
+                   asp-controller="SalaryReport"
+                   asp-action="Index">
                     <i class="bi bi-file-earmark-bar-graph me-2"></i>
                     <span>Salary Report</span>
                 </a>
             </li>
 
+            <!-- Leave Application -->
             <li>
-
                 <button class="nav-link sidebar-dropdown-btn"
                         type="button"
                         data-bs-toggle="collapse"
                         data-bs-target="#leaveMenu"
                         aria-expanded="false"
                         aria-controls="leaveMenu">
-
                     <i class="bi bi-calendar2-check-fill"></i>
-
-                    <span>
-                        Leave Application
-                    </span>
-
+                    <span>Leave Application</span>
                     <i class="bi bi-chevron-down ms-auto"></i>
-
                 </button>
 
-
-                <div class="collapse"
-                     id="leaveMenu">
-
+                <div class="collapse" id="leaveMenu">
                     <div class="sidebar-submenu">
-
-
-                        <!-- =========================================
-                             LEAVE APPLICATION
-                        ========================================== -->
-
-                        <a href="@UrlProtection.GetProtectedUrl("Leave", "Index")" class="dropdown-item">
-
+                        <a class="dropdown-item"
+                           asp-controller="Leave"
+                           asp-action="Index">
                             <i class="bi bi-file-earmark-plus me-2"></i>
-
                             Leave Application
-
                         </a>
 
-
-
-                        <!-- =========================================
-                             LEAVE SANCTION
-                        ========================================== -->
-
-                        <a href="@UrlProtection.GetProtectedUrl("Leave", "SanctionList")" class="dropdown-item">
-
+                        <a class="dropdown-item"
+                           asp-controller="Leave"
+                           asp-action="SanctionList">
                             <i class="bi bi-check2-square me-2"></i>
-
                             Leave Sanction
-
                         </a>
 
-
-
-                        <!-- =========================================
-                             LEAVE CREDIT
-                        ========================================== -->
-
-                        <a href="@UrlProtection.GetProtectedUrl("LeaveCredit", "Index")" class="dropdown-item">
-
+                        <a class="dropdown-item"
+                           asp-controller="LeaveCredit"
+                           asp-action="Index">
                             <i class="bi bi-calendar-plus me-2"></i>
-
                             Leave Credit
-
                         </a>
 
-
-                        <!-- =========================================
-                             LEAVE DEBIT
-                        ========================================== -->
-
-                        <a href="@UrlProtection.GetProtectedUrl("LeaveDebit", "Index")" class="dropdown-item">
-
+                        <a class="dropdown-item"
+                           asp-controller="LeaveDebit"
+                           asp-action="Index">
                             <i class="bi bi-calendar-minus me-2"></i>
-
                             Leave Debit
-
                         </a>
 
-
-                        <!-- =========================================
-                             LEAVE STATEMENT
-                        ========================================== -->
-
-                        <a href="@UrlProtection.GetProtectedUrl("LeaveStatement", "Index")" class="dropdown-item">
-
+                        <a class="dropdown-item"
+                           asp-controller="LeaveStatement"
+                           asp-action="Index">
                             <i class="bi bi-file-earmark-text me-2"></i>
-
                             Leave Statement
-
                         </a>
 
-
-                        <!-- =========================================
-                             LEAVE MASTER
-                        ========================================== -->
-
-                        <a href="@UrlProtection.GetProtectedUrl("LeaveMaster", "Index")" class="dropdown-item">
-
+                        <a class="dropdown-item"
+                           asp-controller="LeaveMaster"
+                           asp-action="Index">
                             <i class="bi bi-journal-text me-2"></i>
-
                             Leave Master
-
                         </a>
-
-
                     </div>
-
                 </div>
-
             </li>
-
-
         </ul>
-
-
     </aside>
 
-
-
-    <!-- =========================================================
-         TOP BAR
-    ========================================================== -->
-
+    <!-- Top bar -->
     <header class="topbar">
-
-
-        <!-- =====================================================
-             LOGGED-IN USER DROPDOWN
-        ====================================================== -->
-
         <div class="dropdown ms-auto">
-
-
-            <button class="btn
-                           btn-link
-                           text-dark
-                           text-decoration-none
-                           dropdown-toggle
-                           d-flex
-                           align-items-center
-                           gap-2"
+            <button class="btn btn-link text-dark text-decoration-none dropdown-toggle d-flex align-items-center gap-2"
                     type="button"
                     id="userDropdown"
                     data-bs-toggle="dropdown"
                     aria-expanded="false">
-
-
-                <!-- USER ICON -->
-
                 <i class="bi bi-person-circle"
-                   style="
-                       font-size:27px;
-                       color:#0d6efd;
-                   ">
-                </i>
-
-
-                <!-- ACTUAL LOGGED-IN USER NAME -->
-
-                <span style="font-size:15px;">
-
-                    @currentUserName
-
-                </span>
-
-
+                   style="font-size:27px;color:#0d6efd;"></i>
+                <span style="font-size:15px;">@currentUserName</span>
             </button>
 
-
-
-            <!-- =================================================
-                 USER DROPDOWN MENU
-            ================================================== -->
-
-            <ul class="dropdown-menu
-                       dropdown-menu-end
-                       shadow-sm"
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm"
                 aria-labelledby="userDropdown"
-                style="
-                    min-width:230px;
-                ">
-
-
-                <!-- USER INFORMATION -->
-
+                style="min-width:230px;">
                 <li>
-
                     <div class="dropdown-item-text">
-
-
-                        <div class="d-flex
-                                    align-items-center
-                                    gap-2
-                                    mb-2">
-
+                        <div class="d-flex align-items-center gap-2 mb-2">
                             <i class="bi bi-person-circle"
-                               style="
-                                   font-size:30px;
-                                   color:#0d6efd;
-                               ">
-                            </i>
-
-
+                               style="font-size:30px;color:#0d6efd;"></i>
                             <div>
-
-                                <strong>
-                                    @currentUserName
-                                </strong>
-
+                                <strong>@currentUserName</strong>
                                 <br />
-
                                 <small class="text-muted">
-
-                                    Login ID:
-                                    @currentLoginId
-
+                                    Login ID: @currentLoginId
                                 </small>
-
                             </div>
-
                         </div>
-
 
                         @if (!string.IsNullOrWhiteSpace(currentAuthority))
                         {
                             <small class="text-muted">
-
-                                Authority:
-                                @currentAuthority
-
+                                Authority: @currentAuthority
                             </small>
                         }
-
-
                     </div>
-
                 </li>
 
-
-
-                <li>
-
-                    <hr class="dropdown-divider" />
-
-                </li>
-
-
-
-                <!-- =================================================
-                     LOGOUT
-                ================================================== -->
+                <li><hr class="dropdown-divider" /></li>
 
                 <li>
-
-
                     <form asp-controller="Account"
                           asp-action="Logout"
                           method="post"
                           class="m-0 js-logout-form">
-
-
                         @Html.AntiForgeryToken()
-
 
                         <button type="submit"
                                 class="dropdown-item text-danger">
-
-
-                            <i class="bi
-                                      bi-box-arrow-right
-                                      me-2">
-                            </i>
-
-
+                            <i class="bi bi-box-arrow-right me-2"></i>
                             Logout
-
-
                         </button>
-
-
                     </form>
-
-
                 </li>
-
-
             </ul>
-
-
         </div>
 
-
-        <!-- TOP RIGHT LOGOUT BUTTON: reuses existing Account/Logout POST action -->
-        <form asp-controller="Account" asp-action="Logout" method="post"
+        <!-- Top-right Logout button -->
+        <form asp-controller="Account"
+              asp-action="Logout"
+              method="post"
               class="ms-3 me-3 js-logout-form">
             @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-danger d-inline-flex align-items-center gap-2">
-                <i class="bi bi-box-arrow-right"></i><span>Logout</span>
+
+            <button type="submit"
+                    class="btn btn-danger d-inline-flex align-items-center gap-2">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Logout</span>
             </button>
         </form>
-
     </header>
 
-
-
-    <!-- =========================================================
-         MAIN CONTENT
-    ========================================================== -->
-
+    <!-- Main content -->
     <div class="main-wrapper">
-
-
-        <main role="main"
-              class="page-content">
-
-
+        <main role="main" class="page-content">
             @RenderBody()
-
-
         </main>
-
-
     </div>
 
-
-
-    <!-- =========================================================
-         FOOTER
-    ========================================================== -->
-
+    <!-- Footer -->
     <footer class="main-footer">
-
-
         <div class="container-fluid">
-
-
-            &copy; 2026 -
-            Employee_Management_System -
-
-
-            <a href="@UrlProtection.GetProtectedUrl("Home", "Privacy")">
-
-                Privacy
-
-            </a>
-
-
+            &copy; 2026 - Employee_Management_System -
+            <a asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
-
-
     </footer>
 
-
-
-
-    <!-- Logout confirmation popup (Bootstrap 5) -->
-    <div class="modal fade" id="logoutConfirmModal" tabindex="-1"
-         aria-labelledby="logoutConfirmTitle" aria-hidden="true">
+    <!-- Logout confirmation modal -->
+    <div class="modal fade"
+         id="logoutConfirmModal"
+         tabindex="-1"
+         aria-labelledby="logoutConfirmTitle"
+         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content shadow">
                 <div class="modal-header">
                     <h5 class="modal-title" id="logoutConfirmTitle">
-                        <i class="bi bi-box-arrow-right text-danger me-2"></i>Logout Confirmation
+                        <i class="bi bi-box-arrow-right text-danger me-2"></i>
+                        Logout Confirmation
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                 </div>
-                <div class="modal-body">Are you sure you want to logout?</div>
+
+                <div class="modal-body">
+                    Are you sure you want to logout?
+                </div>
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">No, Cancel</button>
-                    <button type="button" class="btn btn-danger" id="btnConfirmLogout">Yes, Logout</button>
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal">
+                        No, Cancel
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-danger"
+                            id="btnConfirmLogout">
+                        Yes, Logout
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- =========================================================
-         JAVASCRIPT
-    ========================================================== -->
-    <!-- jQuery -->
+    <!-- JavaScript libraries -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
 
-    <script src="~/lib/jquery/dist/jquery.min.js">
-    </script>
-
-
-    <!-- Bootstrap -->
-
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js">
-    </script>
-
-
-    <!-- Site JS -->
-
-    <script src="~/js/site.js"
-            asp-append-version="true">
-    </script>
-
-
-
-    <!-- =========================================================
-         SIDEBAR SCRIPT
-    ========================================================== -->
-
+    <!-- Sidebar and menu script -->
     <script>
-
-        document.addEventListener(
-            "DOMContentLoaded",
-            function () {
-
-
-                const sidebar =
-                    document.getElementById(
-                        "sidebar"
-                    );
-
-
-                const sidebarToggle =
-                    document.getElementById(
-                        "sidebarToggle"
-                    );
-
-
-
-                // =================================================
-                // MOBILE SIDEBAR OPEN / CLOSE
-                // =================================================
-
-                if (sidebarToggle && sidebar) {
-
-                    sidebarToggle.addEventListener(
-                        "click",
-                        function () {
-
-                            sidebar.classList.toggle(
-                                "show"
-                            );
-
-                        }
-                    );
-
-                }
-
-
-
-                // =================================================
-                // MOBILE MENU LINK CLICK
-                // SIDEBAR AUTO CLOSE
-                // =================================================
-
-                const sidebarLinks =
-                    document.querySelectorAll(
-                        "#sidebar a.nav-link, #sidebar a.dropdown-item"
-                    );
-
-
-                sidebarLinks.forEach(
-                    function (link) {
-
-                        link.addEventListener(
-                            "click",
-                            function () {
-
-                                if (
-                                    window.innerWidth < 992 &&
-                                    sidebar
-                                ) {
-
-                                    sidebar.classList.remove(
-                                        "show"
-                                    );
-
-                                }
-
-                            }
-                        );
-
-                    }
-                );
-
-
-
-                // =================================================
-                // CURRENT PATH
-                // =================================================
-
-                const currentPath =
-                    window.location.pathname
-                        .toLowerCase();
-
-
-
-                // =================================================
-                // KEEP MASTER MENU OPEN
-                // =================================================
-
-                if (
-                    currentPath.startsWith("/allowance") ||
-                    currentPath.startsWith("/deduction")
-                ) {
-
-                    const masterMenu =
-                        document.getElementById(
-                            "masterMenu"
-                        );
-
-
-                    if (masterMenu) {
-
-                        masterMenu.classList.add(
-                            "show"
-                        );
-
-                    }
-
-
-                    const masterButton =
-                        document.querySelector(
-                            '[data-bs-target="#masterMenu"]'
-                        );
-
-
-                    if (masterButton) {
-
-                        masterButton.setAttribute(
-                            "aria-expanded",
-                            "true"
-                        );
-
-                    }
-
-                }
-
-
-
-                // =================================================
-                // KEEP GRADE WISE MENU OPEN
-                // =================================================
-
-                if (
-                    currentPath.startsWith(
-                        "/gradewiseallowdeduction"
-                    )
-                ) {
-
-                    const gradeWiseMenu =
-                        document.getElementById(
-                            "gradeWiseMenu"
-                        );
-
-
-                    if (gradeWiseMenu) {
-
-                        gradeWiseMenu.classList.add(
-                            "show"
-                        );
-
-                    }
-
-
-                    const gradeButton =
-                        document.querySelector(
-                            '[data-bs-target="#gradeWiseMenu"]'
-                        );
-
-
-                    if (gradeButton) {
-
-                        gradeButton.setAttribute(
-                            "aria-expanded",
-                            "true"
-                        );
-
-                    }
-
-                }
-
-
-
-                // =================================================
-                // KEEP LEAVE MENU OPEN
-                //
-                // Supports:
-                //
-                // /Leave/Index
-                // /Leave/SanctionList
-                // /Leave/ViewLeave
-                // /LeaveCredit/Index
-                //
-                // Because both start with "/leave"
-                // =================================================
-
-                if (
-                    currentPath.startsWith(
-                        "/leave"
-                    )
-                ) {
-
-                    const leaveMenu =
-                        document.getElementById(
-                            "leaveMenu"
-                        );
-
-
-                    if (leaveMenu) {
-
-                        leaveMenu.classList.add(
-                            "show"
-                        );
-
-                    }
-
-
-                    const leaveButton =
-                        document.querySelector(
-                            '[data-bs-target="#leaveMenu"]'
-                        );
-
-
-                    if (leaveButton) {
-
-                        leaveButton.setAttribute(
-                            "aria-expanded",
-                            "true"
-                        );
-
-                    }
-
-                }
-
-
+        document.addEventListener("DOMContentLoaded", function () {
+            const sidebar = document.getElementById("sidebar");
+            const sidebarToggle = document.getElementById("sidebarToggle");
+
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener("click", function () {
+                    sidebar.classList.toggle("show");
+                });
             }
-        );
 
-    </script>
-
-
-
-
-    <script>
-        // Both the top-right button and the existing dropdown Logout share this popup.
-        (function () {
-            let requestedLogoutForm = null;
-            document.querySelectorAll('form.js-logout-form').forEach(function (form) {
-                form.addEventListener('submit', function (event) {
-                    event.preventDefault();
-                    requestedLogoutForm = form;
-                    bootstrap.Modal.getOrCreateInstance(
-                        document.getElementById('logoutConfirmModal')).show();
+            document.querySelectorAll(
+                "#sidebar a.nav-link, #sidebar a.dropdown-item"
+            ).forEach(function (link) {
+                link.addEventListener("click", function () {
+                    if (window.innerWidth < 992 && sidebar) {
+                        sidebar.classList.remove("show");
+                    }
                 });
             });
-            document.getElementById('btnConfirmLogout').addEventListener('click', function () {
-                if (!requestedLogoutForm) return;
-                this.disabled = true;
-                // Native form.submit() bypasses the intercepted submit handler.
-                // Existing anti-forgery token and POST endpoint remain intact.
-                requestedLogoutForm.submit();
-            });
-            document.getElementById('logoutConfirmModal').addEventListener('hidden.bs.modal', function () {
-                requestedLogoutForm = null;
-                document.getElementById('btnConfirmLogout').disabled = false;
-            });
-        })();
+
+            const currentPath = window.location.pathname.toLowerCase();
+
+            function openMenu(menuId, buttonSelector) {
+                const menu = document.getElementById(menuId);
+                const button = document.querySelector(buttonSelector);
+
+                if (menu) {
+                    menu.classList.add("show");
+                }
+
+                if (button) {
+                    button.setAttribute("aria-expanded", "true");
+                }
+            }
+
+            if (currentPath.startsWith("/allowance") ||
+                currentPath.startsWith("/deduction")) {
+                openMenu(
+                    "masterMenu",
+                    '[data-bs-target="#masterMenu"]'
+                );
+            }
+
+            if (currentPath.startsWith("/gradewiseallowdeduction")) {
+                openMenu(
+                    "gradeWiseMenu",
+                    '[data-bs-target="#gradeWiseMenu"]'
+                );
+            }
+
+            if (currentPath.startsWith("/leave")) {
+                openMenu(
+                    "leaveMenu",
+                    '[data-bs-target="#leaveMenu"]'
+                );
+            }
+        });
     </script>
 
-    <script src="~/js/single-active-tab.js" asp-append-version="true"></script>
+    <!-- Logout confirmation for both Logout forms -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const modalElement =
+                document.getElementById("logoutConfirmModal");
 
-    <!-- =========================================================
-         PAGE SPECIFIC SCRIPTS
-    ========================================================== -->
-    @await RenderSectionAsync(
-    "Scripts",
-        required: false
-        )
+            const confirmButton =
+                document.getElementById("btnConfirmLogout");
 
+            if (!modalElement || !confirmButton ||
+                typeof bootstrap === "undefined") {
+                console.error("Logout confirmation modal could not initialize.");
+                return;
+            }
 
+            const logoutModal =
+                bootstrap.Modal.getOrCreateInstance(modalElement);
+
+            let requestedLogoutForm = null;
+
+            document.querySelectorAll("form.js-logout-form")
+                .forEach(function (form) {
+                    form.addEventListener("submit", function (event) {
+                        event.preventDefault();
+                        requestedLogoutForm = form;
+                        logoutModal.show();
+                    });
+                });
+
+            confirmButton.addEventListener("click", function () {
+                if (!requestedLogoutForm) {
+                    return;
+                }
+
+                confirmButton.disabled = true;
+
+                // Native submission preserves the anti-forgery field.
+                requestedLogoutForm.submit();
+            });
+
+            modalElement.addEventListener("hidden.bs.modal", function () {
+                requestedLogoutForm = null;
+                confirmButton.disabled = false;
+            });
+        });
+    </script>
+
+    <!-- Single Active Tab script -->
+    <script src="~/js/single-active-tab.js"
+            asp-append-version="true"></script>
+
+    <!-- Page-specific scripts -->
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
-
 </html>
