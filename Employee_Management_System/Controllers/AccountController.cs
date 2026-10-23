@@ -47,36 +47,22 @@ namespace Employee_Management_System.Controllers
                 !string.IsNullOrWhiteSpace(token) &&
                 _activeSessions.IsCurrent(loginId, token);
 
-            // A duplicate tab must not clear the existing login session.
+            // A second tab of the same browser. Do NOT show the popup yet:
+            // the person must first enter Login ID and press Login.
+            // The "Already Logged In" popup is then shown by the POST action.
             if (tabEntry && valid)
             {
-                var activeSession =
-                    _activeSessions.Get(loginId!);
-
-                var activeTab =
-                    _activeSessions.GetActiveTab(loginId!, token!);
+                // If no tab owns this session, there is nobody to take
+                // over from, so let this tab in directly.
+                if (_activeSessions.GetActiveTab(loginId!, token!) == null)
+                {
+                    return RedirectToAction("Register", "Employee");
+                }
 
                 ViewBag.TabEntry = true;
                 ViewBag.WorkingDate =
                     HttpContext.Session.GetString("WorkingDate")
                     ?? DateTime.Today.ToString("yyyy-MM-dd");
-
-                if (activeSession != null && activeTab != null)
-                {
-                    ViewBag.ExistingSession = activeSession;
-                    ViewBag.TabExistingSession = activeSession;
-                    ViewBag.ActiveTabPage = activeTab.Page;
-                    ViewBag.ExpectedOldTabId = activeTab.TabId;
-                    ViewBag.ExpectedSessionToken =
-                        activeSession.SessionToken;
-                }
-                else
-                {
-                    // The active tab may not have claimed ownership yet.
-                    ViewBag.TabExistingSession = null;
-                    ViewBag.ActiveTabPage = "Employee Registration";
-                    ViewBag.TabEntryUnavailable = true;
-                }
 
                 return View(new LoginViewModel());
             }
@@ -244,9 +230,8 @@ WHERE LTRIM(RTRIM(ini)) = @LoginId;";
                         Request.Headers.UserAgent.ToString()),
                     DeviceName = DetectDevice(
                         Request.Headers.UserAgent.ToString()),
-                    IpAddress =
-                        HttpContext.Connection.RemoteIpAddress?.ToString()
-                        ?? "Unavailable",
+                    IpAddress = FormatIp(
+                        HttpContext.Connection.RemoteIpAddress),
                     LoginTimeUtc = DateTime.UtcNow
                 };
 
@@ -294,6 +279,24 @@ SET [date] = @WorkingDate;";
                     }
 
                     return View(model);
+                }
+
+                // If this browser was logged in as a different account,
+                // end that account's server session too.
+                string? oldLoginId =
+                    HttpContext.Session.GetString("LoginId");
+
+                string? oldToken =
+                    HttpContext.Session.GetString("ActiveSessionToken");
+
+                if (!string.IsNullOrWhiteSpace(oldLoginId) &&
+                    !string.IsNullOrWhiteSpace(oldToken) &&
+                    !string.Equals(
+                        oldLoginId,
+                        dbLoginId,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    _activeSessions.RemoveIfCurrent(oldLoginId, oldToken);
                 }
 
                 HttpContext.Session.Clear();
@@ -540,6 +543,23 @@ SET [date] = @WorkingDate;";
             HttpContext.Session.Clear();
 
             return RedirectToAction("Login", "Account");
+        }
+
+        private static string FormatIp(System.Net.IPAddress? ip)
+        {
+            if (ip == null)
+                return "Unavailable";
+
+            // ::ffff:192.168.1.5  ->  192.168.1.5
+            if (ip.IsIPv4MappedToIPv6)
+                ip = ip.MapToIPv4();
+
+            // ::1 / 127.0.0.1 means the browser is on the same computer
+            // as the server (typical during development).
+            if (System.Net.IPAddress.IsLoopback(ip))
+                return "127.0.0.1 (this computer)";
+
+            return ip.ToString();
         }
 
         private static string DetectBrowser(string ua)

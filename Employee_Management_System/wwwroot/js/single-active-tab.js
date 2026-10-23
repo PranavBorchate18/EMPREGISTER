@@ -9,6 +9,7 @@
     const STORAGE_KEY = "ems-active-tab-id";
     const TRANSFER_STORAGE_KEY = "ems-tab-transfer-event";
     const CHANNEL_NAME = "ems-tab-presence";
+
     const CHECK_INTERVAL = 2000;
     const DUPLICATE_WAIT = 1200;
 
@@ -114,12 +115,11 @@
         channel.addEventListener("message", event => {
             const message = event.data;
 
-            if (!message ||
-                message.instanceId === instanceId) {
+            if (!message || message.instanceId === instanceId) {
                 return;
             }
 
-            // Ownership transfer: old active tab must leave.
+            // Another tab has taken over this tab's session.
             if (
                 message.type === "tab-transfer-complete" &&
                 message.oldTabId === tabId
@@ -128,8 +128,7 @@
                 return;
             }
 
-            // Existing tab responds to a newly opened tab
-            // that has the same tab ID.
+            // A newer tab announces the same tab ID.
             if (
                 message.type === "hello" &&
                 message.tabId === tabId &&
@@ -144,7 +143,7 @@
                 });
             }
 
-            // New tab has detected the existing tab.
+            // Detect a duplicate tab instance.
             if (
                 message.type === "present" &&
                 message.targetInstanceId === instanceId &&
@@ -157,8 +156,7 @@
 
                 duplicateDetected = true;
 
-                // Give the new tab its own identity before
-                // displaying the takeover login page.
+                // Give the duplicate its own ID before redirecting.
                 setNewTabId();
                 redirectToLogin("duplicate");
             }
@@ -223,8 +221,10 @@
             body: body.toString()
         });
 
-        if (response.status === 401 ||
-            response.status === 403) {
+        if (
+            response.status === 401 ||
+            response.status === 403
+        ) {
             redirectToLogin("lost");
             return null;
         }
@@ -263,7 +263,6 @@
                 return;
             }
 
-            // Server did not approve this tab as active.
             redirectToLogin("duplicate");
         } catch (error) {
             console.error("ClaimTab error:", error);
@@ -313,10 +312,9 @@
         setupTransferStorageListener();
         announceTab();
 
-        // Wait for an existing tab to respond.
-        await new Promise(resolve =>
-            setTimeout(resolve, DUPLICATE_WAIT)
-        );
+        await new Promise(resolve => {
+            setTimeout(resolve, DUPLICATE_WAIT);
+        });
 
         if (isRedirecting || duplicateDetected) {
             return;
@@ -338,7 +336,6 @@
         );
     }
 
-    // Recheck the tab when restored from browser back-forward cache.
     window.addEventListener("pageshow", event => {
         if (event.persisted && !isExcludedPage()) {
             setupBroadcastChannel();

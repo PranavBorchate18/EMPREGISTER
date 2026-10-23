@@ -161,6 +161,21 @@ namespace Employee_Management_System.Services
                     "/Home/Error",
                     StringComparison.OrdinalIgnoreCase) ||
 
+                // AJAX POST endpoints used by single-active-tab.js
+                // and the login page. A 302 redirect would turn these
+                // POST requests into GET requests and break them.
+                path.Equals(
+                    "/Account/ClaimTab",
+                    StringComparison.OrdinalIgnoreCase) ||
+
+                path.Equals(
+                    "/Account/CheckTab",
+                    StringComparison.OrdinalIgnoreCase) ||
+
+                path.Equals(
+                    "/Account/TransferTab",
+                    StringComparison.OrdinalIgnoreCase) ||
+
                 path.Equals(
                     "/",
                     StringComparison.OrdinalIgnoreCase) ||
