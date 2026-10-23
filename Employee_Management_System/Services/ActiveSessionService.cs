@@ -7,7 +7,6 @@ namespace Employee_Management_System.Services
 {
     /// <summary>
     /// Manages active login sessions and active browser tabs.
-    /// In-memory state works within a single application instance.
     /// </summary>
     public class ActiveSessionService
     {
@@ -34,7 +33,6 @@ namespace Employee_Management_System.Services
             public DateTime LastSeenUtc { get; init; }
         }
 
-        // Get the active login session for a login ID.
         public ActiveLoginSession? Get(string loginId)
         {
             if (string.IsNullOrWhiteSpace(loginId))
@@ -48,26 +46,22 @@ namespace Employee_Management_System.Services
             }
         }
 
-        // Check whether the supplied session token is current.
         public bool IsCurrent(string loginId, string token)
         {
             if (string.IsNullOrWhiteSpace(loginId) ||
                 string.IsNullOrWhiteSpace(token))
-            {
                 return false;
-            }
 
             lock (_gate)
             {
                 return _sessions.TryGetValue(loginId, out var session) &&
-                    string.Equals(
-                        session.SessionToken,
-                        token,
-                        StringComparison.Ordinal);
+                       string.Equals(
+                           session.SessionToken,
+                           token,
+                           StringComparison.Ordinal);
             }
         }
 
-        // Start a session or replace the session that was explicitly confirmed.
         public bool TryStart(
             ActiveLoginSession next,
             string? expectedOldToken,
@@ -86,8 +80,6 @@ namespace Employee_Management_System.Services
             {
                 _sessions.TryGetValue(next.LoginId, out conflict);
 
-                // If a session exists, only replace it when the submitted
-                // expected token matches that exact current session.
                 if (conflict != null &&
                     !string.Equals(
                         conflict.SessionToken,
@@ -99,7 +91,7 @@ namespace Employee_Management_System.Services
 
                 _sessions[next.LoginId] = next;
 
-                // A newly created login session must claim its tab again.
+                // A new login session must claim its tab again.
                 _tabs.TryRemove(next.LoginId, out _);
 
                 conflict = null;
@@ -107,7 +99,6 @@ namespace Employee_Management_System.Services
             }
         }
 
-        // Remove a login session only if the supplied token is still current.
         public void RemoveIfCurrent(string loginId, string token)
         {
             if (string.IsNullOrWhiteSpace(loginId) ||
@@ -130,7 +121,6 @@ namespace Employee_Management_System.Services
             }
         }
 
-        // Return details for the active tab belonging to the current session.
         public TabDetails? GetActiveTab(
             string loginId,
             string sessionToken)
@@ -143,7 +133,11 @@ namespace Employee_Management_System.Services
 
             lock (_gate)
             {
-                if (!IsCurrent(loginId, sessionToken) ||
+                if (!_sessions.TryGetValue(loginId, out var session) ||
+                    !string.Equals(
+                        session.SessionToken,
+                        sessionToken,
+                        StringComparison.Ordinal) ||
                     !_tabs.TryGetValue(loginId, out var tab) ||
                     !string.Equals(
                         tab.SessionToken,
@@ -162,8 +156,6 @@ namespace Employee_Management_System.Services
             }
         }
 
-        // Claim the first active tab for the current login session.
-        // A different tab cannot claim ownership without a transfer.
         public bool TryClaimTab(
             string loginId,
             string sessionToken,
@@ -179,8 +171,14 @@ namespace Employee_Management_System.Services
 
             lock (_gate)
             {
-                if (!IsCurrent(loginId, sessionToken))
+                if (!_sessions.TryGetValue(loginId, out var session) ||
+                    !string.Equals(
+                        session.SessionToken,
+                        sessionToken,
+                        StringComparison.Ordinal))
+                {
                     return false;
+                }
 
                 if (_tabs.TryGetValue(loginId, out var existing))
                 {
@@ -212,7 +210,6 @@ namespace Employee_Management_System.Services
             }
         }
 
-        // Verify active-tab ownership and update its last-seen time/page.
         public bool CheckTab(
             string loginId,
             string sessionToken,
@@ -229,7 +226,11 @@ namespace Employee_Management_System.Services
 
             lock (_gate)
             {
-                if (!IsCurrent(loginId, sessionToken) ||
+                if (!_sessions.TryGetValue(loginId, out var session) ||
+                    !string.Equals(
+                        session.SessionToken,
+                        sessionToken,
+                        StringComparison.Ordinal) ||
                     !_tabs.TryGetValue(loginId, out var active) ||
                     !string.Equals(
                         active.SessionToken,
@@ -256,7 +257,6 @@ namespace Employee_Management_System.Services
             }
         }
 
-        // Compatibility method for code that uses IsActiveTab().
         public bool IsActiveTab(
             string loginId,
             string sessionToken,
@@ -265,7 +265,6 @@ namespace Employee_Management_System.Services
             return CheckTab(loginId, sessionToken, tabId);
         }
 
-        // Transfer ownership only when the expected old tab is still active.
         public bool TransferTab(
             string loginId,
             string sessionToken,
@@ -288,8 +287,19 @@ namespace Employee_Management_System.Services
 
             lock (_gate)
             {
-                if (!IsCurrent(loginId, sessionToken) ||
-                    !_tabs.TryGetValue(loginId, out var active) ||
+                // The login session must still be current.
+                if (!_sessions.TryGetValue(loginId, out var session) ||
+                    !string.Equals(
+                        session.SessionToken,
+                        sessionToken,
+                        StringComparison.Ordinal))
+                {
+                    return false;
+                }
+
+                // Transfer is allowed only when the expected old tab
+                // is currently registered as active.
+                if (!_tabs.TryGetValue(loginId, out var active) ||
                     !string.Equals(
                         active.SessionToken,
                         sessionToken,
@@ -302,19 +312,20 @@ namespace Employee_Management_System.Services
                     return false;
                 }
 
+                // Atomically transfer ownership to the new tab.
                 _tabs[loginId] = new TabState
                 {
                     SessionToken = sessionToken,
                     TabId = newTabId,
-                    Page = active.Page,
+                    Page = "Employee Registration",
                     LastSeenUtc = DateTime.UtcNow
                 };
 
+                // The old tab's next CheckTab() call will return false.
                 return true;
             }
         }
 
-        // Compatibility method for code that uses TakeOverTab().
         public bool TakeOverTab(
             string loginId,
             string sessionToken,
@@ -328,7 +339,6 @@ namespace Employee_Management_System.Services
                 requestingTabId);
         }
 
-        // Release tab ownership only if this tab still owns it.
         public void ReleaseTab(
             string loginId,
             string sessionToken,

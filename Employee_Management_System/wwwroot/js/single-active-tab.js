@@ -7,15 +7,19 @@
     const CHECK_URL = "/Account/CheckTab";
 
     const STORAGE_KEY = "ems-active-tab-id";
+    const TRANSFER_STORAGE_KEY = "ems-tab-transfer-event";
     const CHANNEL_NAME = "ems-tab-presence";
     const CHECK_INTERVAL = 2000;
+    const DUPLICATE_WAIT = 1200;
 
     const csrfToken = document.querySelector(
         'meta[name="tab-antiforgery-token"]'
     )?.content;
 
     if (!csrfToken) {
-        console.error("Antiforgery token missing.");
+        console.error(
+            "Antiforgery token missing. Check _Layout.cshtml."
+        );
         return;
     }
 
@@ -23,11 +27,11 @@
     const startedAt = Date.now() + Math.random();
 
     let tabId = sessionStorage.getItem(STORAGE_KEY);
-
     let isChecking = false;
     let isRedirecting = false;
     let channel = null;
     let checkTimer = null;
+    let duplicateDetected = false;
 
     if (!tabId) {
         tabId = createId();
@@ -39,8 +43,10 @@
             return window.crypto.randomUUID();
         }
 
-        return "tab-" + Date.now().toString(36) +
-            "-" + Math.random().toString(36).slice(2);
+        return "tab-" +
+            Date.now().toString(36) +
+            "-" +
+            Math.random().toString(36).slice(2);
     }
 
     function currentPath() {
@@ -55,17 +61,30 @@
             path.endsWith("/home/error");
     }
 
-    function redirectToLogin(reason) {
-        if (isRedirecting) return;
-
-        isRedirecting = true;
-
+    function stopMonitoring() {
         if (checkTimer !== null) {
             clearInterval(checkTimer);
             checkTimer = null;
         }
 
-        const url = new URL(LOGIN_URL, window.location.origin);
+        if (channel) {
+            channel.close();
+            channel = null;
+        }
+    }
+
+    function redirectToLogin(reason) {
+        if (isRedirecting || isExcludedPage()) {
+            return;
+        }
+
+        isRedirecting = true;
+        stopMonitoring();
+
+        const url = new URL(
+            LOGIN_URL,
+            window.location.origin
+        );
 
         if (reason === "duplicate") {
             url.searchParams.set("tabEntry", "true");
@@ -82,24 +101,41 @@
     }
 
     function setupBroadcastChannel() {
-        if (!("BroadcastChannel" in window)) return;
+        if (!("BroadcastChannel" in window)) {
+            return;
+        }
+
+        if (channel) {
+            channel.close();
+        }
 
         channel = new BroadcastChannel(CHANNEL_NAME);
 
         channel.addEventListener("message", event => {
             const message = event.data;
 
-            if (!message || message.instanceId === instanceId) {
+            if (!message ||
+                message.instanceId === instanceId) {
                 return;
             }
 
-            // Existing tab detects a newly opened copy.
+            // Ownership transfer: old active tab must leave.
+            if (
+                message.type === "tab-transfer-complete" &&
+                message.oldTabId === tabId
+            ) {
+                redirectToLogin("lost");
+                return;
+            }
+
+            // Existing tab responds to a newly opened tab
+            // that has the same tab ID.
             if (
                 message.type === "hello" &&
                 message.tabId === tabId &&
                 message.startedAt > startedAt
             ) {
-                channel.postMessage({
+                channel?.postMessage({
                     type: "present",
                     tabId: tabId,
                     instanceId: instanceId,
@@ -108,21 +144,56 @@
                 });
             }
 
-            // Newly opened tab redirects to Login.
+            // New tab has detected the existing tab.
             if (
                 message.type === "present" &&
                 message.targetInstanceId === instanceId &&
                 message.tabId === tabId &&
                 message.startedAt < startedAt
             ) {
+                if (duplicateDetected || isRedirecting) {
+                    return;
+                }
+
+                duplicateDetected = true;
+
+                // Give the new tab its own identity before
+                // displaying the takeover login page.
                 setNewTabId();
                 redirectToLogin("duplicate");
             }
         });
     }
 
+    function setupTransferStorageListener() {
+        window.addEventListener("storage", event => {
+            if (
+                event.key !== TRANSFER_STORAGE_KEY ||
+                !event.newValue ||
+                isRedirecting
+            ) {
+                return;
+            }
+
+            try {
+                const transfer = JSON.parse(event.newValue);
+
+                if (transfer.oldTabId === tabId) {
+                    redirectToLogin("lost");
+                }
+            } catch (error) {
+                console.error(
+                    "Invalid tab transfer event:",
+                    error
+                );
+            }
+        });
+    }
+
     function announceTab() {
-        if (!channel) return;
+        if (!channel) {
+            return;
+        }
 
         channel.postMessage({
             type: "hello",
@@ -152,20 +223,30 @@
             body: body.toString()
         });
 
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401 ||
+            response.status === 403) {
             redirectToLogin("lost");
             return null;
         }
 
         if (!response.ok) {
-            throw new Error(url + " returned HTTP " + response.status);
+            throw new Error(
+                url + " returned HTTP " + response.status
+            );
         }
 
         return await response.json();
     }
 
     async function claimTab() {
-        if (isChecking || isRedirecting || isExcludedPage()) return;
+        if (
+            isChecking ||
+            isRedirecting ||
+            isExcludedPage() ||
+            duplicateDetected
+        ) {
+            return;
+        }
 
         isChecking = true;
 
@@ -174,11 +255,15 @@
                 tabId: tabId
             });
 
-            if (isRedirecting || result === null) return;
+            if (isRedirecting || result === null) {
+                return;
+            }
 
-            // AccountController returns { active: true/false }.
-            if (result.active === true) return;
+            if (result.active === true) {
+                return;
+            }
 
+            // Server did not approve this tab as active.
             redirectToLogin("duplicate");
         } catch (error) {
             console.error("ClaimTab error:", error);
@@ -188,7 +273,14 @@
     }
 
     async function checkTab() {
-        if (isChecking || isRedirecting || isExcludedPage()) return;
+        if (
+            isChecking ||
+            isRedirecting ||
+            isExcludedPage() ||
+            duplicateDetected
+        ) {
+            return;
+        }
 
         isChecking = true;
 
@@ -198,7 +290,9 @@
                 page: window.location.pathname
             });
 
-            if (isRedirecting || result === null) return;
+            if (isRedirecting || result === null) {
+                return;
+            }
 
             if (result.active === false) {
                 redirectToLogin("lost");
@@ -211,39 +305,51 @@
     }
 
     async function start() {
-        if (isExcludedPage()) return;
+        if (isExcludedPage() || isRedirecting) {
+            return;
+        }
 
         setupBroadcastChannel();
+        setupTransferStorageListener();
         announceTab();
 
-        // Give the existing tab time to respond.
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait for an existing tab to respond.
+        await new Promise(resolve =>
+            setTimeout(resolve, DUPLICATE_WAIT)
+        );
 
-        if (isRedirecting) return;
+        if (isRedirecting || duplicateDetected) {
+            return;
+        }
 
         await claimTab();
 
-        if (isRedirecting) return;
+        if (isRedirecting || duplicateDetected) {
+            return;
+        }
 
-        checkTimer = setInterval(checkTab, CHECK_INTERVAL);
+        if (checkTimer !== null) {
+            clearInterval(checkTimer);
+        }
+
+        checkTimer = setInterval(
+            checkTab,
+            CHECK_INTERVAL
+        );
     }
 
+    // Recheck the tab when restored from browser back-forward cache.
     window.addEventListener("pageshow", event => {
         if (event.persisted && !isExcludedPage()) {
+            setupBroadcastChannel();
+            setupTransferStorageListener();
+            announceTab();
             checkTab();
         }
     });
 
     window.addEventListener("pagehide", () => {
-        if (channel) {
-            channel.close();
-            channel = null;
-        }
-
-        if (checkTimer !== null) {
-            clearInterval(checkTimer);
-            checkTimer = null;
-        }
+        stopMonitoring();
     });
 
     start();

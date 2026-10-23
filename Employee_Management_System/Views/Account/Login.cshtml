@@ -1,4 +1,5 @@
-﻿@model Employee_Management_System.Models.LoginViewModel
+﻿
+@model Employee_Management_System.Models.LoginViewModel
 @using Employee_Management_System.Models
 
 @{
@@ -9,10 +10,17 @@
         ViewBag.WorkingDate as string
         ?? DateTime.Today.ToString("yyyy-MM-dd");
 
-    var tabExisting = ViewBag.TabExistingSession as ActiveLoginSession;
-    string activeTabPage = ViewBag.ActiveTabPage as string ?? "Application";
-    string expectedOldTabId = ViewBag.ExpectedOldTabId as string ?? "";
-    var existing = ViewBag.ExistingSession as ActiveLoginSession;
+    var tabExisting =
+        ViewBag.TabExistingSession as ActiveLoginSession;
+
+    string activeTabPage =
+        ViewBag.ActiveTabPage as string ?? "Application";
+
+    string expectedOldTabId =
+        ViewBag.ExpectedOldTabId as string ?? "";
+
+    var existing =
+        ViewBag.ExistingSession as ActiveLoginSession;
 }
 
 <!DOCTYPE html>
@@ -22,8 +30,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - Employee Management System</title>
 
-    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet"
+          href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
     <style>
         * {
@@ -140,16 +151,26 @@
                 <div class="login-icon">
                     <i class="bi bi-people-fill"></i>
                 </div>
+
                 <h2>Employee Management System</h2>
                 <p>Login to continue</p>
             </div>
 
             <div class="login-body">
-                <form id="loginForm" action="/Account/Login" method="post">
+                <form id="loginForm"
+                      action="/Account/Login"
+                      method="post">
+
                     @Html.AntiForgeryToken()
 
-                    <input type="hidden" name="forceLogin" id="forceLogin" value="false" />
-                    <input type="hidden" name="expectedSessionToken" id="expectedSessionToken"
+                    <input type="hidden"
+                           name="forceLogin"
+                           id="forceLogin"
+                           value="false" />
+
+                    <input type="hidden"
+                           name="expectedSessionToken"
+                           id="expectedSessionToken"
                            value="@(ViewBag.ExpectedSessionToken as string ?? "")" />
 
                     @if (!ViewData.ModelState.IsValid)
@@ -167,21 +188,29 @@
                         </div>
                     }
 
-                    <div id="loginClientMessage" class="alert alert-warning d-none" role="alert"></div>
+                    <div id="loginClientMessage"
+                         class="alert alert-warning d-none"
+                         role="alert"></div>
 
                     <div class="mb-4">
                         <label for="LoginId" class="login-label">
                             Login ID <span class="text-danger">*</span>
                         </label>
+
                         <div class="input-group login-input-group">
                             <span class="input-group-text login-input-icon">
                                 <i class="bi bi-person-fill"></i>
                             </span>
-                            <input type="text" id="LoginId" name="LoginId"
+
+                            <input type="text"
+                                   id="LoginId"
+                                   name="LoginId"
                                    value="@Model?.LoginId"
                                    class="form-control login-input"
                                    placeholder="Enter Login ID"
-                                   autocomplete="off" required autofocus />
+                                   autocomplete="off"
+                                   required
+                                   autofocus />
                         </div>
                     </div>
 
@@ -189,19 +218,27 @@
                         <label for="WorkingDate" class="login-label">
                             Working Date <span class="text-danger">*</span>
                         </label>
+
                         <div class="input-group login-input-group">
                             <span class="input-group-text login-input-icon">
                                 <i class="bi bi-calendar-date-fill"></i>
                             </span>
-                            <input type="date" id="WorkingDate" name="workingDate"
+
+                            <input type="date"
+                                   id="WorkingDate"
+                                   name="workingDate"
                                    class="form-control login-input"
-                                   value="@workingDateValue" required />
+                                   value="@workingDateValue"
+                                   required />
                         </div>
                     </div>
 
                     <div class="d-grid">
-                        <button type="submit" id="btnLogin" class="btn btn-primary btn-login">
-                            <i class="bi bi-box-arrow-in-right me-2"></i> Login
+                        <button type="submit"
+                                id="btnLogin"
+                                class="btn btn-primary btn-login">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>
+                            Login
                         </button>
                     </div>
                 </form>
@@ -213,21 +250,31 @@
         </div>
     </div>
 
-    @* Same-browser tab takeover popup. Only this popup is shown for tabEntry. *@
+    @* Same-browser duplicate-tab popup *@
     @if (tabExisting != null)
     {
-        <div class="modal fade" id="sameBrowserTabModal" tabindex="-1"
-             aria-labelledby="sameBrowserTabTitle" aria-hidden="true">
+        <div class="modal fade"
+             id="sameBrowserTabModal"
+             tabindex="-1"
+             aria-labelledby="sameBrowserTabTitle"
+             aria-hidden="true">
+
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
+
                     <div class="modal-header">
                         <h5 class="modal-title" id="sameBrowserTabTitle">
                             <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
                             Already Active Tab
                         </h5>
                     </div>
+
                     <div class="modal-body">
-                        <p>This application is already open in another tab of this browser.</p>
+                        <p>
+                            This application is already open in another tab
+                            of this browser.
+                        </p>
+
                         <dl class="row mb-0">
                             <dt class="col-5">Login ID</dt>
                             <dd class="col-7">@tabExisting.LoginId</dd>
@@ -245,17 +292,35 @@
                             <dd class="col-7">@activeTabPage</dd>
 
                             <dt class="col-5">Login Time (UTC)</dt>
-                            <dd class="col-7">@tabExisting.LoginTimeUtc.ToString("dd-MM-yyyy HH:mm")</dd>
+                            <dd class="col-7">
+                                @tabExisting.LoginTimeUtc.ToString("dd-MM-yyyy HH:mm")
+                            </dd>
                         </dl>
+
                         <p class="mt-3 mb-0">
-                            Continue in this tab? The previous tab will return to the Login page.
+                            Continue in this tab? The previous tab will
+                            return to the Login page.
                         </p>
-                        <div id="tabTakeoverError" class="text-danger mt-2" role="alert"></div>
+
+                        <div id="tabTakeoverError"
+                             class="text-danger mt-2"
+                             role="alert"></div>
                     </div>
+
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" id="tabCancel">No, Cancel</button>
-                        <button type="button" class="btn btn-primary" id="tabContinue">Yes, Continue</button>
+                        <button type="button"
+                                class="btn btn-outline-secondary"
+                                id="tabCancel">
+                            No, Cancel
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-primary"
+                                id="tabContinue">
+                            Yes, Continue
+                        </button>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -269,21 +334,31 @@
         </div>
     }
 
-    @* Separate-browser/device active session popup. Do not show it together with the tab popup. *@
+    @* Existing session popup for a separate browser/device *@
     @if (existing != null && tabExisting == null)
     {
-        <div class="modal fade" id="activeSessionModal" tabindex="-1"
-             aria-labelledby="activeSessionTitle" aria-hidden="true">
+        <div class="modal fade"
+             id="activeSessionModal"
+             tabindex="-1"
+             aria-labelledby="activeSessionTitle"
+             aria-hidden="true">
+
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
+
                     <div class="modal-header">
                         <h5 class="modal-title" id="activeSessionTitle">
                             <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
                             Already Logged In
                         </h5>
                     </div>
+
                     <div class="modal-body">
-                        <p>This account is already logged in. Existing active session:</p>
+                        <p>
+                            This account is already logged in.
+                            Existing active session:
+                        </p>
+
                         <dl class="row mb-0">
                             <dt class="col-5">Browser</dt>
                             <dd class="col-7">@existing.BrowserName</dd>
@@ -295,18 +370,30 @@
                             <dd class="col-7">@existing.IpAddress</dd>
 
                             <dt class="col-5">Login Time (UTC)</dt>
-                            <dd class="col-7">@existing.LoginTimeUtc.ToString("dd-MM-yyyy HH:mm")</dd>
+                            <dd class="col-7">
+                                @existing.LoginTimeUtc.ToString("dd-MM-yyyy HH:mm")
+                            </dd>
                         </dl>
-                        <p class="mt-3 mb-0">Logout the previous session and continue here?</p>
+
+                        <p class="mt-3 mb-0">
+                            Logout the previous session and continue here?
+                        </p>
                     </div>
+
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" id="cancelTakeover">
+                        <button type="button"
+                                class="btn btn-outline-secondary"
+                                id="cancelTakeover">
                             No, Cancel
                         </button>
-                        <button type="button" class="btn btn-primary" id="confirmTakeover">
+
+                        <button type="button"
+                                class="btn btn-primary"
+                                id="confirmTakeover">
                             Yes, Continue
                         </button>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -320,10 +407,13 @@
             const form = document.getElementById("loginForm");
             const loginId = document.getElementById("LoginId");
             const workingDate = document.getElementById("WorkingDate");
-            const clientMessage = document.getElementById("loginClientMessage");
+            const clientMessage =
+                document.getElementById("loginClientMessage");
 
             form.addEventListener("invalid", function () {
-                clientMessage.textContent = "Please enter Login ID and Working Date.";
+                clientMessage.textContent =
+                    "Please enter Login ID and Working Date.";
+
                 clientMessage.classList.remove("d-none");
             }, true);
 
@@ -332,7 +422,10 @@
 
                 if (!loginId.value.trim()) {
                     event.preventDefault();
-                    clientMessage.textContent = "Please enter Login ID.";
+
+                    clientMessage.textContent =
+                        "Please enter Login ID.";
+
                     clientMessage.classList.remove("d-none");
                     loginId.focus();
                     return;
@@ -340,7 +433,10 @@
 
                 if (!workingDate.value) {
                     event.preventDefault();
-                    clientMessage.textContent = "Please select Working Date.";
+
+                    clientMessage.textContent =
+                        "Please select Working Date.";
+
                     clientMessage.classList.remove("d-none");
                     workingDate.focus();
                 }
@@ -352,79 +448,172 @@
     {
         <script>
             document.addEventListener("DOMContentLoaded", function () {
-                const modalElement = document.getElementById("sameBrowserTabModal");
-                const modal = bootstrap.Modal.getOrCreateInstance(modalElement, {
-                    backdrop: "static",
-                    keyboard: false
-                });
-                modal.show();
+                const modalElement =
+                    document.getElementById("sameBrowserTabModal");
 
-                const continueButton = document.getElementById("tabContinue");
-                const cancelButton = document.getElementById("tabCancel");
-                const errorElement = document.getElementById("tabTakeoverError");
-                const key = "ems-active-tab-id";
-
-                function createTabId() {
-                    if (window.crypto && typeof window.crypto.randomUUID === "function") {
-                        return window.crypto.randomUUID();
-                    }
-                    return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+                if (!modalElement ||
+                    typeof bootstrap === "undefined") {
+                    return;
                 }
 
-                // Always create a new ID for this tab; do not reuse sessionStorage copied by a duplicated tab.
-                const tabId = createTabId();
-                sessionStorage.setItem(key, tabId);
+                const modal = bootstrap.Modal.getOrCreateInstance(
+                    modalElement,
+                    {
+                        backdrop: "static",
+                        keyboard: false
+                    }
+                );
+
+                modal.show();
+
+                const continueButton =
+                    document.getElementById("tabContinue");
+
+                const cancelButton =
+                    document.getElementById("tabCancel");
+
+                const errorElement =
+                    document.getElementById("tabTakeoverError");
+
+                const storageKey = "ems-active-tab-id";
+                const transferStorageKey = "ems-tab-transfer-event";
+
+                const expectedOldTabId =
+                    @Html.Raw(System.Text.Json.JsonSerializer.Serialize(expectedOldTabId));
+
+                function createTabId() {
+                    if (window.crypto &&
+                        typeof window.crypto.randomUUID === "function") {
+                        return window.crypto.randomUUID();
+                    }
+
+                    return "tab-" +
+                        Date.now().toString(36) + "-" +
+                        Math.random().toString(36).slice(2);
+                }
+
+                // Keep the new ID only in this tab's sessionStorage.
+                const newTabId = createTabId();
+                sessionStorage.setItem(storageKey, newTabId);
 
                 cancelButton.addEventListener("click", function () {
+                    // Do not transfer server ownership when cancelling.
                     modal.hide();
                 });
 
-                continueButton.addEventListener("click", async function () {
-                    continueButton.disabled = true;
-                    cancelButton.disabled = true;
-                    errorElement.textContent = "";
+                continueButton.addEventListener(
+                    "click",
+                    async function () {
+                        continueButton.disabled = true;
+                        cancelButton.disabled = true;
+                        errorElement.textContent = "";
 
-                    try {
-                        const tokenElement = document.querySelector(
-                            '#loginForm input[name="__RequestVerificationToken"]'
-                        );
-                        if (!tokenElement) {
-                            throw new Error("Security token is missing. Refresh the page and try again.");
-                        }
-
-                        const response = await fetch("/Account/TransferTab", {
-                            method: "POST",
-                            credentials: "same-origin",
-                            cache: "no-store",
-                            headers: {
-                                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                                "RequestVerificationToken": tokenElement.value,
-                                "X-Requested-With": "XMLHttpRequest"
-                            },
-                            body: new URLSearchParams({
-                                tabId: tabId,
-                                expectedOldTabId: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(expectedOldTabId))
-                            }).toString()
-                        });
-
-                        let result;
                         try {
-                            result = await response.json();
-                        } catch {
-                            throw new Error("The server returned an unexpected response. Refresh and try again.");
-                        }
+                            const tokenElement = document.querySelector(
+                                '#loginForm input[name="__RequestVerificationToken"]'
+                            );
 
-                        if (!response.ok || !result.success) {
-                            throw new Error(result.message || "Unable to transfer the active tab. Refresh and try again.");
-                        }
+                            if (!tokenElement) {
+                                throw new Error(
+                                    "Security token is missing. Refresh the page and try again."
+                                );
+                            }
 
-                        window.location.replace(result.redirectUrl || "/Employee/Register");
-                    } catch (error) {
-                        errorElement.textContent = error.message || "Unable to transfer the active tab.";
-                        continueButton.disabled = false;
-                        cancelButton.disabled = false;
+                            if (!expectedOldTabId) {
+                                throw new Error(
+                                    "The active tab ID is missing. Refresh the page and try again."
+                                );
+                            }
+
+                            const response = await fetch(
+                                "/Account/TransferTab",
+                                {
+                                    method: "POST",
+                                    credentials: "same-origin",
+                                    cache: "no-store",
+                                    headers: {
+                                        "Content-Type":
+                                            "application/x-www-form-urlencoded; charset=UTF-8",
+                                        "RequestVerificationToken":
+                                            tokenElement.value,
+                                        "X-Requested-With":
+                                            "XMLHttpRequest"
+                                    },
+                                    body: new URLSearchParams({
+                                        tabId: newTabId,
+                                        expectedOldTabId: expectedOldTabId
+                                    }).toString()
+                                }
+                            );
+
+                            let result;
+
+                            try {
+                                result = await response.json();
+                            } catch {
+                                throw new Error(
+                                    "Unexpected server response. Refresh the page and try again."
+                                );
+                            }
+
+                            if (!response.ok || !result.success) {
+                                throw new Error(
+                                    result.message ||
+                                    "Unable to transfer the active tab."
+                                );
+                            }
+
+                            // Notify the previous tab.
+                            try {
+                                if ("BroadcastChannel" in window) {
+                                    const channel =
+                                        new BroadcastChannel("ems-tab-presence");
+
+                                    channel.postMessage({
+                                        type: "tab-transfer-complete",
+                                        oldTabId: expectedOldTabId
+                                    });
+
+                                    channel.close();
+                                }
+                            } catch (error) {
+                                console.warn(
+                                    "BroadcastChannel notification failed.",
+                                    error
+                                );
+                            }
+
+                            // Storage event fallback for the previous tab.
+                            try {
+                                localStorage.setItem(
+                                    transferStorageKey,
+                                    JSON.stringify({
+                                        oldTabId: expectedOldTabId,
+                                        newTabId: newTabId,
+                                        time: Date.now()
+                                    })
+                                );
+                            } catch (error) {
+                                console.warn(
+                                    "Storage notification failed.",
+                                    error
+                                );
+                            }
+
+                            window.location.replace(
+                                result.redirectUrl ||
+                                "/Employee/Register"
+                            );
+                        } catch (error) {
+                            errorElement.textContent =
+                                error.message ||
+                                "Unable to transfer the active tab.";
+
+                            continueButton.disabled = false;
+                            cancelButton.disabled = false;
+                        }
                     }
-                });
+                );
             });
         </script>
     }
@@ -433,25 +622,38 @@
     {
         <script>
             document.addEventListener("DOMContentLoaded", function () {
-                const modalElement = document.getElementById("activeSessionModal");
-                if (!modalElement || typeof bootstrap === "undefined") return;
+                const modalElement =
+                    document.getElementById("activeSessionModal");
+
+                if (!modalElement ||
+                    typeof bootstrap === "undefined") {
+                    return;
+                }
 
                 const modal = new bootstrap.Modal(modalElement, {
                     backdrop: "static",
                     keyboard: false
                 });
+
                 modal.show();
 
-                document.getElementById("cancelTakeover").addEventListener("click", function () {
-                    document.getElementById("forceLogin").value = "false";
-                    document.getElementById("expectedSessionToken").value = "";
-                    modal.hide();
-                });
+                document.getElementById("cancelTakeover")
+                    .addEventListener("click", function () {
+                        document.getElementById("forceLogin").value = "false";
 
-                document.getElementById("confirmTakeover").addEventListener("click", function () {
-                    document.getElementById("forceLogin").value = "true";
-                    document.getElementById("loginForm").requestSubmit();
-                });
+                        document.getElementById(
+                            "expectedSessionToken"
+                        ).value = "";
+
+                        modal.hide();
+                    });
+
+                document.getElementById("confirmTakeover")
+                    .addEventListener("click", function () {
+                        document.getElementById("forceLogin").value = "true";
+
+                        document.getElementById("loginForm").requestSubmit();
+                    });
             });
         </script>
     }

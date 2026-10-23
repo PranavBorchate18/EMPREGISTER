@@ -5,6 +5,7 @@ using Employee_Management_System.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Data;
 using System.Data.Common;
@@ -35,41 +36,59 @@ namespace Employee_Management_System.Controllers
             bool tabEntry = false,
             bool tabLost = false)
         {
-            string? loginId = HttpContext.Session.GetString("LoginId");
-            string? token = HttpContext.Session.GetString("ActiveSessionToken");
+            string? loginId =
+                HttpContext.Session.GetString("LoginId");
+
+            string? token =
+                HttpContext.Session.GetString("ActiveSessionToken");
 
             bool valid =
                 !string.IsNullOrWhiteSpace(loginId) &&
                 !string.IsNullOrWhiteSpace(token) &&
                 _activeSessions.IsCurrent(loginId, token);
 
-            // A duplicate-tab login page must not clear the shared session cookie.
+            // A duplicate tab must not clear the existing login session.
             if (tabEntry && valid)
             {
-                var activeSession = _activeSessions.Get(loginId!);
-                var activeTab = _activeSessions.GetActiveTab(loginId!, token!);
+                var activeSession =
+                    _activeSessions.Get(loginId!);
 
-                if (activeSession != null && activeTab != null)
-                {
-                    // Login.cshtml uses ExistingSession for the detailed takeover popup.
-                    ViewBag.ExistingSession = activeSession;
-                    ViewBag.TabExistingSession = activeSession;
-                    ViewBag.ActiveTabPage = activeTab.Page;
-                    ViewBag.ExpectedOldTabId = activeTab.TabId;
-                    ViewBag.ExpectedSessionToken = activeSession.SessionToken;
-                }
+                var activeTab =
+                    _activeSessions.GetActiveTab(loginId!, token!);
 
                 ViewBag.TabEntry = true;
                 ViewBag.WorkingDate =
                     HttpContext.Session.GetString("WorkingDate")
                     ?? DateTime.Today.ToString("yyyy-MM-dd");
 
+                if (activeSession != null && activeTab != null)
+                {
+                    ViewBag.ExistingSession = activeSession;
+                    ViewBag.TabExistingSession = activeSession;
+                    ViewBag.ActiveTabPage = activeTab.Page;
+                    ViewBag.ExpectedOldTabId = activeTab.TabId;
+                    ViewBag.ExpectedSessionToken =
+                        activeSession.SessionToken;
+                }
+                else
+                {
+                    // The active tab may not have claimed ownership yet.
+                    ViewBag.TabExistingSession = null;
+                    ViewBag.ActiveTabPage = "Employee Registration";
+                    ViewBag.TabEntryUnavailable = true;
+                }
+
                 return View(new LoginViewModel());
             }
 
+            // The old tab has lost ownership.
             if (tabLost)
             {
                 ViewBag.TabLost = true;
+                ViewBag.WorkingDate =
+                    HttpContext.Session.GetString("WorkingDate")
+                    ?? DateTime.Today.ToString("yyyy-MM-dd");
+
                 return View(new LoginViewModel());
             }
 
@@ -79,6 +98,7 @@ namespace Employee_Management_System.Controllers
             }
 
             HttpContext.Session.Clear();
+
             return View(new LoginViewModel());
         }
 
@@ -92,7 +112,8 @@ namespace Employee_Management_System.Controllers
             string? expectedSessionToken = null)
         {
             ViewBag.WorkingDate =
-                workingDate?.ToString("yyyy-MM-dd");
+                workingDate?.ToString("yyyy-MM-dd")
+                ?? DateTime.Today.ToString("yyyy-MM-dd");
 
             if (!ModelState.IsValid)
             {
@@ -195,12 +216,13 @@ WHERE LTRIM(RTRIM(ini)) = @LoginId;";
                             : Convert.ToString(reader["access"])?.Trim() ?? "";
                 }
 
-                // This preserves the existing Login ID lookup behaviour.
-                // Password authentication must be implemented separately.
                 var previous = _activeSessions.Get(dbLoginId);
 
+                // Another active login exists. Only allow an intentional
+                // takeover when the expected session token matches.
                 if (previous != null &&
                     (!forceLogin ||
+                     string.IsNullOrWhiteSpace(expectedSessionToken) ||
                      !string.Equals(
                          previous.SessionToken,
                          expectedSessionToken,
@@ -228,7 +250,6 @@ WHERE LTRIM(RTRIM(ini)) = @LoginId;";
                     LoginTimeUtc = DateTime.UtcNow
                 };
 
-                // Update working date before replacing the active login.
                 using (DbCommand command = connection.CreateCommand())
                 {
                     command.CommandText = @"
@@ -253,7 +274,6 @@ SET [date] = @WorkingDate;";
                     }
                 }
 
-                // Atomic session replacement; reject stale confirmations.
                 if (!_activeSessions.TryStart(
                     next,
                     previous?.SessionToken,
@@ -335,17 +355,17 @@ SET [date] = @WorkingDate;";
             DateTime workingDate)
         {
             ViewBag.ExistingSession = previous;
-            ViewBag.WorkingDate = workingDate.ToString("yyyy-MM-dd");
+            ViewBag.WorkingDate =
+                workingDate.ToString("yyyy-MM-dd");
 
-            // The view must post this value as expectedSessionToken.
-            ViewBag.ExpectedSessionToken = previous.SessionToken;
+            ViewBag.ExpectedSessionToken =
+                previous.SessionToken;
         }
 
         // POST: /Account/ClaimTab
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult ClaimTab(
-            [FromForm] string? tabId)
+        public IActionResult ClaimTab([FromForm] string? tabId)
         {
             if (string.IsNullOrWhiteSpace(tabId) ||
                 tabId.Length > 100)
@@ -430,7 +450,11 @@ SET [date] = @WorkingDate;";
             if (string.IsNullOrWhiteSpace(tabId) ||
                 string.IsNullOrWhiteSpace(expectedOldTabId) ||
                 tabId.Length > 100 ||
-                expectedOldTabId.Length > 100)
+                expectedOldTabId.Length > 100 ||
+                string.Equals(
+                    tabId,
+                    expectedOldTabId,
+                    StringComparison.Ordinal))
             {
                 return BadRequest(new
                 {
@@ -449,7 +473,11 @@ SET [date] = @WorkingDate;";
                 string.IsNullOrWhiteSpace(token) ||
                 !_activeSessions.IsCurrent(loginId, token))
             {
-                return Unauthorized(new { success = false });
+                return Unauthorized(new
+                {
+                    success = false,
+                    message = "Login session is no longer valid."
+                });
             }
 
             bool success = _activeSessions.TransferTab(
@@ -460,20 +488,33 @@ SET [date] = @WorkingDate;";
 
             if (!success)
             {
+                _logger.LogWarning(
+                    "Tab transfer failed for {LoginId}. Expected old tab: {OldTabId}",
+                    loginId,
+                    expectedOldTabId);
+
                 return Conflict(new
                 {
                     success = false,
                     message =
-                        "Active tab has changed. Please refresh the login page."
+                        "Active tab has changed. Refresh the login page and try again."
                 });
             }
+
+            string redirectUrl =
+                Url.Action("Register", "Employee")
+                ?? "/Employee/Register";
+
+            _logger.LogInformation(
+                "Tab ownership transferred for {LoginId}. Old tab: {OldTabId}; new tab: {NewTabId}",
+                loginId,
+                expectedOldTabId,
+                tabId);
 
             return Json(new
             {
                 success = true,
-                redirectUrl = Url.Action(
-                    "Register",
-                    "Employee")
+                redirectUrl
             });
         }
 
@@ -498,36 +539,24 @@ SET [date] = @WorkingDate;";
 
             HttpContext.Session.Clear();
 
-            return RedirectToAction(
-                "Login",
-                "Account");
+            return RedirectToAction("Login", "Account");
         }
 
         private static string DetectBrowser(string ua)
         {
-            if (ua.Contains(
-                "Edg/",
-                StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains("Edg/", StringComparison.OrdinalIgnoreCase))
                 return "Microsoft Edge";
 
-            if (ua.Contains(
-                "OPR/",
-                StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains("OPR/", StringComparison.OrdinalIgnoreCase))
                 return "Opera";
 
-            if (ua.Contains(
-                "Firefox/",
-                StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains("Firefox/", StringComparison.OrdinalIgnoreCase))
                 return "Mozilla Firefox";
 
-            if (ua.Contains(
-                "Chrome/",
-                StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains("Chrome/", StringComparison.OrdinalIgnoreCase))
                 return "Google Chrome";
 
-            if (ua.Contains(
-                "Safari/",
-                StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains("Safari/", StringComparison.OrdinalIgnoreCase))
                 return "Safari";
 
             return "Unknown browser";
@@ -535,34 +564,22 @@ SET [date] = @WorkingDate;";
 
         private static string DetectDevice(string ua)
         {
-            if (ua.Contains(
-                "Android",
-                StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains("Android", StringComparison.OrdinalIgnoreCase))
                 return "Android Device";
 
-            if (ua.Contains(
-                "iPhone",
-                StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains("iPhone", StringComparison.OrdinalIgnoreCase))
                 return "iPhone";
 
-            if (ua.Contains(
-                "iPad",
-                StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains("iPad", StringComparison.OrdinalIgnoreCase))
                 return "iPad";
 
-            if (ua.Contains(
-                "Windows",
-                StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains("Windows", StringComparison.OrdinalIgnoreCase))
                 return "Windows PC";
 
-            if (ua.Contains(
-                "Macintosh",
-                StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains("Macintosh", StringComparison.OrdinalIgnoreCase))
                 return "Mac";
 
-            if (ua.Contains(
-                "Linux",
-                StringComparison.OrdinalIgnoreCase))
+            if (ua.Contains("Linux", StringComparison.OrdinalIgnoreCase))
                 return "Linux Device";
 
             return "Unknown device";
@@ -574,10 +591,8 @@ SET [date] = @WorkingDate;";
             object? value)
         {
             DbParameter parameter = command.CreateParameter();
-
             parameter.ParameterName = name;
             parameter.Value = value ?? DBNull.Value;
-
             command.Parameters.Add(parameter);
         }
     }
