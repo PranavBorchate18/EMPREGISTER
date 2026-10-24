@@ -111,6 +111,8 @@
 
                             <th>Trf Min Days</th>
 
+                            <th>Allowance Type</th>
+
                             <th>Apply Month</th>
 
                             <th>Active</th>
@@ -162,6 +164,21 @@
                                     @item.TrfMinDays
                                 </td>
 
+                                <td>
+                                    @if (item.AllowType == 2)
+                                    {
+                                        <span class="badge bg-info text-dark">HRA</span>
+                                    }
+                                    else if (item.AllowType == 3)
+                                    {
+                                        <span class="badge bg-primary">DA</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">General</span>
+                                    }
+                                </td>
+
 
                                 <td>
                                     @item.ApplyMonth
@@ -171,12 +188,12 @@
                                 <td>
 
                                     @if (
-                                        string.Equals(
-                                            item.Active,
-                                            "Yes",
-                                            StringComparison.OrdinalIgnoreCase
-                                        )
-                                    )
+                                                                    string.Equals(
+                                                                    item.Active,
+                                                                    "Yes",
+                                                                    StringComparison.OrdinalIgnoreCase
+                                                                    )
+                                                                    )
                                     {
                                         <span class="badge bg-success">
                                             Yes
@@ -206,12 +223,12 @@
                                     <button type="button"
                                             class="btn btn-danger btn-sm"
                                             onclick="confirmDelete(
-                                                    @item.Code,
-                                                    '@Html.Raw(
-                                                        System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(
-                                                            item.Name ?? ""
-                                                        )
-                                                    )'
+                                                        @item.Code,
+                                                        '@Html.Raw(
+                                                                                                    System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(
+                                                                                                        item.Name ?? ""
+                                                                                                    )
+                                                                                                )'
                                             )">
 
                                         <i class="bi bi-trash"></i>
@@ -221,7 +238,7 @@
                                 </td>
 
                             </tr>
-                        }
+                                                }
 
                     </tbody>
 
@@ -517,6 +534,46 @@
                                        value="No" />
 
                             </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    @* ================================================
+                       ALLOWANCE TYPE
+                       1 = General, 2 = HRA, 3 = DA
+                       ================================================ *@
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold"
+                                   for="AllowType">
+
+                                Allowance Type
+
+                            </label>
+
+                            <select id="AllowType"
+                                    name="AllowType"
+                                    class="form-select">
+
+                                <option value="1" selected>
+                                    General
+                                </option>
+
+                                <option value="2">
+                                    HRA
+                                </option>
+
+                                <option value="3">
+                                    DA
+                                </option>
+
+                            </select>
 
                         </div>
 
@@ -1101,6 +1158,12 @@
             .text("No");
 
 
+        // Allowance Type Default = General (1)
+
+        $("#AllowType")
+            .val("1");
+
+
         // Apply Month Reset
 
         $("#ApplyMonth")
@@ -1247,6 +1310,14 @@
                 $("#TrfMinDays")
                     .val(
                         data.trfMinDays ?? ""
+                    );
+
+
+                // Allowance Type (1 = General, 2 = HRA, 3 = DA)
+
+                $("#AllowType")
+                    .val(
+                        data.allowType ?? 1
                     );
 
 

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Employee_Management_System.Models
 {
@@ -38,6 +40,20 @@ namespace Employee_Management_System.Models
         public double Fda1 { get; set; }
         public double Fda2 { get; set; }
         public double Vda { get; set; }
+
+        // Allowance Type (dbo.allwmast.Allow_Type): 2 = HRA, 3 = DA.
+        // Allowance name -> type, only for HRA / DA typed allowances.
+        [JsonIgnore]
+        public Dictionary<string, int> AllowanceTypes { get; set; } =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        // DA coming from allowances marked as type "DA" which are not
+        // already counted as FDA1 / FDA2 / VDA.
+        public double OtherDa { get; set; }
+
+        // Total DA = FDA1 + FDA2 + VDA + other DA-type allowances.
+        public double Da => Fda1 + Fda2 + Vda + OtherDa;
+
         public double SubTotal { get; set; }
         public double Hra { get; set; }
         public double CashAllowance { get; set; }

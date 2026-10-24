@@ -134,6 +134,17 @@ namespace Employee_Management_System.Controllers
                 }
 
 
+                // =================================================
+                // ALLOWANCE TYPE
+                // 1 = General, 2 = HRA, 3 = DA
+                // =================================================
+
+                model.AllowType =
+                    NormalizeAllowType(
+                        model.AllowType
+                    );
+
+
                 _context.AllowanceMasters.Add(
                     model
                 );
@@ -226,6 +237,12 @@ namespace Employee_Management_System.Controllers
                     // NEW
                     applyMonth =
                         allowance.ApplyMonth,
+
+                    // 1 = General, 2 = HRA, 3 = DA
+                    allowType =
+                        NormalizeAllowType(
+                            allowance.AllowType
+                        ),
 
                     active =
                         allowance.Active
@@ -337,6 +354,17 @@ namespace Employee_Management_System.Controllers
                 }
 
 
+                // =================================================
+                // ALLOWANCE TYPE
+                // 1 = General, 2 = HRA, 3 = DA
+                // =================================================
+
+                allowance.AllowType =
+                    NormalizeAllowType(
+                        model.AllowType
+                    );
+
+
                 await _context.SaveChangesAsync();
 
 
@@ -420,6 +448,31 @@ namespace Employee_Management_System.Controllers
                     nameof(Index)
                 );
             }
+        }
+
+
+
+        // =====================================================
+        // ALLOWANCE TYPE NORMALIZER
+        //
+        // 1 = General   (default, also used for empty / invalid)
+        // 2 = HRA
+        // 3 = DA
+        // =====================================================
+
+        private static int NormalizeAllowType(
+            int? value)
+        {
+            if (
+                value == AllowanceMaster.TypeHra ||
+                value == AllowanceMaster.TypeDa
+            )
+            {
+                return value.Value;
+            }
+
+
+            return AllowanceMaster.TypeGeneral;
         }
 
 

@@ -51,6 +51,19 @@ namespace Employee_Management_System.Data
 
 
             // =====================================================
+            // ALLOWANCE MASTER - Allow_Type
+            // The column is text (varchar) in dbo.allwmast.
+            // The application uses a number: 1 = General, 2 = HRA, 3 = DA.
+            // =====================================================
+
+            modelBuilder.Entity<AllowanceMaster>()
+                .Property(x => x.AllowType)
+                .HasConversion(
+                    v => v.HasValue ? v.Value.ToString() : null,
+                    v => AllowanceMaster.ParseAllowType(v));
+
+
+            // =====================================================
             // EMPLOYEE
             // =====================================================
 

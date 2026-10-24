@@ -112,7 +112,12 @@ namespace Employee_Management_System.Services
             }
 
             // Redirect normal MVC URLs to encrypted URLs.
-            if (LooksLikeMvcPath(path))
+            // Only for page requests (GET / HEAD). A form POST must NOT be
+            // redirected: the browser would turn it into a GET and the
+            // action would answer "405 Method Not Allowed".
+            if ((HttpMethods.IsGet(context.Request.Method) ||
+                 HttpMethods.IsHead(context.Request.Method)) &&
+                LooksLikeMvcPath(path))
             {
                 var segments = path.Trim('/')
                     .Split(
