@@ -109,9 +109,9 @@
     }
 
     /* Single View history:
-                                                                                                               Sr. / Employee Code / Employee Name = blank
-                                                                                                               Grade = Month / Year
-                                                                                                               remaining values stay under their matching columns */
+                                                                                                                   Sr. / Employee Code / Employee Name = blank
+                                                                                                                   Grade = Month / Year
+                                                                                                                   remaining values stay under their matching columns */
     .history-table .history-blank {
         background: #f8f9fa !important;
     }
@@ -655,11 +655,36 @@
             </div>
         </div>
     </div>
-    <div id="resultSection" class="card shadow-sm d-none"><div class="card-header bg-light d-flex justify-content-between"><strong class="text-primary">Salary Report - <span id="selectedBranch"></span> <span id="selectedPeriod"></span></strong><span id="recordCount"></span></div><div id="messageBox" class="alert alert-info m-3 d-none"></div><div id="reportBox" class="table-responsive"></div></div>
+    <div id="resultSection" class="card shadow-sm d-none">
+        <div class="card-header bg-light d-flex justify-content-between">
+            <strong class="text-primary">Salary Report - <span id="selectedBranch"></span> <span id="selectedPeriod"></span></strong>
+            <span id="recordCount"></span>
+        </div>
+        <div id="messageBox" class="alert alert-info m-3 d-none"></div>
+        <div id="reportBox" class="table-responsive"></div>
+    </div>
+    <div class="card shadow-sm mb-4" id="finalPayListActionCard">
+        <div class="card-body d-flex justify-content-end align-items-center gap-3 flex-wrap">
+            <span class="text-muted small">Save Final Pay List for all branches for the selected month.</span>
+            @Html.AntiForgeryToken()
+            <button type="button" id="saveFinalPayListBtn" class="btn btn-success d-none">
+                <i class="bi bi-check-circle me-1"></i> Save Final Pay List
+            </button>
+        </div>
+    </div>
 </div>
 @section Scripts {
     <script>
         $(function(){let branch=0,branchName='',data=[],allowances=[],deductions=[];const esc=v=>$('<div>').text(v??'').html();const money=v=>Number(v??0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});const dv=(d,k)=>d&&d[k]!==undefined?d[k]:0;
+        function updateSaveFinalPayListButton() {
+            const fromMonth = Number($('#FromMonth').val());
+            const fromYear = Number($('#FromYear').val());
+            const toMonth = Number($('#ToMonth').val());
+            const toYear = Number($('#ToYear').val());
+            const samePeriod = fromMonth === toMonth && fromYear === toYear;
+            $('#saveFinalPayListBtn').toggleClass('d-none', !samePeriod);
+        }
+
         function historyHtml(item,colspan,doubleView){
             /* Double View history only.
                Single View is intentionally left unchanged.
@@ -1134,6 +1159,54 @@
             }
         });
 
-        $('.branch-card').click(function(){$('.branch-card').removeClass('active');$(this).addClass('active');branch=+$(this).data('code');branchName=$(this).data('name')||'';$('#resultSection').insertAfter($(this).closest('.branch-row'));load()});$('input[name=ReportView]').change(render);$('#EmployeeType,#FromMonth,#FromYear,#ToMonth,#ToYear').change(()=>{refreshBranchSummaries();if(branch)load()});$(document).on('click','.employee-name-toggle',function(){let code=$(this).data('code');$('.history-'+code).toggleClass('d-none')});refreshBranchSummaries()});
+        $('.branch-card').click(function(){$('.branch-card').removeClass('active');$(this).addClass('active');branch=+$(this).data('code');branchName=$(this).data('name')||'';$('#resultSection').insertAfter($(this).closest('.branch-row'));load()});$('input[name=ReportView]').change(render);$('#EmployeeType,#FromMonth,#FromYear,#ToMonth,#ToYear').change(function () {
+            updateSaveFinalPayListButton();
+            refreshBranchSummaries();
+            if (branch) load();
+        });$(document).on('click','.employee-name-toggle',function(){let code=$(this).data('code');$('.history-'+code).toggleClass('d-none')});
+
+        $('#saveFinalPayListBtn').on('click', function () {
+            const month = Number($('#FromMonth').val());
+            const year = Number($('#FromYear').val());
+            const toMonth = Number($('#ToMonth').val());
+            const toYear = Number($('#ToYear').val());
+
+            if (month !== toMonth || year !== toYear) {
+                alert('Save Final Pay List साठी From आणि To Month/Year समान असणे आवश्यक आहे.');
+                updateSaveFinalPayListButton();
+                return;
+            }
+
+            if (!confirm(`Do you want to save Final Pay List for ${$('#FromMonth option:selected').text()} ${year}?`)) {
+                return;
+            }
+
+            const button = $(this);
+            const token = $('input[name="__RequestVerificationToken"]').val();
+            button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+
+            $.ajax({
+                url: '@Url.Action("SaveFinalPayList", "SalaryReport")',
+                type: 'POST',
+                data: { year: year, month: month },
+                headers: { 'RequestVerificationToken': token }
+            })
+            .done(function (response) {
+                if (response && response.success === true) {
+                    alert(response.message || 'Final Pay List saved successfully.');
+                } else {
+                    alert(response?.message || 'Final Pay List save करता आली नाही.');
+                }
+            })
+            .fail(function (xhr) {
+                alert(xhr.responseJSON?.message || 'Final Pay List save करताना error आला. कृपया पुन्हा प्रयत्न करा.');
+            })
+            .always(function () {
+                button.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Save Final Pay List');
+            });
+        });
+
+        updateSaveFinalPayListButton();
+        refreshBranchSummaries()});
     </script>
 }

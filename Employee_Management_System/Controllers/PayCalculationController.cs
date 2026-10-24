@@ -198,7 +198,6 @@ ORDER BY TRY_CONVERT(INT,b.code);";
                 // IMPORTANT: Headers ALWAYS come from the master tables.
                 // Therefore every allowance/deduction is displayed even when it is not applied to an employee.
                 var allowanceNames = await LoadAllAllowanceNames(connection);
-                var allowanceTypes = await LoadAllowanceTypes(connection);
                 var deductionNames = await LoadAllDeductionNames(connection);
 
                 using (var command = connection.CreateCommand())
@@ -251,7 +250,6 @@ ORDER BY p.code;";
 
                         // Pre-fill every master component with 0.00.
                         foreach (var name in allowanceNames) employee.Allowances[name] = 0;
-                        employee.AllowanceTypes = allowanceTypes;
                         foreach (var name in deductionNames) employee.Deductions[name] = 0;
                         employees.Add(employee);
                     }
@@ -368,7 +366,12 @@ ORDER BY p.code;";
     (SELECT COUNT(1) FROM dbo.paytrnft ft
      INNER JOIN dbo.PayMast p ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,ft.empl)
      WHERE TRY_CONVERT(INT,ft.[year])=@Year AND TRY_CONVERT(INT,ft.[month])=@Month
-       AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','))) AS DetailCount;";
+       AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','))) AS DetailCount,
+    (SELECT COUNT(1) FROM dbo.paytrn t
+     INNER JOIN dbo.PayMast p ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
+     WHERE TRY_CONVERT(INT,t.[year])=@Year AND TRY_CONVERT(INT,t.[month])=@Month
+       AND UPPER(LTRIM(RTRIM(ISNULL(t.POST_FLAG,''))))='Y'
+       AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','))) AS PostedCount;";
                 AddParameter(cmd, "@Year", year);
                 AddParameter(cmd, "@Month", month);
                 AddParameter(cmd, "@Branches", string.Join(",", codes));
@@ -376,7 +379,16 @@ ORDER BY p.code;";
                 await reader.ReadAsync();
                 int headerCount = Convert.ToInt32(reader["HeaderCount"]);
                 int detailCount = Convert.ToInt32(reader["DetailCount"]);
-                return Json(new { success = true, alreadyStored = headerCount > 0 || detailCount > 0, headerCount, detailCount });
+                int postedCount = Convert.ToInt32(reader["PostedCount"]);
+                return Json(new
+                {
+                    success = true,
+                    alreadyStored = headerCount > 0 || detailCount > 0,
+                    finalized = postedCount > 0,
+                    postedCount,
+                    headerCount,
+                    detailCount
+                });
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
             finally { if (close && connection.State == ConnectionState.Open) await connection.CloseAsync(); }
@@ -410,6 +422,28 @@ ORDER BY p.code;";
             try
             {
                 if (close) await connection.OpenAsync();
+
+                // Finalized payroll must never be deleted/recalculated.
+                using (var postedCheck = connection.CreateCommand())
+                {
+                    postedCheck.CommandText = @"SELECT COUNT(1)
+FROM dbo.paytrn t
+INNER JOIN dbo.PayMast p ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
+WHERE TRY_CONVERT(INT,t.[year])=@Year AND TRY_CONVERT(INT,t.[month])=@Month
+  AND UPPER(LTRIM(RTRIM(ISNULL(t.POST_FLAG,''))))='Y'
+  AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','));";
+                    AddParameter(postedCheck, "@Year", year);
+                    AddParameter(postedCheck, "@Month", month);
+                    AddParameter(postedCheck, "@Branches", string.Join(",", codes));
+                    int postedCount = Convert.ToInt32(await postedCheck.ExecuteScalarAsync() ?? 0);
+                    if (postedCount > 0)
+                        return Json(new
+                        {
+                            success = false,
+                            message = "Pay Calculation for this month has already been finally saved (POST_FLAG = Y). Recalculation is not allowed."
+                        });
+                }
+
                 transaction = await connection.BeginTransactionAsync();
                 // Delete child rows first to preserve foreign-key integrity.
                 int deletedDetails;
@@ -479,6 +513,24 @@ WHERE TRY_CONVERT(INT,t.[year])=@Year AND TRY_CONVERT(INT,t.[month])=@Month
             {
                 if (close) await connection.OpenAsync();
 
+                // POST_FLAG='Y' means Final Pay List has been posted. Never overwrite it,
+                // even when the client asks to forceSave.
+                using (var postedCheck = connection.CreateCommand())
+                {
+                    postedCheck.CommandText = @"SELECT COUNT(1)
+FROM dbo.paytrn t
+INNER JOIN dbo.PayMast p ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
+WHERE TRY_CONVERT(INT,t.[year])=@Year AND TRY_CONVERT(INT,t.[month])=@Month
+  AND UPPER(LTRIM(RTRIM(ISNULL(t.POST_FLAG,''))))='Y'
+  AND TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','));";
+                    AddParameter(postedCheck, "@Year", year);
+                    AddParameter(postedCheck, "@Month", month);
+                    AddParameter(postedCheck, "@Branches", selectedBranches);
+                    int postedCount = Convert.ToInt32(await postedCheck.ExecuteScalarAsync() ?? 0);
+                    if (postedCount > 0)
+                        return Json(new { success = false, finalized = true, message = "या महिन्याची Pay Calculation आधीच Final Save केलेली आहे (POST_FLAG = Y). पुन्हा Save करता येणार नाही." });
+                }
+
                 // Check by employees currently belonging to the selected branch.
                 // Do not depend on paytrn.brnc, because older rows may contain a different/null branch value.
                 // The paytrn primary key is based on Year + Month + Employee + Type.
@@ -517,7 +569,6 @@ SELECT
                 int daysInMonth = DateTime.DaysInMonth(year, month);
 
                 var allowanceNames = await LoadAllAllowanceNames(connection);
-                var allowanceTypes = await LoadAllowanceTypes(connection);
                 var deductionNames = await LoadAllDeductionNames(connection);
                 var employees = new List<EmployeeSalaryRowViewModel>();
 
@@ -556,7 +607,6 @@ ORDER BY p.code;";
 
                         employeeBranches[employee.EmployeeCode] = Convert.ToInt32(reader["SelectedBranchCode"]);
                         foreach (var name in allowanceNames) employee.Allowances[name] = 0;
-                        employee.AllowanceTypes = allowanceTypes;
                         foreach (var name in deductionNames) employee.Deductions[name] = 0;
                         employees.Add(employee);
                     }
@@ -640,7 +690,7 @@ WHERE TRY_CONVERT(INT,t.[year])=@Year
                 foreach (var employee in employees)
                 {
                     // paytrn stores DA and HRA separately.
-                    double da = Money(employee.Da);
+                    double da = Money(employee.Fda1 + employee.Fda2 + employee.Vda);
                     double hra = Money(employee.Hra);
 
                     // type is NOT NULL in paytrn, so fetch the employee type from PayMast.
@@ -771,7 +821,6 @@ VALUES
                 if (employee == null) return false; // No saved payroll for this month.
 
                 foreach (var name in await LoadAllAllowanceNames(connection)) employee.Allowances[name] = 0;
-                employee.AllowanceTypes = await LoadAllowanceTypes(connection);
                 foreach (var name in await LoadAllDeductionNames(connection)) employee.Deductions[name] = 0;
                 var days = await LoadApprovedWithoutPayLeaveDays(connection, employeeCode, start, end);
                 ApplyWithoutPayLeave(employee, days, year, month);
@@ -802,7 +851,7 @@ VALUES
                     AddParameter(update, "@Basic", Money(employee.BasicSalary));
                     AddParameter(update, "@OriginalBasic", employee.OriginalBasicSalary);
                     AddParameter(update, "@Days", Math.Max(0, DateTime.DaysInMonth(year, month) - employee.WithoutPayLeaveDays));
-                    AddParameter(update, "@DA", Money(employee.Da));
+                    AddParameter(update, "@DA", Money(employee.Fda1 + employee.Fda2 + employee.Vda));
                     AddParameter(update, "@HRA", Money(employee.Hra));
                     AddParameter(update, "@Allowance", Money(employee.TotalAllowance));
                     AddParameter(update, "@Deduction", Money(employee.TotalDeduction));
@@ -1329,56 +1378,6 @@ END";
             return 0;
         }
 
-        // Allowance Type (dbo.allwmast.Allow_Type): 1 = General, 2 = HRA, 3 = DA.
-        // Only HRA / DA typed allowances are returned (name -> type).
-        // The name uses the same rule as LoadAllAllowanceNames (short name, else name).
-        private async Task<Dictionary<string, int>> LoadAllowanceTypes(DbConnection connection)
-        {
-            var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            using var command = connection.CreateCommand();
-            command.CommandText = @"
-SELECT LTRIM(RTRIM(ISNULL(NULLIF(LTRIM(RTRIM(short_name)),''),name))) AllowanceName,
-       TRY_CONVERT(INT,Allow_Type) AllowType
-FROM dbo.allwmast
-WHERE TRY_CONVERT(INT,Allow_Type) IN (2,3);";
-            using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                string name = Convert.ToString(reader["AllowanceName"])?.Trim() ?? "";
-                if (string.IsNullOrWhiteSpace(name) || reader["AllowType"] == DBNull.Value) continue;
-                result[name] = Convert.ToInt32(reader["AllowType"]);
-            }
-            return result;
-        }
-
-        // Names already counted as DA / HRA by the existing name based rules.
-        private static readonly string[] NameMatchedDa =
-            { "Fda", "FDA 1", "FDA1", "Fdaa", "FDA 2", "FDA2", "vda", "VDA" };
-        private static readonly string[] NameMatchedHra = { "HRA" };
-
-        // Sum of allowances of the given type which are NOT already counted by name.
-        // With no HRA / DA typed allowances this is always 0, so payroll is unchanged.
-        private static double TypedAllowanceAmount(
-            EmployeeSalaryRowViewModel e, int type, string[] alreadyCounted)
-        {
-            if (e.AllowanceTypes.Count == 0) return 0;
-            double sum = 0;
-            foreach (var item in e.Allowances)
-            {
-                string key = item.Key.Trim();
-                if (!e.AllowanceTypes.TryGetValue(key, out int allowType) || allowType != type) continue;
-                if (alreadyCounted.Any(x => x.Equals(key, StringComparison.OrdinalIgnoreCase))) continue;
-                sum += item.Value;
-            }
-            return Money(sum);
-        }
-
-        private static double TypedOtherDa(EmployeeSalaryRowViewModel e) =>
-            TypedAllowanceAmount(e, 3, NameMatchedDa);
-
-        private static double TypedOtherHra(EmployeeSalaryRowViewModel e) =>
-            TypedAllowanceAmount(e, 2, NameMatchedHra);
-
         private async Task<List<string>> LoadAllAllowanceNames(DbConnection connection)
         {
             var result = new List<string>();
@@ -1571,13 +1570,10 @@ ORDER BY TRY_CONVERT(INT,af.allw_code);";
                 double fda1 = FindComponentAmount(employee.Allowances, "Fda", "FDA 1", "FDA1");
                 double fda2 = FindComponentAmount(employee.Allowances, "Fdaa", "FDA 2", "FDA2");
                 double vda = employee.IsPermanent ? 7980 : 0;
-                double da = Money(fda1 + fda2 + vda + TypedOtherDa(employee));
+                double da = Money(fda1 + fda2 + vda);
 
-                double hra = Money(
-                    FindComponentAmount(
-                        employee.Allowances, "HRA", "HOUSE RENT ALLOWANCE") +
-                    TypedAllowanceAmount(
-                        employee, 2, new[] { "HRA", "HOUSE RENT ALLOWANCE" }));
+                double hra = FindComponentAmount(
+                    employee.Allowances, "HRA", "HOUSE RENT ALLOWANCE");
 
                 double amount = EvaluateAllowanceFormula(
                     row.Formula,
@@ -1754,12 +1750,6 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                 k.Trim().Equals("HRA", StringComparison.OrdinalIgnoreCase) ||
                 k.Trim().Equals("HOUSE RENT ALLOWANCE", StringComparison.OrdinalIgnoreCase)).ToList())
                 employee.Allowances[key] = 0;
-
-            // Allowances marked as type HRA are also zero for contract employees.
-            foreach (var key in employee.Allowances.Keys.ToList())
-                if (employee.AllowanceTypes.TryGetValue(key.Trim(), out int allowType) && allowType == 2)
-                    employee.Allowances[key] = 0;
-
             employee.Hra = 0;
         }
 
@@ -1781,12 +1771,11 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
             e.Fda1 = FindComponentAmount(e.Allowances, "Fda", "FDA 1", "FDA1");
             e.Fda2 = FindComponentAmount(e.Allowances, "Fdaa", "FDA 2", "FDA2");
             e.Vda = FindComponentAmount(e.Allowances, "vda", "VDA");
-            e.OtherDa = TypedOtherDa(e);
-            e.Hra = Money(FindComponentAmount(e.Allowances, "HRA") + TypedOtherHra(e));
+            e.Hra = FindComponentAmount(e.Allowances, "HRA");
             e.CashAllowance = FindComponentAmount(e.Allowances, "Cash A", "Cash Allowance");
             e.SroAllowance = FindComponentAmount(e.Allowances, "SRO A", "SRO Allowance");
             e.SpecialPay = FindComponentAmount(e.Allowances, "SP", "Special Pay");
-            e.SubTotal = Money(e.BasicSalary + e.Fda1 + e.Fda2 + e.Vda + e.OtherDa);
+            e.SubTotal = Money(e.BasicSalary + e.Fda1 + e.Fda2 + e.Vda);
             e.TotalAllowance = Money(e.Allowances.Values.Sum());
             e.GrossSalary = Money(e.BasicSalary + e.TotalAllowance);
             e.ProvidentFund = FindComponentAmount(e.Deductions, "Provident Fund", "PF");
@@ -1859,7 +1848,7 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
             {
                 double value = employeeAllowances.TryGetValue(rule.Code, out var individual)
                     ? individual : EvaluateAllowanceFormula(rule.Formula, e.BasicSalary,
-                    e.Da, e.Hra, e.Fda1, e.Fda2, e.Vda);
+                    e.Fda1 + e.Fda2 + e.Vda, e.Hra, e.Fda1, e.Fda2, e.Vda);
                 SetComponent(e.Allowances, value, rule.Name);
                 UpdateAllowanceTotals(e);
             }
@@ -1889,7 +1878,7 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                 double value = string.IsNullOrWhiteSpace(rule.Formula)
                     ? Calculate(e.BasicSalary, rule.Fixed, rule.Percent)
                     : EvaluateAllowanceFormula(rule.Formula, e.BasicSalary,
-                        e.Da, e.Hra, e.Fda1, e.Fda2, e.Vda);
+                        e.Fda1 + e.Fda2 + e.Vda, e.Hra, e.Fda1, e.Fda2, e.Vda);
                 if (employeeDeductions.TryGetValue(rule.Code, out var individual)) value = individual;
                 SetComponent(e.Deductions, value, rule.Name);
             }
@@ -1905,9 +1894,8 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
             e.Fda1 = FindComponentAmount(e.Allowances, "Fda", "FDA 1", "FDA1");
             e.Fda2 = FindComponentAmount(e.Allowances, "Fdaa", "FDA 2", "FDA2");
             e.Vda = FindComponentAmount(e.Allowances, "vda", "VDA");
-            e.OtherDa = TypedOtherDa(e);
-            e.SubTotal = Money(e.BasicSalary + e.Fda1 + e.Fda2 + e.Vda + e.OtherDa);
-            e.Hra = Money(FindComponentAmount(e.Allowances, "HRA") + TypedOtherHra(e));
+            e.SubTotal = Money(e.BasicSalary + e.Fda1 + e.Fda2 + e.Vda);
+            e.Hra = FindComponentAmount(e.Allowances, "HRA");
             e.CashAllowance = FindComponentAmount(e.Allowances, "Cash A", "Cash Allowance");
             e.SroAllowance = FindComponentAmount(e.Allowances, "SRO A", "SRO Allowance");
             e.SpecialPay = FindComponentAmount(e.Allowances, "SP", "Special Pay");
@@ -1946,7 +1934,7 @@ WHERE TRY_CONVERT(INT,df.grad_code)=@Grade
                     ["FDA1"] = employee.Fda1,
                     ["FDA2"] = employee.Fda2,
                     ["VDA"] = employee.Vda,
-                    ["DA"] = employee.Da,
+                    ["DA"] = employee.Fda1 + employee.Fda2 + employee.Vda,
                     ["HRA"] = employee.Hra
                 };
                 foreach (var token in tokens.OrderByDescending(x => x.Key.Length))

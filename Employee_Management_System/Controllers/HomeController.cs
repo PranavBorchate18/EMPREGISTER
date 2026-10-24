@@ -844,7 +844,116 @@ ORDER BY TRY_CONVERT(INT,pf.empl_code),
                 }
             }
 
+            // Pending Final Pay List: only payroll rows with POST_FLAG = N.
+            // The main dashboard connection was closed in the earlier finally block,
+            // so reopen it here before querying pending payroll rows.
+            bool closePendingConnection = connection.State != ConnectionState.Open;
+            if (closePendingConnection)
+                await connection.OpenAsync();
+
+            try
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandTimeout = 120;
+                    command.CommandText = @"
+SELECT
+    ISNULL(TRY_CONVERT(INT,t.[year]),0) AS PayrollYear,
+    ISNULL(TRY_CONVERT(INT,t.[month]),0) AS PayrollMonth,
+    ISNULL(TRY_CONVERT(INT,t.brnc),0) AS BranchCode,
+    ISNULL(b.name, CONCAT('Branch ', ISNULL(CONVERT(VARCHAR(20),t.brnc),'Unknown'))) AS BranchName,
+    COUNT(DISTINCT TRY_CONVERT(INT,t.code)) AS TotalEmployees,
+    ISNULL(SUM(ISNULL(TRY_CONVERT(FLOAT,t.basic),0)),0) AS TotalBasic,
+    ISNULL(SUM(ISNULL(TRY_CONVERT(FLOAT,t.tot_allw),0)),0) AS TotalAllowance,
+    ISNULL(SUM(ISNULL(TRY_CONVERT(FLOAT,t.tot_dedu),0)),0) AS TotalDeduction,
+    ISNULL(SUM(ISNULL(TRY_CONVERT(FLOAT,t.basic),0) +
+               ISNULL(TRY_CONVERT(FLOAT,t.tot_allw),0) -
+               ISNULL(TRY_CONVERT(FLOAT,t.tot_dedu),0)),0) AS NetSalary
+FROM dbo.paytrn t
+LEFT JOIN dbo.brncmast b
+  ON TRY_CONVERT(INT,b.code) = TRY_CONVERT(INT,t.brnc)
+WHERE UPPER(LTRIM(RTRIM(ISNULL(t.POST_FLAG,'')))) = 'N'
+GROUP BY TRY_CONVERT(INT,t.[year]), TRY_CONVERT(INT,t.[month]),
+         TRY_CONVERT(INT,t.brnc), b.name
+ORDER BY TRY_CONVERT(INT,t.[year]) DESC,
+         TRY_CONVERT(INT,t.[month]) DESC, b.name;";
+
+                    using var reader = await command.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        model.PendingFinalPayLists.Add(new PendingFinalPayListViewModel
+                        {
+                            Year = GetInt(reader, "PayrollYear"),
+                            Month = GetInt(reader, "PayrollMonth"),
+                            BranchCode = GetInt(reader, "BranchCode"),
+                            BranchName = Convert.ToString(reader["BranchName"])?.Trim() ?? "",
+                            TotalEmployees = GetInt(reader, "TotalEmployees"),
+                            TotalBasic = GetDouble(reader, "TotalBasic"),
+                            TotalAllowance = GetDouble(reader, "TotalAllowance"),
+                            TotalDeduction = GetDouble(reader, "TotalDeduction"),
+                            NetSalary = GetDouble(reader, "NetSalary")
+                        });
+                    }
+                }
+            }
+            finally
+            {
+                if (closePendingConnection && connection.State == ConnectionState.Open)
+                    await connection.CloseAsync();
+            }
+
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SavePendingFinalPayList(int year, int month, int branchCode)
+        {
+            if (string.IsNullOrWhiteSpace(HttpContext.Session.GetString("LoginId")))
+                return RedirectToAction("Login", "Account");
+
+            if (year < 1900 || year > 9999 || month < 1 || month > 12 || branchCode < 0)
+            {
+                TempData["PendingPayMessage"] = "Invalid year, month, or branch.";
+                TempData["PendingPaySuccess"] = false;
+                return RedirectToAction(nameof(Index));
+            }
+
+            var connection = _context.Database.GetDbConnection();
+            bool closeConnection = connection.State != ConnectionState.Open;
+            try
+            {
+                if (closeConnection) await connection.OpenAsync();
+                using var command = connection.CreateCommand();
+                command.CommandText = @"
+UPDATE dbo.paytrn
+SET POST_FLAG = 'Y'
+WHERE UPPER(LTRIM(RTRIM(ISNULL(POST_FLAG,'')))) = 'N'
+  AND TRY_CONVERT(INT,[year]) = @Year
+  AND TRY_CONVERT(INT,[month]) = @Month
+  AND TRY_CONVERT(INT,brnc) = @BranchCode;";
+                AddParameter(command, "@Year", year);
+                AddParameter(command, "@Month", month);
+                AddParameter(command, "@BranchCode", branchCode);
+                int updatedRows = await command.ExecuteNonQueryAsync();
+
+                TempData["PendingPaySuccess"] = updatedRows > 0;
+                TempData["PendingPayMessage"] = updatedRows > 0
+                    ? $"Final Pay List saved successfully. {updatedRows} payroll record(s) finalized."
+                    : "No pending payroll records were found for the selected month and branch.";
+            }
+            catch (Exception)
+            {
+                TempData["PendingPaySuccess"] = false;
+                TempData["PendingPayMessage"] = "Unable to save Final Pay List. Please check the database connection and dbo.paytrn columns.";
+            }
+            finally
+            {
+                if (closeConnection && connection.State == ConnectionState.Open)
+                    await connection.CloseAsync();
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
         public IActionResult Privacy()

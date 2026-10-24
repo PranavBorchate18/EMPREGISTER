@@ -1606,6 +1606,83 @@ FROM dbo.dedumast WHERE TRY_CONVERT(INT,code) IS NOT NULL ORDER BY TRY_CONVERT(I
             return result;
         }
 
+        // SAVE FINAL PAY LIST
+        // AJAX request from SalaryReport/Index.cshtml sends: year, month.
+        // Sets POST_FLAG = 'Y' for all payroll records in the selected month.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveFinalPayList(int year, int month)
+        {
+            if (!IsLoggedIn())
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    sessionExpired = true,
+                    message = "Login session expired. Please login again."
+                });
+            }
+
+            if (year < 1900 || year > 9999 || month < 1 || month > 12)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Please select a valid year and month."
+                });
+            }
+
+            var connection = _context.Database.GetDbConnection();
+            bool openedHere = connection.State != ConnectionState.Open;
+
+            try
+            {
+                if (openedHere)
+                    await connection.OpenAsync();
+
+                using var command = connection.CreateCommand();
+                command.CommandText = @"
+UPDATE dbo.paytrn
+SET POST_FLAG = 'Y'
+WHERE TRY_CONVERT(INT, [year]) = @Year
+  AND TRY_CONVERT(INT, [month]) = @Month;";
+
+                AddParameter(command, "@Year", year);
+                AddParameter(command, "@Month", month);
+
+                int updatedRows = await command.ExecuteNonQueryAsync();
+
+                if (updatedRows == 0)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "या महिन्यासाठी dbo.paytrn मध्ये कोणतेही payroll records सापडले नाहीत."
+                    });
+                }
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Final Pay List saved successfully for {new DateTime(year, month, 1):MMMM yyyy}. {updatedRows} payroll record(s) updated."
+                });
+            }
+            catch (Exception)
+            {
+                Response.StatusCode = StatusCodes.Status500InternalServerError;
+                return Json(new
+                {
+                    success = false,
+                    message = "Final Pay List save करता आली नाही. Database connection आणि POST_FLAG column तपासा."
+                });
+            }
+            finally
+            {
+                if (openedHere && connection.State == ConnectionState.Open)
+                    await connection.CloseAsync();
+            }
+        }
+
         private bool IsLoggedIn() =>
             !string.IsNullOrWhiteSpace(
                 HttpContext.Session.GetString("LoginId"));

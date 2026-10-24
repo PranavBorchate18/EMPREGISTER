@@ -33,6 +33,22 @@ namespace Employee_Management_System.Models
         public List<BranchEmployeeChartViewModel> BranchWiseEmployees { get; set; } = new();
         public List<BranchSalaryChartViewModel> BranchWiseSalaries { get; set; } = new();
         public List<MonthlyGrossSalaryChartViewModel> MonthlyGrossSalaries { get; set; } = new();
+
+        // Payroll rows awaiting final save (dbo.paytrn.POST_FLAG = 'N').
+        public List<PendingFinalPayListViewModel> PendingFinalPayLists { get; set; } = new();
+    }
+
+    public class PendingFinalPayListViewModel
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public int BranchCode { get; set; }
+        public string BranchName { get; set; } = "";
+        public int TotalEmployees { get; set; }
+        public double TotalBasic { get; set; }
+        public double TotalAllowance { get; set; }
+        public double TotalDeduction { get; set; }
+        public double NetSalary { get; set; }
     }
 
     public class EmployeeDashboardOptionViewModel

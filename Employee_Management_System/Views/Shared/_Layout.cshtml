@@ -1,5 +1,4 @@
-﻿
-@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+﻿@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 
 <!DOCTYPE html>
 <html lang="en">
@@ -237,6 +236,14 @@
                             Leave Statement
                         </a>
 
+                        <!-- NEW: Leave Balance Report -->
+                        <a class="dropdown-item"
+                           asp-controller="LeaveBalanceReport"
+                           asp-action="Index">
+                            <i class="bi bi-calendar-check me-2"></i>
+                            Leave Balance Report
+                        </a>
+
                         <a class="dropdown-item"
                            asp-controller="LeaveMaster"
                            asp-action="Index">
@@ -435,6 +442,13 @@
             }
 
             if (currentPath.startsWith("/leave")) {
+                openMenu(
+                    "leaveMenu",
+                    '[data-bs-target="#leaveMenu"]'
+                );
+            }
+
+            if (currentPath.startsWith("/leavebalancereport")) {
                 openMenu(
                     "leaveMenu",
                     '[data-bs-target="#leaveMenu"]'
