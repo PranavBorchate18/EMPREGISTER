@@ -165,9 +165,26 @@ LEFT JOIN WorkingDateAbsent W
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = @"
-SELECT TRY_CONVERT(INT,code) AS code, ISNULL(name,'') AS name
-FROM dbo.Division_Master
-ORDER BY TRY_CONVERT(INT,code), name;";
+;WITH DivisionOptions AS
+(
+    SELECT
+        TRY_CONVERT(INT, D.code) AS code,
+        LTRIM(RTRIM(ISNULL(D.name, ''))) AS name
+    FROM dbo.Division_Master D
+    WHERE TRY_CONVERT(INT, D.code) IS NOT NULL
+
+    UNION
+
+    SELECT DISTINCT
+        TRY_CONVERT(INT, B.Tcode) AS code,
+        CONCAT('Division ', TRY_CONVERT(INT, B.Tcode)) AS name
+    FROM dbo.brncmast B
+    WHERE TRY_CONVERT(INT, B.Tcode) IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM dbo.Division_Master)
+)
+SELECT code, name
+FROM DivisionOptions
+ORDER BY code, name;";
 
                     using var reader = await command.ExecuteReaderAsync();
 
@@ -221,29 +238,32 @@ ORDER BY name, code;";
                     }
                 }
 
-                // 5. Division Wise Active Employee chart
-                // Existing chart model is reused:
-                // BranchCode = DivisionCode, BranchName = DivisionName.
+                // 5. Division Wise Employee chart
+                // Data source: dbo.PayMast joined to dbo.brncmast by branch code.
+                // Division is identified by brncmast.Tcode.
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 120;
                     command.CommandText = @"
 SELECT
-    TRY_CONVERT(INT,D.code) AS DivisionCode,
-    ISNULL(D.name,'') AS DivisionName,
+    TRY_CONVERT(INT,B.Tcode) AS DivisionCode,
+    COALESCE(
+        NULLIF(MAX(LTRIM(RTRIM(D.name))), ''),
+        CONCAT('Division ', TRY_CONVERT(INT,B.Tcode))
+    ) AS DivisionName,
     COUNT(P.code) AS EmployeeCount
-FROM dbo.Division_Master D
-LEFT JOIN dbo.brncmast B
-    ON TRY_CONVERT(INT,B.Tcode)=TRY_CONVERT(INT,D.code)
+FROM dbo.brncmast B
+LEFT JOIN dbo.Division_Master D
+    ON TRY_CONVERT(INT,D.code) = TRY_CONVERT(INT,B.Tcode)
 LEFT JOIN dbo.PayMast P
-    ON TRY_CONVERT(INT,P.brnc_code)=TRY_CONVERT(INT,B.code)
-   AND TRY_CONVERT(INT,P.[type]) IN (1,2,3,4,5)
-   AND (@GradeCode IS NULL OR TRY_CONVERT(INT,P.grad_Code)=@GradeCode)
-   AND (@Gender='' OR UPPER(LTRIM(RTRIM(ISNULL(P.sex,''))))=@Gender)
-WHERE (@DivisionCode IS NULL OR TRY_CONVERT(INT,D.code)=@DivisionCode)
-GROUP BY D.code,D.name
-HAVING COUNT(P.code)>0
-ORDER BY TRY_CONVERT(INT,D.code),D.name;";
+    ON TRY_CONVERT(INT,P.brnc_code) = TRY_CONVERT(INT,B.code)
+   AND (@GradeCode IS NULL OR TRY_CONVERT(INT,P.grad_Code) = @GradeCode)
+   AND (@Gender = '' OR UPPER(LTRIM(RTRIM(ISNULL(P.sex,'')))) = @Gender)
+WHERE TRY_CONVERT(INT,B.Tcode) IS NOT NULL
+  AND (@DivisionCode IS NULL OR TRY_CONVERT(INT,B.Tcode) = @DivisionCode)
+GROUP BY TRY_CONVERT(INT,B.Tcode)
+HAVING COUNT(P.code) > 0
+ORDER BY TRY_CONVERT(INT,B.Tcode);";
 
                     AddParameter(command, "@DivisionCode", divisionCode);
                     AddParameter(command, "@GradeCode", gradeCode);
@@ -261,320 +281,53 @@ ORDER BY TRY_CONVERT(INT,D.code),D.name;";
                     }
                 }
 
-                // 6. Division Wise Salary chart
-                // LIVE PAY CALCULATION GROSS SALARY
-                //
-                // Gross Salary = WPL Adjusted Basic + Total Allowance
-                // dbo.paytrn is NOT used for this chart.
-                // Selected Division + Grade + Gender + Selected Month are applied.
-
-                DateTime salaryChartMonthStart =
-                    new DateTime(
-                        model.SelectedSalaryYear,
-                        model.SelectedSalaryMonth,
-                        1);
-
-                DateTime salaryChartMonthEnd =
-                    salaryChartMonthStart.AddMonths(1).AddDays(-1);
-
-                int salaryChartDaysInMonth =
-                    DateTime.DaysInMonth(
-                        model.SelectedSalaryYear,
-                        model.SelectedSalaryMonth);
-
-                // Division list for pie chart.
-                var salaryChartDivisions =
-                    new List<(int DivisionCode, string DivisionName)>();
-
+                // 6. Division Wise Salary pie chart
+                // Data source: saved payroll rows in dbo.paytrn for selected year/month.
+                // Gross Salary = paytrn.basic + paytrn.tot_allw.
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 120;
                     command.CommandText = @"
 SELECT
-    TRY_CONVERT(INT,D.code) AS DivisionCode,
-    ISNULL(D.name,'') AS DivisionName
-FROM dbo.Division_Master D
-WHERE (@DivisionCode IS NULL
-       OR TRY_CONVERT(INT,D.code)=@DivisionCode)
-ORDER BY TRY_CONVERT(INT,D.code),D.name;";
-
-                    AddParameter(command, "@DivisionCode", divisionCode);
-
-                    using var reader = await command.ExecuteReaderAsync();
-
-                    while (await reader.ReadAsync())
-                    {
-                        salaryChartDivisions.Add((
-                            GetInt(reader, "DivisionCode"),
-                            Convert.ToString(reader["DivisionName"])?.Trim() ?? ""));
-                    }
-                }
-
-                // Active employees for selected Division/Grade/Gender.
-                var salaryChartEmployees =
-                    new List<(int EmployeeCode, int DivisionCode, double OriginalBasic)>();
-
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 120;
-                    command.CommandText = @"
-SELECT
-    TRY_CONVERT(INT,P.code) AS EmployeeCode,
     TRY_CONVERT(INT,B.Tcode) AS DivisionCode,
-    ISNULL(TRY_CONVERT(FLOAT,P.basic),0) AS OriginalBasic
-FROM dbo.PayMast P
+    COALESCE(
+        NULLIF(MAX(LTRIM(RTRIM(D.name))), ''),
+        CONCAT('Division ', TRY_CONVERT(INT,B.Tcode))
+    ) AS DivisionName,
+    SUM(ISNULL(TRY_CONVERT(FLOAT,T.basic),0)
+      + ISNULL(TRY_CONVERT(FLOAT,T.tot_allw),0)) AS GrossSalary
+FROM dbo.paytrn T
 INNER JOIN dbo.brncmast B
-    ON TRY_CONVERT(INT,B.code)=TRY_CONVERT(INT,P.brnc_code)
-WHERE TRY_CONVERT(INT,P.[type]) IN (1,2,3,4,5)
-  AND (@DivisionCode IS NULL
-       OR TRY_CONVERT(INT,B.Tcode)=@DivisionCode)
-  AND (@GradeCode IS NULL
-       OR TRY_CONVERT(INT,P.grad_Code)=@GradeCode)
-  AND (@Gender=''
-       OR UPPER(LTRIM(RTRIM(ISNULL(P.sex,''))))=@Gender)
-ORDER BY TRY_CONVERT(INT,P.brnc_code),
-         TRY_CONVERT(INT,P.code);";
+    ON TRY_CONVERT(INT,B.code) = TRY_CONVERT(INT,T.brnc)
+LEFT JOIN dbo.Division_Master D
+    ON TRY_CONVERT(INT,D.code) = TRY_CONVERT(INT,B.Tcode)
+LEFT JOIN dbo.PayMast P
+    ON TRY_CONVERT(INT,P.code) = TRY_CONVERT(INT,T.code)
+WHERE TRY_CONVERT(INT,T.[year]) = @SalaryYear
+  AND TRY_CONVERT(INT,T.[month]) = @SalaryMonth
+  AND TRY_CONVERT(INT,B.Tcode) IS NOT NULL
+  AND (@DivisionCode IS NULL OR TRY_CONVERT(INT,B.Tcode) = @DivisionCode)
+  AND (@GradeCode IS NULL OR TRY_CONVERT(INT,P.grad_Code) = @GradeCode)
+  AND (@Gender = '' OR UPPER(LTRIM(RTRIM(ISNULL(P.sex,'')))) = @Gender)
+GROUP BY TRY_CONVERT(INT,B.Tcode)
+ORDER BY TRY_CONVERT(INT,B.Tcode);";
 
+                    AddParameter(command, "@SalaryYear", model.SelectedSalaryYear);
+                    AddParameter(command, "@SalaryMonth", model.SelectedSalaryMonth);
                     AddParameter(command, "@DivisionCode", divisionCode);
                     AddParameter(command, "@GradeCode", gradeCode);
                     AddParameter(command, "@Gender", model.SelectedGender);
 
                     using var reader = await command.ExecuteReaderAsync();
-
                     while (await reader.ReadAsync())
                     {
-                        salaryChartEmployees.Add((
-                            GetInt(reader, "EmployeeCode"),
-                            GetInt(reader, "DivisionCode"),
-                            GetDouble(reader, "OriginalBasic")));
-                    }
-                }
-
-                // Load approved WPL for ALL selected employees in one query.
-                var salaryChartWplByEmployee =
-                    new Dictionary<int, double>();
-
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 120;
-                    command.CommandText = @"
-SELECT
-    TRY_CONVERT(INT,L.empl) AS EmployeeCode,
-    ISNULL(SUM(
-        CASE
-            WHEN CAST(L.sact_from_date AS date) >= @MonthStart
-             AND CAST(L.sact_to_date AS date) <= @MonthEnd
-             AND ISNULL(TRY_CONVERT(FLOAT,L.Num_of_days),0) > 0
-            THEN TRY_CONVERT(FLOAT,L.Num_of_days)
-            ELSE DATEDIFF(
-                    DAY,
-                    CASE
-                        WHEN CAST(L.sact_from_date AS date) < @MonthStart
-                        THEN @MonthStart
-                        ELSE CAST(L.sact_from_date AS date)
-                    END,
-                    CASE
-                        WHEN CAST(L.sact_to_date AS date) > @MonthEnd
-                        THEN @MonthEnd
-                        ELSE CAST(L.sact_to_date AS date)
-                    END
-                 ) + 1
-        END
-    ),0) AS WplDays
-FROM dbo.leavtrn L
-INNER JOIN dbo.PayMast P
-    ON TRY_CONVERT(INT,P.code)=TRY_CONVERT(INT,L.empl)
-INNER JOIN dbo.brncmast B
-    ON TRY_CONVERT(INT,B.code)=TRY_CONVERT(INT,P.brnc_code)
-WHERE TRY_CONVERT(INT,L.sact_code)=10
-  AND UPPER(LTRIM(RTRIM(ISNULL(L.Status,'')))) IN ('A','APPROVED')
-  AND L.sact_from_date IS NOT NULL
-  AND L.sact_to_date IS NOT NULL
-  AND CAST(L.sact_from_date AS date) <= @MonthEnd
-  AND CAST(L.sact_to_date AS date) >= @MonthStart
-  AND TRY_CONVERT(INT,P.[type]) IN (1,2,3,4,5)
-  AND (@DivisionCode IS NULL
-       OR TRY_CONVERT(INT,B.Tcode)=@DivisionCode)
-  AND (@GradeCode IS NULL
-       OR TRY_CONVERT(INT,P.grad_Code)=@GradeCode)
-  AND (@Gender=''
-       OR UPPER(LTRIM(RTRIM(ISNULL(P.sex,''))))=@Gender)
-GROUP BY TRY_CONVERT(INT,L.empl);";
-
-                    AddParameter(command, "@MonthStart", salaryChartMonthStart.Date);
-                    AddParameter(command, "@MonthEnd", salaryChartMonthEnd.Date);
-                    AddParameter(command, "@DivisionCode", divisionCode);
-                    AddParameter(command, "@GradeCode", gradeCode);
-                    AddParameter(command, "@Gender", model.SelectedGender);
-
-                    using var reader = await command.ExecuteReaderAsync();
-
-                    while (await reader.ReadAsync())
-                    {
-                        int employeeCode = GetInt(reader, "EmployeeCode");
-
-                        if (employeeCode > 0)
+                        model.BranchWiseSalaries.Add(new BranchSalaryChartViewModel
                         {
-                            salaryChartWplByEmployee[employeeCode] =
-                                GetDouble(reader, "WplDays");
-                        }
-                    }
-                }
-
-                // Load allowance rows for ALL selected employees in one query.
-                var salaryChartAllowancesByEmployee =
-                    new Dictionary<int, List<(double Amount, double Percent)>>();
-
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 120;
-                    command.CommandText = @"
-SELECT
-    TRY_CONVERT(INT,pf.empl_code) AS EmployeeCode,
-    ISNULL(TRY_CONVERT(FLOAT,pf.amt),0) AS Amount,
-    ISNULL(TRY_CONVERT(FLOAT,pf.[percent]),0) AS [Percent]
-FROM dbo.payfoot pf
-INNER JOIN dbo.allwmast am
-    ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,pf.allw_dedu)
-INNER JOIN dbo.PayMast P
-    ON TRY_CONVERT(INT,P.code)=TRY_CONVERT(INT,pf.empl_code)
-INNER JOIN dbo.brncmast B
-    ON TRY_CONVERT(INT,B.code)=TRY_CONVERT(INT,P.brnc_code)
-WHERE TRY_CONVERT(INT,pf.flag)=1
-  AND (pf.[date] IS NULL OR pf.[date] <= @MonthEnd)
-  AND (pf.cancel_date IS NULL OR pf.cancel_date >= @MonthStart)
-  AND TRY_CONVERT(INT,P.[type]) IN (1,2,3,4,5)
-  AND (@DivisionCode IS NULL
-       OR TRY_CONVERT(INT,B.Tcode)=@DivisionCode)
-  AND (@GradeCode IS NULL
-       OR TRY_CONVERT(INT,P.grad_Code)=@GradeCode)
-  AND (@Gender=''
-       OR UPPER(LTRIM(RTRIM(ISNULL(P.sex,''))))=@Gender)
-ORDER BY TRY_CONVERT(INT,pf.empl_code),
-         TRY_CONVERT(INT,pf.allw_dedu);";
-
-                    AddParameter(command, "@MonthStart", salaryChartMonthStart);
-                    AddParameter(command, "@MonthEnd", salaryChartMonthEnd);
-                    AddParameter(command, "@DivisionCode", divisionCode);
-                    AddParameter(command, "@GradeCode", gradeCode);
-                    AddParameter(command, "@Gender", model.SelectedGender);
-
-                    using var reader = await command.ExecuteReaderAsync();
-
-                    while (await reader.ReadAsync())
-                    {
-                        int employeeCode = GetInt(reader, "EmployeeCode");
-
-                        if (employeeCode <= 0)
-                            continue;
-
-                        if (!salaryChartAllowancesByEmployee.TryGetValue(
-                                employeeCode,
-                                out var allowanceList))
-                        {
-                            allowanceList =
-                                new List<(double Amount, double Percent)>();
-
-                            salaryChartAllowancesByEmployee[employeeCode] =
-                                allowanceList;
-                        }
-
-                        allowanceList.Add((
-                            GetDouble(reader, "Amount"),
-                            GetDouble(reader, "Percent")));
-                    }
-                }
-
-                // Calculate live Gross Salary employee-wise and SUM division-wise.
-                var salaryChartGrossByDivision =
-                    new Dictionary<int, double>();
-
-                foreach (var employee in salaryChartEmployees)
-                {
-                    double wplDays =
-                        salaryChartWplByEmployee.TryGetValue(
-                            employee.EmployeeCode,
-                            out var loadedWplDays)
-                            ? loadedWplDays
-                            : 0;
-
-                    wplDays =
-                        Math.Max(
-                            0,
-                            Math.Min(
-                                wplDays,
-                                salaryChartDaysInMonth));
-
-                    double perDay =
-                        salaryChartDaysInMonth > 0
-                            ? employee.OriginalBasic /
-                              salaryChartDaysInMonth
-                            : 0;
-
-                    double payableBasic =
-                        Math.Round(
-                            Math.Max(
-                                0,
-                                employee.OriginalBasic -
-                                (perDay * wplDays)),
-                            2);
-
-                    double totalAllowance = 0;
-
-                    if (salaryChartAllowancesByEmployee.TryGetValue(
-                            employee.EmployeeCode,
-                            out var allowanceRows))
-                    {
-                        foreach (var allowance in allowanceRows)
-                        {
-                            double amount =
-                                allowance.Amount > 0
-                                    ? allowance.Amount
-                                    : allowance.Percent > 0
-                                        ? payableBasic *
-                                          allowance.Percent / 100.0
-                                        : 0;
-
-                            totalAllowance +=
-                                Math.Round(amount, 2);
-                        }
-                    }
-
-                    totalAllowance =
-                        Math.Round(totalAllowance, 2);
-
-                    double grossSalary =
-                        Math.Round(
-                            payableBasic + totalAllowance,
-                            2);
-
-                    if (!salaryChartGrossByDivision.ContainsKey(
-                            employee.DivisionCode))
-                    {
-                        salaryChartGrossByDivision[employee.DivisionCode] = 0;
-                    }
-
-                    salaryChartGrossByDivision[employee.DivisionCode] +=
-                        grossSalary;
-                }
-
-                // Add Division-wise Gross Salary totals to existing chart model.
-                foreach (var division in salaryChartDivisions)
-                {
-                    double divisionGrossSalary =
-                        salaryChartGrossByDivision.TryGetValue(
-                            division.DivisionCode,
-                            out var loadedDivisionGross)
-                            ? Math.Round(loadedDivisionGross, 2)
-                            : 0;
-
-                    model.BranchWiseSalaries.Add(
-                        new BranchSalaryChartViewModel
-                        {
-                            BranchCode = division.DivisionCode,
-                            BranchName = division.DivisionName,
-                            Salary = divisionGrossSalary
+                            BranchCode = GetInt(reader, "DivisionCode"),
+                            BranchName = Convert.ToString(reader["DivisionName"])?.Trim() ?? "",
+                            Salary = GetDouble(reader, "GrossSalary")
                         });
+                    }
                 }
 
                 // 7. MONTH WISE TOTAL GROSS SALARY - LIVE Pay Calculation
@@ -644,31 +397,24 @@ ORDER BY TRY_CONVERT(INT,p.code);";
 SELECT
     TRY_CONVERT(INT,L.empl) AS EmployeeCode,
     ISNULL(SUM(
-        CASE
-            WHEN CAST(L.sact_from_date AS date) >= @MonthStart
-             AND CAST(L.sact_to_date AS date) <= @MonthEnd
-             AND ISNULL(TRY_CONVERT(FLOAT,L.Num_of_days),0) > 0
-            THEN TRY_CONVERT(FLOAT,L.Num_of_days)
-            ELSE DATEDIFF(
-                    DAY,
-                    CASE
-                        WHEN CAST(L.sact_from_date AS date) < @MonthStart
-                        THEN @MonthStart
-                        ELSE CAST(L.sact_from_date AS date)
-                    END,
-                    CASE
-                        WHEN CAST(L.sact_to_date AS date) > @MonthEnd
-                        THEN @MonthEnd
-                        ELSE CAST(L.sact_to_date AS date)
-                    END
-                 ) + 1
-        END
+        DATEDIFF(
+            DAY,
+            CASE
+                WHEN CAST(L.sact_from_date AS date) < @MonthStart
+                THEN @MonthStart
+                ELSE CAST(L.sact_from_date AS date)
+            END,
+            CASE
+                WHEN CAST(L.sact_to_date AS date) > @MonthEnd
+                THEN @MonthEnd
+                ELSE CAST(L.sact_to_date AS date)
+            END
+        ) + 1
     ),0) AS WplDays
 FROM dbo.leavtrn L
 INNER JOIN dbo.PayMast P
     ON TRY_CONVERT(INT,P.code)=TRY_CONVERT(INT,L.empl)
 WHERE TRY_CONVERT(INT,L.sact_code)=10
-  AND UPPER(LTRIM(RTRIM(ISNULL(L.Status,'')))) IN ('A','APPROVED')
   AND L.sact_from_date IS NOT NULL
   AND L.sact_to_date IS NOT NULL
   AND CAST(L.sact_from_date AS date) <= @MonthEnd

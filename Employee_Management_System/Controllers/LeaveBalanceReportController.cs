@@ -13,28 +13,22 @@ namespace Employee_Management_System.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        public LeaveBalanceReportController(
-            ApplicationDbContext context)
+        public LeaveBalanceReportController(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // =========================================================
-        // INDEX - LEAVE BALANCE REPORT
-        // =========================================================
         [HttpGet]
         public async Task<IActionResult> Index(
             DateTime? selectedDate,
             short? selectedLeaveCode)
         {
             if (!IsLoggedIn())
-            {
                 return RedirectToAction("Login", "Account");
-            }
 
             var model = new LeaveBalanceReportViewModel
             {
-                SelectedDate = selectedDate ?? DateTime.Today,
+                SelectedDate = selectedDate?.Date ?? DateTime.Today,
                 SelectedLeaveCode = selectedLeaveCode,
                 LeaveTypes = await LoadLeaveTypes()
             };
@@ -54,7 +48,6 @@ namespace Employee_Management_System.Controllers
                 else
                 {
                     model.SelectedLeaveCode = null;
-
                     ViewBag.Message =
                         "Selected Leave Type does not have a Leave Limit.";
                 }
@@ -63,11 +56,6 @@ namespace Employee_Management_System.Controllers
             return View(model);
         }
 
-        // =========================================================
-        // LOAD LEAVE TYPES
-        // Only Leave Types having leave_limit > 0
-        // TABLE: dbo.leavmast
-        // =========================================================
         private async Task<List<SelectListItem>> LoadLeaveTypes()
         {
             var result = new List<SelectListItem>();
@@ -81,29 +69,24 @@ namespace Employee_Management_System.Controllers
             try
             {
                 if (shouldClose)
-                {
                     await connection.OpenAsync();
-                }
 
                 using DbCommand command = connection.CreateCommand();
 
                 command.CommandText = @"
-SELECT
-    code,
-    ISNULL(name, '') AS LeaveName
+SELECT code, ISNULL(name, '') AS LeaveName
 FROM dbo.leavmast
-WHERE
-    ISNULL(Active, 'N') = 'Y'
-    AND ISNULL(leave_limit, 0) > 0
-ORDER BY code;
-";
+WHERE UPPER(LTRIM(RTRIM(ISNULL(Active, 'N')))) = 'Y'
+  AND ISNULL(leave_limit, 0) > 0
+ORDER BY code;";
 
                 using DbDataReader reader =
                     await command.ExecuteReaderAsync();
 
                 while (await reader.ReadAsync())
                 {
-                    short code = Convert.ToInt16(reader["code"]);
+                    short code =
+                        Convert.ToInt16(reader["code"]);
 
                     string name =
                         Convert.ToString(reader["LeaveName"])?.Trim() ?? "";
@@ -127,21 +110,16 @@ ORDER BY code;
             return result;
         }
 
-        // =========================================================
-        // LOAD LEAVE BALANCE REPORT
+        // c_d_code = 1 : Credit
+        // c_d_code = 2 : Debit
+        // Status = A   : Approved
         //
-        // Assumptions based on LeaveCreditController:
-        // c_d_code = 1 : Leave Credit
-        // Status = A  : Approved/active entry
-        //
-        // Other c_d_code values are treated as leave taken.
-        // Confirm this rule against your Leave Debit/Statement logic.
-        // =========================================================
-        private async Task<List<LeaveBalanceReportRowViewModel>>
-            LoadReport(DateTime selectedDate, short leaveCode)
+        // Credit आणि Debit साठी sact_code आणि sact_from_date वापरले आहेत.
+        private async Task<List<LeaveBalanceReportRowViewModel>> LoadReport(
+            DateTime selectedDate,
+            short leaveCode)
         {
-            var result =
-                new List<LeaveBalanceReportRowViewModel>();
+            var result = new List<LeaveBalanceReportRowViewModel>();
 
             DbConnection connection =
                 _context.Database.GetDbConnection();
@@ -152,9 +130,7 @@ ORDER BY code;
             try
             {
                 if (shouldClose)
-                {
                     await connection.OpenAsync();
-                }
 
                 using DbCommand command = connection.CreateCommand();
 
@@ -163,19 +139,13 @@ SELECT
     p.code AS EmployeeCode,
     ISNULL(p.name, '') AS EmployeeName,
     ISNULL(lm.name, '') AS LeaveName,
-    CONVERT(DECIMAL(18, 2), ISNULL(lm.leave_limit, 0))
-        AS LeaveLimit,
-
     CONVERT(DECIMAL(18, 2),
-        ISNULL(credit.TotalCredit, 0))
-        AS TotalCredit,
-
+        ISNULL(lm.leave_limit, 0)) AS LeaveLimit,
     CONVERT(DECIMAL(18, 2),
-        ISNULL(taken.TotalTaken, 0))
-        AS TotalTaken
-
+        ISNULL(credit.TotalCredit, 0)) AS TotalCredit,
+    CONVERT(DECIMAL(18, 2),
+        ISNULL(taken.TotalTaken, 0)) AS TotalTaken
 FROM dbo.PayMast p
-
 CROSS JOIN dbo.leavmast lm
 
 LEFT JOIN
@@ -185,48 +155,45 @@ LEFT JOIN
         l.sact_code AS LeaveCode,
         SUM(ISNULL(l.Num_of_days, 0)) AS TotalCredit
     FROM dbo.leavtrn l
-    WHERE
-        l.c_d_code = 1
-        AND UPPER(LTRIM(RTRIM(ISNULL(l.Status, '')))) = 'A'
-        AND l.sact_from_date <= @SelectedDate
-        AND l.sact_code = @LeaveCode
-    GROUP BY
-        l.empl,
-        l.sact_code
+    WHERE l.c_d_code = 1
+      AND UPPER(LTRIM(RTRIM(ISNULL(l.Status, '')))) = 'A'
+      AND l.sact_from_date < DATEADD(DAY, 1, @SelectedDate)
+      AND l.sact_code = @LeaveCode
+    GROUP BY l.empl, l.sact_code
 ) credit
     ON credit.empl = p.code
-    AND credit.LeaveCode = lm.code
+   AND credit.LeaveCode = lm.code
 
 LEFT JOIN
 (
     SELECT
         l.empl,
-        l.dmnd_code AS LeaveCode,
+        l.sact_code AS LeaveCode,
         SUM(ISNULL(l.Num_of_days, 0)) AS TotalTaken
     FROM dbo.leavtrn l
-    WHERE
-        l.c_d_code <> 1
-        AND UPPER(LTRIM(RTRIM(ISNULL(l.Status, '')))) = 'A'
-        AND l.dmnd_from_date <= @SelectedDate
-        AND l.dmnd_code = @LeaveCode
-    GROUP BY
-        l.empl,
-        l.dmnd_code
+    WHERE l.c_d_code = 2
+      AND UPPER(LTRIM(RTRIM(ISNULL(l.Status, '')))) = 'A'
+      AND l.sact_from_date < DATEADD(DAY, 1, @SelectedDate)
+      AND l.sact_code = @LeaveCode
+    GROUP BY l.empl, l.sact_code
 ) taken
     ON taken.empl = p.code
-    AND taken.LeaveCode = lm.code
+   AND taken.LeaveCode = lm.code
 
-WHERE
-    lm.code = @LeaveCode
-    AND ISNULL(lm.Active, 'N') = 'Y'
-    AND ISNULL(lm.leave_limit, 0) > 0
+WHERE lm.code = @LeaveCode
+  AND UPPER(LTRIM(RTRIM(ISNULL(lm.Active, 'N')))) = 'Y'
+  AND ISNULL(lm.leave_limit, 0) > 0
+ORDER BY p.code;";
 
-ORDER BY
-    p.code;
-";
+                AddParameter(
+                    command,
+                    "@SelectedDate",
+                    selectedDate.Date);
 
-                AddParameter(command, "@SelectedDate", selectedDate.Date);
-                AddParameter(command, "@LeaveCode", leaveCode);
+                AddParameter(
+                    command,
+                    "@LeaveCode",
+                    leaveCode);
 
                 using DbDataReader reader =
                     await command.ExecuteReaderAsync();
@@ -242,10 +209,6 @@ ORDER BY
                     decimal totalTaken =
                         Convert.ToDecimal(reader["TotalTaken"]);
 
-                    // Balance = credit - taken.
-                    decimal leaveBalance =
-                        totalCredit - totalTaken;
-
                     result.Add(new LeaveBalanceReportRowViewModel
                     {
                         EmployeeCode =
@@ -259,7 +222,7 @@ ORDER BY
 
                         LeaveLimit = leaveLimit,
                         LeaveTaken = totalTaken,
-                        LeaveBalance = leaveBalance
+                        LeaveBalance = totalCredit - totalTaken
                     });
                 }
             }
@@ -275,28 +238,20 @@ ORDER BY
             return result;
         }
 
-        // =========================================================
-        // LOGIN CHECK
-        // =========================================================
         private bool IsLoggedIn()
         {
             return !string.IsNullOrWhiteSpace(
                 HttpContext.Session.GetString("LoginId"));
         }
 
-        // =========================================================
-        // COMMON SQL PARAMETER
-        // =========================================================
         private static void AddParameter(
             DbCommand command,
             string parameterName,
             object? value)
         {
             DbParameter parameter = command.CreateParameter();
-
             parameter.ParameterName = parameterName;
             parameter.Value = value ?? DBNull.Value;
-
             command.Parameters.Add(parameter);
         }
     }

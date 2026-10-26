@@ -76,15 +76,23 @@
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2 py-3">
             <div>
-                <h5 class="mb-1 fw-bold"><i class="bi bi-hourglass-split me-2 text-warning"></i>Pending Final Pay List</h5>
+                <h5 class="mb-1 fw-bold">
+                    <i class="bi bi-hourglass-split me-2 text-warning"></i>
+                    Pending Final Pay List
+                </h5>
                 <div class="small text-muted">Payroll records with POST_FLAG = N</div>
             </div>
-            <span class="badge bg-warning text-dark">@Model.PendingFinalPayLists.Count pending group(s)</span>
+            <span class="badge bg-warning text-dark">
+                @Model.PendingFinalPayLists.Count pending group(s)
+            </span>
         </div>
+
         <div class="card-body p-0">
             @if (Model.PendingFinalPayLists.Count == 0)
             {
-                <div class="text-center text-muted py-4">No pending Final Pay List records found.</div>
+                <div class="text-center text-muted py-4">
+                    No pending Final Pay List records found.
+                </div>
             }
             else
             {
@@ -108,24 +116,33 @@
                             {
                                 <tr>
                                     <td>@item.Year</td>
-                                    <td>@(item.Month >= 1 && item.Month <= 12 ? System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(item.Month) : item.Month.ToString())</td>
-                                    <td>@item.BranchName</td>
-                                    <td class="text-end">@item.TotalEmployees</td>
-                                    <td class="text-end">@item.TotalBasic.ToString("N2")</td>
-                                    <td class="text-end">@item.TotalAllowance.ToString("N2")</td>
-                                    <td class="text-end">@item.TotalDeduction.ToString("N2")</td>
-                                    <td class="text-end fw-bold">@item.NetSalary.ToString("N2")</td>
-                                    <td class="text-center">
-                                        <form method="post" asp-controller="Home" asp-action="SavePendingFinalPayList" onsubmit="return confirm('Save Final Pay List for this month and branch?');">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="year" value="@item.Year" />
-                                            <input type="hidden" name="month" value="@item.Month" />
-                                            <input type="hidden" name="branchCode" value="@item.BranchCode" />
-                                            <button type="submit" class="btn btn-sm btn-success text-nowrap"><i class="bi bi-check-circle me-1"></i>Save</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            }
+                                    <td>
+                                        @(item.Month >= 1 && item.Month <= 12
+                                                                        ? System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(item.Month)
+                                                                        : item.Month.ToString())
+                            </td>
+                            <td>@item.BranchName</td>
+                            <td class="text-end">@item.TotalEmployees</td>
+                            <td class="text-end">@item.TotalBasic.ToString("N2")</td>
+                            <td class="text-end">@item.TotalAllowance.ToString("N2")</td>
+                            <td class="text-end">@item.TotalDeduction.ToString("N2")</td>
+                            <td class="text-end fw-bold">@item.NetSalary.ToString("N2")</td>
+                            <td class="text-center">
+                                <form method="post"
+                                      asp-controller="Home"
+                                      asp-action="SavePendingFinalPayList"
+                                      onsubmit="return confirm('Save Final Pay List for this month and branch?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="year" value="@item.Year" />
+                                    <input type="hidden" name="month" value="@item.Month" />
+                                    <input type="hidden" name="branchCode" value="@item.BranchCode" />
+                                    <button type="submit" class="btn btn-sm btn-success text-nowrap">
+                                        <i class="bi bi-check-circle me-1"></i>Save
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                                                }
                         </tbody>
                     </table>
                 </div>
@@ -199,7 +216,6 @@
             </div>
         </div>
     </form>
-
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="chart-card">
@@ -213,7 +229,6 @@
 
         <div class="col-lg-6">
             <div class="chart-card">
-
                 <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
                     <div class="chart-title mb-0">Division Wise Salary</div>
 
@@ -242,11 +257,15 @@
 
                                 if (Model.SelectedSalaryMonth == month)
                                 {
-                                    <option value="@month" selected>@monthName @Model.SelectedSalaryYear</option>
+                                    <option value="@month" selected>
+                                        @monthName @Model.SelectedSalaryYear
+                                    </option>
                                 }
                                 else
                                 {
-                                    <option value="@month">@monthName @Model.SelectedSalaryYear</option>
+                                    <option value="@month">
+                                        @monthName @Model.SelectedSalaryYear
+                                    </option>
                                 }
                             }
                         </select>
@@ -260,16 +279,17 @@
         </div>
     </div>
 
-    <!-- Branch Wise Total Gross Salary - independent Branch + From/To Date filter -->
+    <!-- Branch Wise Total Gross Salary -->
     <div class="chart-card gross-salary-card mt-3">
-        <div class="chart-title">Month Wise Total Gross Salary (Pay Calculation)</div>
+        <div class="chart-title">
+            Month Wise Total Gross Salary (Pay Calculation)
+        </div>
 
         <form method="get"
               asp-controller="Home"
               asp-action="Index"
               class="gross-salary-filter mb-3">
 
-            <!-- Preserve existing dashboard / pie-chart selections -->
             <input type="hidden" name="divisionCode" value="@Model.SelectedDivision" />
             <input type="hidden" name="gradeCode" value="@Model.SelectedGrade" />
             <input type="hidden" name="gender" value="@Model.SelectedGender" />
@@ -293,7 +313,9 @@
                         {
                             if (Model.SelectedGrossSalaryBranch == branch.Value)
                             {
-                                <option value="@branch.Value" selected>@branch.Text</option>
+                                <option value="@branch.Value" selected>
+                                    @branch.Text
+                                </option>
                             }
                             else
                             {
@@ -338,28 +360,35 @@
                     <div class="gross-total-label">Selected Branch</div>
                     <div class="gross-total-value">
                         @(Model.SelectedGrossSalaryBranch.HasValue
-                                            ? Model.Branches.FirstOrDefault(x => x.Value == Model.SelectedGrossSalaryBranch.Value)?.Text
+                                            ? Model.Branches.FirstOrDefault(
+                                            x => x.Value == Model.SelectedGrossSalaryBranch.Value)?.Text
                                             : "All Branches")
                 </div>
             </div>
 
                 <div>
                     <div class="gross-total-label">From Date</div>
-                    <div class="gross-total-value">@Model.GrossSalaryFromDate.ToString("dd-MM-yyyy")</div>
+                    <div class="gross-total-value">
+                        @Model.GrossSalaryFromDate.ToString("dd-MM-yyyy")
+                    </div>
                 </div>
 
                 <div>
                     <div class="gross-total-label">To Date</div>
-                    <div class="gross-total-value">@Model.GrossSalaryToDate.ToString("dd-MM-yyyy")</div>
+                    <div class="gross-total-value">
+                        @Model.GrossSalaryToDate.ToString("dd-MM-yyyy")
+                    </div>
                 </div>
 
                 <div class="gross-total-amount-box">
                     <div class="gross-total-label">Total Gross Salary</div>
                     <div class="gross-total-amount">
-                        ₹@Model.TotalGrossSalary.ToString("N2", new System.Globalization.CultureInfo("en-IN"))
-                    </div>
+                        ₹@Model.TotalGrossSalary.ToString(
+                                        "N2",
+                                        new System.Globalization.CultureInfo("en-IN"))
                 </div>
             </div>
+        </div>
 
             <div class="monthly-gross-breakdown mt-3">
             @foreach (var item in Model.MonthlyGrossSalaries)
@@ -367,10 +396,12 @@
                     <div class="monthly-gross-item">
                         <span>@item.MonthName</span>
                         <strong>
-                            ₹@item.GrossSalary.ToString("N2", new System.Globalization.CultureInfo("en-IN"))
-                        </strong>
-                    </div>
-                }
+                            ₹@item.GrossSalary.ToString(
+                                                "N2",
+                                                new System.Globalization.CultureInfo("en-IN"))
+                </strong>
+            </div>
+                        }
             </div>
         }
         else
@@ -380,7 +411,6 @@
             </div>
         }
     </div>
-
     <style>
         .employee-dashboard {
             font-family: Arial, Helvetica, sans-serif;
@@ -464,7 +494,6 @@
             background: #d63384;
         }
 
-
         .summary-label {
             font-size: 11px;
             font-weight: 700;
@@ -536,7 +565,6 @@
             width: 100%;
         }
 
-
         .salary-month-filter {
             min-width: 180px;
         }
@@ -578,7 +606,6 @@
                 min-width: 900px;
             }
 
-
         .gross-total-summary {
             display: grid;
             grid-template-columns: 1.2fr 1fr 1fr 1.4fr;
@@ -616,7 +643,6 @@
             font-weight: 800;
             color: #198754;
         }
-
 
         .monthly-gross-breakdown {
             display: grid;
@@ -672,31 +698,45 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
         <script>
-                                        document.addEventListener('DOMContentLoaded', function () {
+            document.addEventListener('DOMContentLoaded', function () {
+                if (typeof Chart === 'undefined') {
+                    console.error('Chart.js could not be loaded. Check internet/CDN access.');
 
-                                            const employeeLabels =
-                                                @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                    Model.BranchWiseEmployees.Select(x => x.BranchName)));
+                    document.querySelectorAll('.chart-container').forEach(function (container) {
+                        if (!container.querySelector('.chart-load-error')) {
+                            const message = document.createElement('div');
+                            message.className = 'chart-load-error text-danger small text-center py-4';
+                            message.textContent = 'Chart could not load. Please check Chart.js / internet connection.';
+                            container.appendChild(message);
+                        }
+                    });
+
+                    return;
+                }
+
+                const employeeLabels =
+                    @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                        Model.BranchWiseEmployees.Select(x => x.BranchName).ToArray()));
 
             const employeeValues =
                 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Model.BranchWiseEmployees.Select(x => x.EmployeeCount)));
+                                        Model.BranchWiseEmployees.Select(x => x.EmployeeCount).ToArray()));
 
             const salaryLabels =
                 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Model.BranchWiseSalaries.Select(x => x.BranchName)));
+                                        Model.BranchWiseSalaries.Select(x => x.BranchName).ToArray()));
 
             const salaryValues =
                 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Model.BranchWiseSalaries.Select(x => x.Salary)));
+                                        Model.BranchWiseSalaries.Select(x => x.Salary).ToArray()));
 
             const grossSalaryLabels =
                 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Model.MonthlyGrossSalaries.Select(x => x.MonthName)));
+                                        Model.MonthlyGrossSalaries.Select(x => x.MonthName).ToArray()));
 
             const grossSalaryValues =
                 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                Model.MonthlyGrossSalaries.Select(x => x.GrossSalary)));
+                                        Model.MonthlyGrossSalaries.Select(x => x.GrossSalary).ToArray()));
 
             const chartColors = [
                 '#0d6efd',
@@ -712,8 +752,7 @@
                 '#6610f2',
                 '#0d9488'
             ];
-
-            const employeeCanvas =
+                        const employeeCanvas =
                 document.getElementById('branchEmployeeChart');
 
             if (employeeCanvas) {
@@ -723,9 +762,9 @@
                         labels: employeeLabels,
                         datasets: [{
                             data: employeeValues,
-                            backgroundColor:
-                                employeeLabels.map(
-                                    (_, i) => chartColors[i % chartColors.length]),
+                            backgroundColor: employeeLabels.map(
+                                (_, i) => chartColors[i % chartColors.length]
+                            ),
                             borderColor: '#ffffff',
                             borderWidth: 2
                         }]
@@ -759,9 +798,9 @@
                         labels: salaryLabels,
                         datasets: [{
                             data: salaryValues,
-                            backgroundColor:
-                                salaryLabels.map(
-                                    (_, i) => chartColors[i % chartColors.length]),
+                            backgroundColor: salaryLabels.map(
+                                (_, i) => chartColors[i % chartColors.length]
+                            ),
                             borderColor: '#ffffff',
                             borderWidth: 2
                         }]
@@ -776,11 +815,9 @@
                             tooltip: {
                                 callbacks: {
                                     label: function (context) {
-                                        const value =
-                                            Number(context.raw || 0);
+                                        const value = Number(context.raw || 0);
 
-                                        return context.label +
-                                            ': ₹' +
+                                        return context.label + ': ₹' +
                                             value.toLocaleString('en-IN', {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 2
@@ -832,7 +869,8 @@
                                 },
                                 ticks: {
                                     callback: function (value) {
-                                        return '₹' + Number(value).toLocaleString('en-IN');
+                                        return '₹' +
+                                            Number(value).toLocaleString('en-IN');
                                     }
                                 }
                             }
@@ -845,6 +883,7 @@
                                 callbacks: {
                                     label: function (context) {
                                         const value = Number(context.raw || 0);
+
                                         return 'Total Gross Salary: ₹' +
                                             value.toLocaleString('en-IN', {
                                                 minimumFractionDigits: 2,
