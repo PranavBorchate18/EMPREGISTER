@@ -330,28 +330,42 @@ ORDER BY TRY_CONVERT(INT,B.Tcode);";
                     }
                 }
 
-                // 7. MONTH WISE TOTAL GROSS SALARY - LIVE Pay Calculation
-                // OPTIMIZED VERSION:
-                // - dbo.paytrn is NOT used here.
-                // - Employees are loaded ONCE.
-                // - WPL is loaded in ONE grouped query per month.
-                // - Allowances are loaded in ONE query per month.
-                // This removes thousands of employee-by-employee SQL calls.
+                // 7. MONTH WISE TOTAL GROSS SALARY - SAVED PAYROLL (dbo.paytrn)
+                // Data source: dbo.paytrn (saved payroll rows).
+                // Gross Salary = paytrn.basic + paytrn.tot_allw.
+                // - One grouped query for the whole date range.
+                // - Every month in the selected range is shown.
+                // - If a month has no payroll saved in paytrn, it shows 0.
+                var paytrnGrossByMonth = new Dictionary<int, double>();
 
-                var grossEmployees =
-                    new List<(int EmployeeCode, double OriginalBasic)>();
+                int fromKey =
+                    model.GrossSalaryFromDate.Year * 12 +
+                    model.GrossSalaryFromDate.Month;
+
+                int toKey =
+                    model.GrossSalaryToDate.Year * 12 +
+                    model.GrossSalaryToDate.Month;
 
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandTimeout = 120;
                     command.CommandText = @"
 SELECT
-    TRY_CONVERT(INT,p.code) AS EmployeeCode,
-    ISNULL(TRY_CONVERT(FLOAT,p.basic),0) AS OriginalBasicSalary
-FROM dbo.PayMast p
-WHERE (@GrossBranchCode IS NULL
-       OR TRY_CONVERT(INT,p.brnc_code)=@GrossBranchCode)
-ORDER BY TRY_CONVERT(INT,p.code);";
+    TRY_CONVERT(INT,T.[year])  AS PayYear,
+    TRY_CONVERT(INT,T.[month]) AS PayMonth,
+    SUM(ISNULL(TRY_CONVERT(FLOAT,T.basic),0)
+      + ISNULL(TRY_CONVERT(FLOAT,T.tot_allw),0)) AS GrossSalary
+FROM dbo.paytrn T
+WHERE TRY_CONVERT(INT,T.[year])  IS NOT NULL
+  AND TRY_CONVERT(INT,T.[month]) BETWEEN 1 AND 12
+  AND (TRY_CONVERT(INT,T.[year]) * 12 + TRY_CONVERT(INT,T.[month]))
+        BETWEEN @FromKey AND @ToKey
+  AND (@GrossBranchCode IS NULL
+       OR TRY_CONVERT(INT,T.brnc) = @GrossBranchCode)
+GROUP BY TRY_CONVERT(INT,T.[year]), TRY_CONVERT(INT,T.[month]);";
 
+                    AddParameter(command, "@FromKey", fromKey);
+                    AddParameter(command, "@ToKey", toKey);
                     AddParameter(
                         command,
                         "@GrossBranchCode",
@@ -361,9 +375,14 @@ ORDER BY TRY_CONVERT(INT,p.code);";
 
                     while (await reader.ReadAsync())
                     {
-                        grossEmployees.Add((
-                            GetInt(reader, "EmployeeCode"),
-                            GetDouble(reader, "OriginalBasicSalary")));
+                        int payYear = GetInt(reader, "PayYear");
+                        int payMonth = GetInt(reader, "PayMonth");
+
+                        if (payYear <= 0 || payMonth < 1 || payMonth > 12)
+                            continue;
+
+                        paytrnGrossByMonth[payYear * 12 + payMonth] =
+                            GetDouble(reader, "GrossSalary");
                     }
                 }
 
@@ -381,194 +400,21 @@ ORDER BY TRY_CONVERT(INT,p.code);";
 
                 while (monthCursor <= lastMonth)
                 {
-                    DateTime monthStart = monthCursor;
-                    DateTime monthEnd = monthStart.AddMonths(1).AddDays(-1);
-                    int daysInMonth =
-                        DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+                    int monthKey = monthCursor.Year * 12 + monthCursor.Month;
 
-                    // ----------------------------------------------------
-                    // A. Load ALL approved WPL days for this month at once
-                    // ----------------------------------------------------
-                    var wplByEmployee = new Dictionary<int, double>();
-
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText = @"
-SELECT
-    TRY_CONVERT(INT,L.empl) AS EmployeeCode,
-    ISNULL(SUM(
-        DATEDIFF(
-            DAY,
-            CASE
-                WHEN CAST(L.sact_from_date AS date) < @MonthStart
-                THEN @MonthStart
-                ELSE CAST(L.sact_from_date AS date)
-            END,
-            CASE
-                WHEN CAST(L.sact_to_date AS date) > @MonthEnd
-                THEN @MonthEnd
-                ELSE CAST(L.sact_to_date AS date)
-            END
-        ) + 1
-    ),0) AS WplDays
-FROM dbo.leavtrn L
-INNER JOIN dbo.PayMast P
-    ON TRY_CONVERT(INT,P.code)=TRY_CONVERT(INT,L.empl)
-WHERE TRY_CONVERT(INT,L.sact_code)=10
-  AND L.sact_from_date IS NOT NULL
-  AND L.sact_to_date IS NOT NULL
-  AND CAST(L.sact_from_date AS date) <= @MonthEnd
-  AND CAST(L.sact_to_date AS date) >= @MonthStart
-  AND (@GrossBranchCode IS NULL
-       OR TRY_CONVERT(INT,P.brnc_code)=@GrossBranchCode)
-GROUP BY TRY_CONVERT(INT,L.empl);";
-
-                        AddParameter(command, "@MonthStart", monthStart.Date);
-                        AddParameter(command, "@MonthEnd", monthEnd.Date);
-                        AddParameter(
-                            command,
-                            "@GrossBranchCode",
-                            model.SelectedGrossSalaryBranch);
-
-                        using var reader = await command.ExecuteReaderAsync();
-
-                        while (await reader.ReadAsync())
-                        {
-                            int employeeCode = GetInt(reader, "EmployeeCode");
-                            double wplDays = GetDouble(reader, "WplDays");
-
-                            if (employeeCode > 0)
-                                wplByEmployee[employeeCode] = wplDays;
-                        }
-                    }
-
-                    // ----------------------------------------------------
-                    // B. Load ALL allowance rows for this month at once
-                    // ----------------------------------------------------
-                    var allowancesByEmployee =
-                        new Dictionary<int, List<(double Amount, double Percent)>>();
-
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText = @"
-SELECT
-    TRY_CONVERT(INT,pf.empl_code) AS EmployeeCode,
-    ISNULL(TRY_CONVERT(FLOAT,pf.amt),0) AS Amount,
-    ISNULL(TRY_CONVERT(FLOAT,pf.[percent]),0) AS [Percent]
-FROM dbo.payfoot pf
-INNER JOIN dbo.allwmast am
-    ON TRY_CONVERT(INT,am.code)=TRY_CONVERT(INT,pf.allw_dedu)
-INNER JOIN dbo.PayMast p
-    ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,pf.empl_code)
-WHERE TRY_CONVERT(INT,pf.flag)=1
-  AND (pf.[date] IS NULL OR pf.[date] <= @MonthEnd)
-  AND (pf.cancel_date IS NULL OR pf.cancel_date >= @MonthStart)
-  AND (@GrossBranchCode IS NULL
-       OR TRY_CONVERT(INT,p.brnc_code)=@GrossBranchCode)
-ORDER BY TRY_CONVERT(INT,pf.empl_code),
-         TRY_CONVERT(INT,pf.allw_dedu);";
-
-                        AddParameter(command, "@MonthStart", monthStart);
-                        AddParameter(command, "@MonthEnd", monthEnd);
-                        AddParameter(
-                            command,
-                            "@GrossBranchCode",
-                            model.SelectedGrossSalaryBranch);
-
-                        using var reader = await command.ExecuteReaderAsync();
-
-                        while (await reader.ReadAsync())
-                        {
-                            int employeeCode = GetInt(reader, "EmployeeCode");
-
-                            if (employeeCode <= 0)
-                                continue;
-
-                            if (!allowancesByEmployee.TryGetValue(
-                                    employeeCode,
-                                    out var allowanceList))
-                            {
-                                allowanceList =
-                                    new List<(double Amount, double Percent)>();
-
-                                allowancesByEmployee[employeeCode] =
-                                    allowanceList;
-                            }
-
-                            allowanceList.Add((
-                                GetDouble(reader, "Amount"),
-                                GetDouble(reader, "Percent")));
-                        }
-                    }
-
-                    // ----------------------------------------------------
-                    // C. Calculate in memory using the SAME formula
-                    // ----------------------------------------------------
-                    double monthGrossTotal = 0;
-
-                    foreach (var employee in grossEmployees)
-                    {
-                        double wplDays =
-                            wplByEmployee.TryGetValue(
-                                employee.EmployeeCode,
-                                out var loadedWplDays)
-                                ? loadedWplDays
-                                : 0;
-
-                        wplDays =
-                            Math.Max(0, Math.Min(wplDays, daysInMonth));
-
-                        double perDay =
-                            daysInMonth > 0
-                                ? employee.OriginalBasic / daysInMonth
-                                : 0;
-
-                        double payableBasic =
-                            Math.Round(
-                                Math.Max(
-                                    0,
-                                    employee.OriginalBasic -
-                                    (perDay * wplDays)),
-                                2);
-
-                        double totalAllowance = 0;
-
-                        if (allowancesByEmployee.TryGetValue(
-                                employee.EmployeeCode,
-                                out var allowanceRows))
-                        {
-                            foreach (var allowance in allowanceRows)
-                            {
-                                double amount =
-                                    allowance.Amount > 0
-                                        ? allowance.Amount
-                                        : allowance.Percent > 0
-                                            ? payableBasic *
-                                              allowance.Percent / 100.0
-                                            : 0;
-
-                                totalAllowance += Math.Round(amount, 2);
-                            }
-                        }
-
-                        totalAllowance = Math.Round(totalAllowance, 2);
-
-                        double grossSalary =
-                            Math.Round(
-                                payableBasic + totalAllowance,
-                                2);
-
-                        monthGrossTotal += grossSalary;
-                    }
-
-                    monthGrossTotal = Math.Round(monthGrossTotal, 2);
+                    double monthGrossTotal =
+                        paytrnGrossByMonth.TryGetValue(
+                            monthKey,
+                            out var savedGross)
+                            ? Math.Round(savedGross, 2)
+                            : 0;
 
                     model.MonthlyGrossSalaries.Add(
                         new MonthlyGrossSalaryChartViewModel
                         {
-                            Year = monthStart.Year,
-                            Month = monthStart.Month,
-                            MonthName = monthStart.ToString(
+                            Year = monthCursor.Year,
+                            Month = monthCursor.Month,
+                            MonthName = monthCursor.ToString(
                                 "MMMM yyyy",
                                 System.Globalization.CultureInfo.InvariantCulture),
                             GrossSalary = monthGrossTotal

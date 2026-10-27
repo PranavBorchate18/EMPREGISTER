@@ -1,0 +1,154 @@
+﻿```cshtml
+@model Employee_Management_System.Models.IncomeTaxViewModel
+
+@{
+    ViewData["Title"] = "Form 16 - Salary Tax Summary";
+    int nextFY = Model.FinancialYear + 1;
+}
+
+<div class="container-fluid py-4">
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-primary text-white py-3">
+            <h4 class="mb-1">Form 16</h4>
+            <div>Employee Salary &amp; Tax Summary</div>
+        </div>
+
+        <div class="card-body">
+            <form method="get"
+                  asp-controller="IncomeTax"
+                  asp-action="Form16"
+                  class="row g-3 align-items-end">
+
+                <div class="col-md-5">
+                    <label class="form-label">Employee</label>
+                    <select name="employeeCode"
+                            class="form-select"
+                            asp-items="Model.Employees">
+                        <option value="">Select Employee</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Financial Year</label>
+                    <select name="financialYear" class="form-select">
+                        @for (int y = DateTime.Today.Year;
+                                                y >= DateTime.Today.Year - 10;
+                                                y--)
+                        {
+                            <option value="@y"
+                                    selected="@(Model.FinancialYear == y)">
+                                @y-@(y + 1)
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-1"></i> View Salary
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.EmployeeCode > 0)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+
+                <div class="d-flex justify-content-between flex-wrap mb-4">
+                    <div>
+                        <h5 class="mb-1">@Model.EmployeeName</h5>
+
+                        <div class="text-muted">
+                            Employee Code: @Model.EmployeeCode
+                        </div>
+
+                        <div class="text-muted">
+                            PAN:
+                            @(string.IsNullOrWhiteSpace(Model.PAN)
+                                                    ? "Not available"
+                                                    : Model.PAN)
+                    </div>
+                </div>
+
+                    <div class="text-md-end mt-3 mt-md-0">
+                        <div class="text-muted">Financial Year</div>
+                        <h5>@Model.FinancialYear-@nextFY</h5>
+                    </div>
+                </div>
+
+            @if (!Model.SalaryDataAvailable)
+                {
+                    <div class="alert alert-warning">
+                        No saved salary records are available for this
+                        employee for the selected financial year.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Salary Particulars</th>
+                                    <th class="text-end">Amount (₹)</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        Annual Basic Salary — Saved Payroll Total
+                                    </td>
+                                    <td class="text-end">
+                                        @Model.AnnualBasic.ToString("N2")
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>
+                                        Annual Allowances — Saved Payroll Total
+                                    </td>
+                                    <td class="text-end">
+                                        @Model.AnnualAllowance.ToString("N2")
+                                    </td>
+                                </tr>
+
+                                <tr class="table-primary fw-bold">
+                                    <td>Annual Gross Salary Summary</td>
+                                    <td class="text-end">
+                                        @Model.AnnualGrossSalary.ToString("N2")
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>Verified TDS</td>
+                                    <td class="text-end">Not configured</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <div class="alert alert-info mt-3">
+                    <strong>Draft / Preview Only:</strong>
+                    @Model.Notice
+                    This summary is not an official Form 16.
+                    An official certificate should be issued only after
+                    verifying TDS, taxable income, exemptions, deductions,
+                    and tax calculations.
+                </div>
+
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> Print Preview
+                </button>
+
+            </div>
+        </div>
+    }
+</div>
+```
