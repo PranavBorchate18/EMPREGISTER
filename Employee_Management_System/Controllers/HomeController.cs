@@ -26,7 +26,7 @@ namespace Employee_Management_System.Controllers
 
         [HttpGet]
         public async Task<IActionResult> Index(
-            int? divisionCode = null,
+            int? branchCode = null,
             int? gradeCode = null,
             string gender = "",
             int? salaryYear = null,
@@ -37,7 +37,7 @@ namespace Employee_Management_System.Controllers
         {
             var model = new EmployeeDashboardViewModel
             {
-                SelectedDivision = divisionCode,
+                SelectedBranch = branchCode,
                 SelectedGrade = gradeCode,
                 SelectedGender = (gender ?? "").Trim().ToUpperInvariant()
             };
@@ -119,7 +119,7 @@ FROM dbo.[SYSTEM];";
     INNER JOIN dbo.brncmast B
         ON B.code = P.brnc_code
     WHERE P.[type] IN (1,2,3,4,5)
-      AND (@DivisionCode IS NULL OR B.Tcode = @DivisionCode)
+      AND (@BranchCode IS NULL OR P.brnc_code = @BranchCode)
       AND (@GradeCode IS NULL OR P.grad_Code = @GradeCode)
       AND (@Gender = '' OR UPPER(LTRIM(RTRIM(ISNULL(P.sex, '')))) = @Gender)
 ),
@@ -144,7 +144,7 @@ FROM ActiveEmployees A
 LEFT JOIN WorkingDateAbsent W
     ON W.code = A.code;";
 
-                    AddParameter(command, "@DivisionCode", divisionCode);
+                    AddParameter(command, "@BranchCode", branchCode);
                     AddParameter(command, "@GradeCode", gradeCode);
                     AddParameter(command, "@Gender", model.SelectedGender);
                     AddParameter(command, "@WorkingDate", workingDate);
@@ -158,43 +158,6 @@ LEFT JOIN WorkingDateAbsent W
                         model.FemaleEmployees = GetInt(reader, "FemaleEmployees");
                         model.TodayPresentEmployees = GetInt(reader, "TodayPresentEmployees");
                         model.TodayAbsentEmployees = GetInt(reader, "TodayAbsentEmployees");
-                    }
-                }
-
-                // 3. Division dropdown - MAIN Dashboard filter
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = @"
-;WITH DivisionOptions AS
-(
-    SELECT
-        TRY_CONVERT(INT, D.code) AS code,
-        LTRIM(RTRIM(ISNULL(D.name, ''))) AS name
-    FROM dbo.Division_Master D
-    WHERE TRY_CONVERT(INT, D.code) IS NOT NULL
-
-    UNION
-
-    SELECT DISTINCT
-        TRY_CONVERT(INT, B.Tcode) AS code,
-        CONCAT('Division ', TRY_CONVERT(INT, B.Tcode)) AS name
-    FROM dbo.brncmast B
-    WHERE TRY_CONVERT(INT, B.Tcode) IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM dbo.Division_Master)
-)
-SELECT code, name
-FROM DivisionOptions
-ORDER BY code, name;";
-
-                    using var reader = await command.ExecuteReaderAsync();
-
-                    while (await reader.ReadAsync())
-                    {
-                        model.Divisions.Add(new EmployeeDashboardOptionViewModel
-                        {
-                            Value = Convert.ToInt32(reader["code"]),
-                            Text = Convert.ToString(reader["name"])?.Trim() ?? ""
-                        });
                     }
                 }
 
@@ -238,34 +201,38 @@ ORDER BY name, code;";
                     }
                 }
 
-                // 5. Division Wise Employee chart
-                // Data source: dbo.PayMast joined to dbo.brncmast by branch code.
-                // Division is identified by brncmast.Tcode.
+                // 5. Employee pie chart  (source: dbo.PayMast)
+                // Branch = Select All  -> one slice per Branch
+                // Branch = selected    -> one slice per Grade of that branch
+                // Grade / Gender filters are applied on top.
+                bool groupByGrade = branchCode.HasValue;
+                model.ChartGroupBy = groupByGrade ? "Grade" : "Branch";
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 120;
-                    command.CommandText = @"
-SELECT
-    TRY_CONVERT(INT,B.Tcode) AS DivisionCode,
-    COALESCE(
-        NULLIF(MAX(LTRIM(RTRIM(D.name))), ''),
-        CONCAT('Division ', TRY_CONVERT(INT,B.Tcode))
-    ) AS DivisionName,
-    COUNT(P.code) AS EmployeeCount
-FROM dbo.brncmast B
-LEFT JOIN dbo.Division_Master D
-    ON TRY_CONVERT(INT,D.code) = TRY_CONVERT(INT,B.Tcode)
-LEFT JOIN dbo.PayMast P
-    ON TRY_CONVERT(INT,P.brnc_code) = TRY_CONVERT(INT,B.code)
-   AND (@GradeCode IS NULL OR TRY_CONVERT(INT,P.grad_Code) = @GradeCode)
-   AND (@Gender = '' OR UPPER(LTRIM(RTRIM(ISNULL(P.sex,'')))) = @Gender)
-WHERE TRY_CONVERT(INT,B.Tcode) IS NOT NULL
-  AND (@DivisionCode IS NULL OR TRY_CONVERT(INT,B.Tcode) = @DivisionCode)
-GROUP BY TRY_CONVERT(INT,B.Tcode)
-HAVING COUNT(P.code) > 0
-ORDER BY TRY_CONVERT(INT,B.Tcode);";
 
-                    AddParameter(command, "@DivisionCode", divisionCode);
+                    string keyCol = groupByGrade ? "P.grad_Code" : "P.brnc_code";
+                    string nameExpr = groupByGrade
+                        ? "ISNULL(NULLIF(MAX(LTRIM(RTRIM(G.name))), ''), CONCAT('Grade ', P.grad_Code))"
+                        : "ISNULL(NULLIF(MAX(LTRIM(RTRIM(B.name))), ''), CONCAT('Branch ', P.brnc_code))";
+
+                    command.CommandText = $@"
+SELECT
+    ISNULL(TRY_CONVERT(INT,{keyCol}),0) AS GroupCode,
+    {nameExpr} AS GroupName,
+    COUNT(*) AS EmployeeCount
+FROM dbo.PayMast P
+LEFT JOIN dbo.brncmast B ON TRY_CONVERT(INT,B.code) = TRY_CONVERT(INT,P.brnc_code)
+LEFT JOIN dbo.gradmast G ON TRY_CONVERT(INT,G.code) = TRY_CONVERT(INT,P.grad_Code)
+WHERE P.[type] IN (1,2,3,4,5)
+  AND (@BranchCode IS NULL OR TRY_CONVERT(INT,P.brnc_code) = @BranchCode)
+  AND (@GradeCode  IS NULL OR TRY_CONVERT(INT,P.grad_Code) = @GradeCode)
+  AND (@Gender = '' OR UPPER(LTRIM(RTRIM(ISNULL(P.sex,'')))) = @Gender)
+GROUP BY {keyCol}
+ORDER BY GroupName;";
+
+                    AddParameter(command, "@BranchCode", branchCode);
                     AddParameter(command, "@GradeCode", gradeCode);
                     AddParameter(command, "@Gender", model.SelectedGender);
 
@@ -274,47 +241,46 @@ ORDER BY TRY_CONVERT(INT,B.Tcode);";
                     {
                         model.BranchWiseEmployees.Add(new BranchEmployeeChartViewModel
                         {
-                            BranchCode = GetInt(reader, "DivisionCode"),
-                            BranchName = Convert.ToString(reader["DivisionName"])?.Trim() ?? "",
+                            BranchCode = GetInt(reader, "GroupCode"),
+                            BranchName = Convert.ToString(reader["GroupName"])?.Trim() ?? "",
                             EmployeeCount = GetInt(reader, "EmployeeCount")
                         });
                     }
                 }
 
-                // 6. Division Wise Salary pie chart
-                // Data source: saved payroll rows in dbo.paytrn for selected year/month.
-                // Gross Salary = paytrn.basic + paytrn.tot_allw.
+                // 6. Salary pie chart  (source: dbo.paytrn for selected year / month)
+                // Gross Salary = paytrn.basic + paytrn.tot_allw
+                // Same grouping rule as the employee pie chart.
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 120;
-                    command.CommandText = @"
+
+                    string keyCol = groupByGrade ? "P.grad_Code" : "T.brnc";
+                    string nameExpr = groupByGrade
+                        ? "ISNULL(NULLIF(MAX(LTRIM(RTRIM(G.name))), ''), CONCAT('Grade ', P.grad_Code))"
+                        : "ISNULL(NULLIF(MAX(LTRIM(RTRIM(B.name))), ''), CONCAT('Branch ', T.brnc))";
+
+                    command.CommandText = $@"
 SELECT
-    TRY_CONVERT(INT,B.Tcode) AS DivisionCode,
-    COALESCE(
-        NULLIF(MAX(LTRIM(RTRIM(D.name))), ''),
-        CONCAT('Division ', TRY_CONVERT(INT,B.Tcode))
-    ) AS DivisionName,
+    ISNULL(TRY_CONVERT(INT,{keyCol}),0) AS GroupCode,
+    {nameExpr} AS GroupName,
     SUM(ISNULL(TRY_CONVERT(FLOAT,T.basic),0)
       + ISNULL(TRY_CONVERT(FLOAT,T.tot_allw),0)) AS GrossSalary
 FROM dbo.paytrn T
-INNER JOIN dbo.brncmast B
-    ON TRY_CONVERT(INT,B.code) = TRY_CONVERT(INT,T.brnc)
-LEFT JOIN dbo.Division_Master D
-    ON TRY_CONVERT(INT,D.code) = TRY_CONVERT(INT,B.Tcode)
-LEFT JOIN dbo.PayMast P
-    ON TRY_CONVERT(INT,P.code) = TRY_CONVERT(INT,T.code)
-WHERE TRY_CONVERT(INT,T.[year]) = @SalaryYear
+LEFT JOIN dbo.PayMast P ON TRY_CONVERT(INT,P.code) = TRY_CONVERT(INT,T.code)
+LEFT JOIN dbo.brncmast B ON TRY_CONVERT(INT,B.code) = TRY_CONVERT(INT,T.brnc)
+LEFT JOIN dbo.gradmast G ON TRY_CONVERT(INT,G.code) = TRY_CONVERT(INT,P.grad_Code)
+WHERE TRY_CONVERT(INT,T.[year])  = @SalaryYear
   AND TRY_CONVERT(INT,T.[month]) = @SalaryMonth
-  AND TRY_CONVERT(INT,B.Tcode) IS NOT NULL
-  AND (@DivisionCode IS NULL OR TRY_CONVERT(INT,B.Tcode) = @DivisionCode)
-  AND (@GradeCode IS NULL OR TRY_CONVERT(INT,P.grad_Code) = @GradeCode)
+  AND (@BranchCode IS NULL OR TRY_CONVERT(INT,T.brnc) = @BranchCode)
+  AND (@GradeCode  IS NULL OR TRY_CONVERT(INT,P.grad_Code) = @GradeCode)
   AND (@Gender = '' OR UPPER(LTRIM(RTRIM(ISNULL(P.sex,'')))) = @Gender)
-GROUP BY TRY_CONVERT(INT,B.Tcode)
-ORDER BY TRY_CONVERT(INT,B.Tcode);";
+GROUP BY {keyCol}
+ORDER BY GroupName;";
 
                     AddParameter(command, "@SalaryYear", model.SelectedSalaryYear);
                     AddParameter(command, "@SalaryMonth", model.SelectedSalaryMonth);
-                    AddParameter(command, "@DivisionCode", divisionCode);
+                    AddParameter(command, "@BranchCode", branchCode);
                     AddParameter(command, "@GradeCode", gradeCode);
                     AddParameter(command, "@Gender", model.SelectedGender);
 
@@ -323,8 +289,8 @@ ORDER BY TRY_CONVERT(INT,B.Tcode);";
                     {
                         model.BranchWiseSalaries.Add(new BranchSalaryChartViewModel
                         {
-                            BranchCode = GetInt(reader, "DivisionCode"),
-                            BranchName = Convert.ToString(reader["DivisionName"])?.Trim() ?? "",
+                            BranchCode = GetInt(reader, "GroupCode"),
+                            BranchName = Convert.ToString(reader["GroupName"])?.Trim() ?? "",
                             Salary = GetDouble(reader, "GrossSalary")
                         });
                     }

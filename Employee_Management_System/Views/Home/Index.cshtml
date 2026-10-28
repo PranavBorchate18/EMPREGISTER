@@ -153,18 +153,18 @@
     <form method="get" asp-controller="Home" asp-action="Index" class="filter-panel mb-3">
         <div class="row g-2 align-items-end">
             <div class="col-md-4">
-                <label class="form-label">DIVISION</label>
-                <select class="form-select" name="divisionCode">
-                    <option value="">-- Select Division --</option>
-                    @foreach (var division in Model.Divisions)
+                <label class="form-label">BRANCH</label>
+                <select class="form-select" name="branchCode">
+                    <option value="">Select All</option>
+                    @foreach (var branch in Model.Branches)
                     {
-                        if (Model.SelectedDivision == division.Value)
+                        if (Model.SelectedBranch == branch.Value)
                         {
-                            <option value="@division.Value" selected>@division.Text</option>
+                            <option value="@branch.Value" selected>@branch.Text</option>
                         }
                         else
                         {
-                            <option value="@division.Value">@division.Text</option>
+                            <option value="@branch.Value">@branch.Text</option>
                         }
                     }
                 </select>
@@ -173,7 +173,7 @@
             <div class="col-md-4">
                 <label class="form-label">GRADE</label>
                 <select class="form-select" name="gradeCode">
-                    <option value="">-- Select Grade --</option>
+                    <option value="">Select All</option>
                     @foreach (var grade in Model.Grades)
                     {
                         if (Model.SelectedGrade == grade.Value)
@@ -219,7 +219,7 @@
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="chart-card">
-                <div class="chart-title">Division Wise Employee</div>
+                <div class="chart-title">@Model.ChartGroupBy Wise Employee</div>
 
                 <div class="chart-container">
                     <canvas id="branchEmployeeChart"></canvas>
@@ -230,7 +230,7 @@
         <div class="col-lg-6">
             <div class="chart-card">
                 <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
-                    <div class="chart-title mb-0">Division Wise Salary</div>
+                    <div class="chart-title mb-0">@Model.ChartGroupBy Wise Salary</div>
 
                     <form method="get"
                           asp-controller="Home"
@@ -238,7 +238,7 @@
                           id="salaryMonthForm"
                           class="salary-month-filter">
 
-                        <input type="hidden" name="divisionCode" value="@Model.SelectedDivision" />
+                        <input type="hidden" name="branchCode" value="@Model.SelectedBranch" />
                         <input type="hidden" name="gradeCode" value="@Model.SelectedGrade" />
                         <input type="hidden" name="gender" value="@Model.SelectedGender" />
                         <input type="hidden" name="salaryYear" value="@Model.SelectedSalaryYear" />
@@ -290,7 +290,7 @@
               asp-action="Index"
               class="gross-salary-filter mb-3">
 
-            <input type="hidden" name="divisionCode" value="@Model.SelectedDivision" />
+            <input type="hidden" name="branchCode" value="@Model.SelectedBranch" />
             <input type="hidden" name="gradeCode" value="@Model.SelectedGrade" />
             <input type="hidden" name="gender" value="@Model.SelectedGender" />
             <input type="hidden" name="salaryYear" value="@Model.SelectedSalaryYear" />
@@ -698,45 +698,45 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
         <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                if (typeof Chart === 'undefined') {
-                    console.error('Chart.js could not be loaded. Check internet/CDN access.');
+                document.addEventListener('DOMContentLoaded', function () {
+                    if (typeof Chart === 'undefined') {
+                        console.error('Chart.js could not be loaded. Check internet/CDN access.');
 
-                    document.querySelectorAll('.chart-container').forEach(function (container) {
-                        if (!container.querySelector('.chart-load-error')) {
-                            const message = document.createElement('div');
-                            message.className = 'chart-load-error text-danger small text-center py-4';
-                            message.textContent = 'Chart could not load. Please check Chart.js / internet connection.';
-                            container.appendChild(message);
-                        }
-                    });
+                        document.querySelectorAll('.chart-container').forEach(function (container) {
+                            if (!container.querySelector('.chart-load-error')) {
+                                const message = document.createElement('div');
+                                message.className = 'chart-load-error text-danger small text-center py-4';
+                                message.textContent = 'Chart could not load. Please check Chart.js / internet connection.';
+                                container.appendChild(message);
+                            }
+                        });
 
-                    return;
-                }
+                        return;
+                    }
 
-                const employeeLabels =
-                    @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                        Model.BranchWiseEmployees.Select(x => x.BranchName).ToArray()));
+                    const employeeLabels =
+                        @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                            Model.BranchWiseEmployees.Select(x => x.BranchName).ToArray()));
 
             const employeeValues =
                 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                        Model.BranchWiseEmployees.Select(x => x.EmployeeCount).ToArray()));
+                                                                                Model.BranchWiseEmployees.Select(x => x.EmployeeCount).ToArray()));
 
             const salaryLabels =
                 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                        Model.BranchWiseSalaries.Select(x => x.BranchName).ToArray()));
+                                                                                Model.BranchWiseSalaries.Select(x => x.BranchName).ToArray()));
 
             const salaryValues =
                 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                        Model.BranchWiseSalaries.Select(x => x.Salary).ToArray()));
+                                                                                Model.BranchWiseSalaries.Select(x => x.Salary).ToArray()));
 
             const grossSalaryLabels =
                 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                        Model.MonthlyGrossSalaries.Select(x => x.MonthName).ToArray()));
+                                                                                Model.MonthlyGrossSalaries.Select(x => x.MonthName).ToArray()));
 
             const grossSalaryValues =
                 @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                                        Model.MonthlyGrossSalaries.Select(x => x.GrossSalary).ToArray()));
+                                                                                Model.MonthlyGrossSalaries.Select(x => x.GrossSalary).ToArray()));
 
             const chartColors = [
                 '#0d6efd',

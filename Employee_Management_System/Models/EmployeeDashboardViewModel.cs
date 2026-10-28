@@ -12,10 +12,13 @@ namespace Employee_Management_System.Models
         public int TodayPresentEmployees { get; set; }
         public int TodayAbsentEmployees { get; set; }
 
-        // Main Dashboard filter
-        public int? SelectedDivision { get; set; }
+        // Main Dashboard filter (null = Select All)
+        public int? SelectedBranch { get; set; }
         public int? SelectedGrade { get; set; }
         public string SelectedGender { get; set; } = "";
+
+        // "Branch" when all branches are shown, "Grade" when one branch is selected
+        public string ChartGroupBy { get; set; } = "Branch";
 
         public int SelectedSalaryYear { get; set; }
         public int SelectedSalaryMonth { get; set; }

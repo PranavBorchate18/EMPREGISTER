@@ -5,682 +5,105 @@
 }
 
 <div class="container-fluid py-3">
-
     <div class="card shadow-sm">
-
         <div class="card-header bg-white">
-
-            <h4 class="mb-1">
-                <i class="bi bi-calendar-plus me-2"></i>
-                Leave Credit
-            </h4>
-
-            <small class="text-muted">
-                Select year, leave type, number of days
-                and then choose branches and employees
-            </small>
-
+            <h4 class="mb-1"><i class="bi bi-calendar-plus me-2"></i>Leave Credit</h4>
+            <small class="text-muted">Select year, leave type, number of days and then choose employees.</small>
         </div>
-
-
         <div class="card-body">
-
             <form id="leaveCreditForm">
-
                 @Html.AntiForgeryToken()
-
-
-                <!-- =============================================
-                     TOP FILTERS
-                     ============================================= -->
-
                 <div class="row g-3 mb-4">
-
-                    <!-- YEAR -->
                     <div class="col-md-4">
-
-                        <label class="form-label fw-bold">
-                            Selected Year
-                            <span class="text-danger">*</span>
-                        </label>
-
-                        <select asp-for="SelectedYear"
-                                id="SelectedYear"
-                                class="form-select">
-
-                            <option value="">
-                                Select Year
-                            </option>
-
-                            @for (
-                                                        int year = DateTime.Now.Year - 2;
-                                                        year <= DateTime.Now.Year + 5;
-                                                        year++)
+                        <label class="form-label fw-bold">Selected Year <span class="text-danger">*</span></label>
+                        <select asp-for="SelectedYear" id="SelectedYear" class="form-select">
+                            <option value="">Select Year</option>
+                            @for (int year = DateTime.Now.Year - 2; year <= DateTime.Now.Year + 5; year++)
                             {
-                                <option value="@year">
-                                    @year
-                                </option>
+                                <option value="@year">@year</option>
                             }
-
                         </select>
-
                     </div>
-
-
-                    <!-- LEAVE TYPE -->
                     <div class="col-md-4">
-
-                        <label class="form-label fw-bold">
-                            Leave Type
-                            <span class="text-danger">*</span>
-                        </label>
-
-                        <select asp-for="LeaveCode"
-                                asp-items="Model.LeaveTypes"
-                                id="LeaveCode"
-                                class="form-select">
-
-                            <option value="">
-                                Select Leave Type
-                            </option>
-
+                        <label class="form-label fw-bold">Leave Type <span class="text-danger">*</span></label>
+                        <select asp-for="LeaveCode" asp-items="Model.LeaveTypes" id="LeaveCode" class="form-select">
+                            <option value="">Select Leave Type</option>
                         </select>
-
-                        <small id="maternityLeaveNote"
-                               class="text-success d-none">
-                            Maternity Leave: only Female employees will be shown and eligible for credit.
-                        </small>
-
+                        <small id="maternityLeaveNote" class="text-success d-none">Maternity Leave: only Female employees will be shown and eligible for credit.</small>
                     </div>
-
-
-                    <!-- NUMBER OF DAYS -->
                     <div class="col-md-4">
-
-                        <label class="form-label fw-bold">
-                            Number of Days
-                            <span class="text-danger">*</span>
-                        </label>
-
-                        <input asp-for="NumberOfDays"
-                               id="NumberOfDays"
-                               type="number"
-                               min="0.5"
-                               step="0.5"
-                               class="form-control"
-                               placeholder="Enter Number of Days" />
-
-                        <div id="leaveLimitInfo" class="mt-1" style="display:none;">
-                            <small class="text-primary">
-                                <i class="bi bi-info-circle-fill me-1"></i>
-                                Maximum allowed:
-                                <strong id="leaveLimitValue"></strong>
-                                day(s)
-                            </small>
-                        </div>
-
-                        <div id="leaveLimitError"
-                             class="text-danger small mt-1"
-                             style="display:none;">
-                            <i class="bi bi-exclamation-circle-fill me-1"></i>
-                            <span id="leaveLimitErrorText"></span>
-                        </div>
-
+                        <label class="form-label fw-bold">Number of Days <span class="text-danger">*</span></label>
+                        <input asp-for="NumberOfDays" id="NumberOfDays" type="number" min="0.5" step="0.5" class="form-control" placeholder="Enter Number of Days" />
+                        <div id="leaveLimitInfo" class="mt-1" style="display:none"><small class="text-primary"><i class="bi bi-info-circle-fill me-1"></i>Maximum allowed: <strong id="leaveLimitValue"></strong> day(s)</small></div>
+                        <div id="leaveLimitError" class="text-danger small mt-1" style="display:none"><i class="bi bi-exclamation-circle-fill me-1"></i><span id="leaveLimitErrorText"></span></div>
                     </div>
-
                 </div>
 
-
-                <!-- =============================================
-                     BRANCH LIST
-                     ============================================= -->
-
-                <div class="branch-list-section mb-4">
-
-                    <div class="d-flex
-                                justify-content-between
-                                align-items-center
-                                flex-wrap
-                                gap-3">
-
-                        <div>
-
-                            <h5 class="mb-1">
-
-                                <i class="bi bi-buildings-fill me-2"></i>
-
-                                Branch List
-
-                            </h5>
-
-                            <small class="text-muted">
-
-                                Click on a branch to view its employees
-
-                            </small>
-
-                        </div>
-
-
-                        <!-- =====================================
-                             GLOBAL SELECT ALL
-                             ===================================== -->
-
-                        <div class="global-select-all-box">
-
-                            <div class="form-check mb-0">
-
-                                <input type="checkbox"
-                                       class="form-check-input"
-                                       id="selectAllBranches" />
-
-                                <label class="form-check-label fw-bold"
-                                       for="selectAllBranches">
-
-                                    Select All
-
-                                </label>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- BRANCH CARDS -->
-
-                    <div class="row g-3 mt-1">
-
-                        @if (Model.Branches != null &&
-                                                Model.Branches.Count > 0)
-                        {
-                            foreach (var branch in Model.Branches)
-                            {
-                                <div class="col-12">
-
-                                    <div class="branch-card"
-                                         data-branch-code="@branch.BranchCode"
-                                         data-branch-name="@branch.BranchName"
-                                         data-total-employees="@branch.EmployeeCount">
-
-                                        <div class="branch-code">
-
-                                            @branch.BranchCode
-
-                                        </div>
-
-
-                                        <div class="branch-info">
-
-                                            <div class="branch-name">
-
-                                                @branch.BranchName
-
-                                            </div>
-
-
-                                            <div class="branch-employee-count">
-
-                                                <i class="bi bi-people-fill me-1"></i>
-
-                                                @branch.EmployeeCount Employees
-
-                                            </div>
-
-
-                                            <div class="branch-selection-info">
-
-                                                <span>
-
-                                                    Total:
-
-                                                    <strong>
-                                                        @branch.EmployeeCount
-                                                    </strong>
-
-                                                </span>
-
-                                                <span>|</span>
-
-                                                <span>
-
-                                                    Selected:
-
-                                                    <strong class="branch-selected-count"
-                                                            data-branch-count="@branch.BranchCode">
-                                                        0
-                                                    </strong>
-
-                                                </span>
-
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-
-                                </div>
-                            }
-                        }
-                        else
-                        {
-                            <div class="col-12">
-
-                                <div class="alert alert-warning mb-0">
-
-                                    No branches found.
-
-                                </div>
-
-                            </div>
-                        }
-
-                    </div>
-
-                </div>
-
-
-                <!-- =============================================
-                     EMPLOYEE SECTION
-                     ============================================= -->
-
-                <div id="employeeSection"
-                     style="display:none;">
-
-                    <div class="border rounded">
-
-                        <div class="employee-header
-                                    d-flex
-                                    justify-content-between
-                                    align-items-center
-                                    flex-wrap
-                                    gap-3
-                                    p-3">
-
-                            <h5 class="mb-0">
-
-                                <i class="bi bi-people-fill me-2"></i>
-
-                                Employee List -
-
-                                <span id="selectedBranchName"></span>
-
-                                <small class="text-muted">
-
-                                    (
-                                    <span id="branchEmployeeCount">0</span>
-                                    Employees)
-
-                                </small>
-
-                            </h5>
-
-
+                <div class="border rounded">
+                    <div class="employee-header p-3">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div><h5 class="mb-1"><i class="bi bi-people-fill me-2"></i>Employee List</h5><small class="text-muted">Select all employees or select employees individually.</small></div>
                             <div class="employee-search">
-
-                                <div class="input-group">
-
-                                    <span class="input-group-text bg-white">
-
-                                        <i class="bi bi-search"></i>
-
-                                    </span>
-
-                                    <input type="text"
-                                           id="employeeSearch"
-                                           class="form-control"
-                                           placeholder="Search by Employee Code or Name..." />
-
-                                </div>
-
+                                <div class="input-group"><span class="input-group-text bg-white"><i class="bi bi-search"></i></span><input type="text" id="employeeSearch" class="form-control" placeholder="Search by Employee Code or Name..." disabled /></div>
                             </div>
-
                         </div>
-
-
-                        <div class="table-responsive px-3">
-
-                            <table class="table
-                                          table-bordered
-                                          table-hover
-                                          align-middle
-                                          mb-2">
-
-                                <thead class="table-light">
-
-                                    <tr>
-
-                                        <th style="width:180px;">
-
-                                            <div class="form-check">
-
-                                                <!-- Current page only -->
-
-                                                <input type="checkbox"
-                                                       class="form-check-input"
-                                                       id="selectAll" />
-
-                                                <label class="form-check-label fw-bold"
-                                                       for="selectAll">
-
-                                                    Select All
-
-                                                </label>
-
-                                            </div>
-
-                                        </th>
-
-
-                                        <th style="width:250px;">
-
-                                            Employee Code
-
-                                        </th>
-
-
-                                        <th>
-
-                                            Employee Name
-
-                                        </th>
-
-                                    </tr>
-
-                                </thead>
-
-
-                                <tbody id="employeeTableBody">
-                                </tbody>
-
-                            </table>
-
+                        <div class="form-check select-all-top mt-3">
+                            <input type="checkbox" class="form-check-input" id="selectAllEmployees" disabled />
+                            <label class="form-check-label fw-bold" for="selectAllEmployees">Select All Employees</label>
+                            <span class="text-muted small ms-2" id="selectAllHint">Select year and leave type to load employees.</span>
                         </div>
-
-
-                        <div class="employee-footer
-                                    d-flex
-                                    justify-content-between
-                                    align-items-center
-                                    flex-wrap
-                                    gap-3
-                                    px-3
-                                    py-3">
-
-                            <div>
-
-                                Total Employees:
-
-                                <strong id="totalEmployeeCount">
-                                    0
-                                </strong>
-
-                                <span class="mx-2">|</span>
-
-                                Selected Employees:
-
-                                <strong id="selectedEmployeeCount">
-                                    0
-                                </strong>
-
-                            </div>
-
-
-                            <nav>
-
-                                <ul id="employeePagination"
-                                    class="pagination pagination-sm mb-0">
-                                </ul>
-
-                            </nav>
-
-                        </div>
-
                     </div>
-
-
-                    <div class="all-selected-box mt-3">
-
-                        <i class="bi bi-people-fill me-2"></i>
-
-                        Total Selected Employees from All Branches:
-
-                        <strong id="allBranchSelectedCount">
-                            0
-                        </strong>
-
+                    <div class="table-responsive px-3">
+                        <table class="table table-bordered table-hover align-middle mb-2">
+                            <thead class="table-light"><tr><th style="width:80px">Select</th><th style="width:220px">Employee Code</th><th>Employee Name</th><th style="width:170px">Joining Date</th></tr></thead>
+                            <tbody id="employeeTableBody"><tr><td colspan="4" class="text-center text-muted py-4">Please select year and leave type to load employees.</td></tr></tbody>
+                        </table>
                     </div>
-
-
+                    <div class="employee-footer d-flex justify-content-between align-items-center flex-wrap gap-3 px-3 py-3">
+                        <div>Total Employees: <strong id="totalEmployeeCount">0</strong><span class="mx-2">|</span>Selected Employees: <strong id="selectedEmployeeCount">0</strong></div>
+                        <nav aria-label="Employee pagination"><ul id="employeePagination" class="pagination pagination-sm mb-0"></ul></nav>
+                    </div>
                 </div>
 
-                <!-- SAVE BUTTON AT THE BOTTOM OF THE PAGE -->
-                <div class="leave-credit-save-footer text-end mt-4 pt-3">
-                    <button type="button"
-                            id="btnSaveLeaveCredit"
-                            class="btn btn-success px-4 py-2">
-                        <i class="bi bi-floppy-fill me-2"></i>
-                        Save Leave Credit
-                    </button>
-                </div>
-
+                <div class="all-selected-box mt-3"><i class="bi bi-people-fill me-2"></i>Total Selected Employees: <strong id="allSelectedCount">0</strong></div>
+                <div class="leave-credit-save-footer text-end mt-4 pt-3"><button type="button" id="btnSaveLeaveCredit" class="btn btn-success px-4 py-2"><i class="bi bi-floppy-fill me-2"></i>Save Leave Credit</button></div>
             </form>
-
         </div>
-
     </div>
-
 </div>
 
-
 <style>
-
-    /* =========================================================
-                       BRANCH LIST ROW LAYOUT (WITHOUT OUTER BOX)
-                       ========================================================= */
-
-    .branch-list-section {
-        width: 100%;
-        padding: 0;
-        border: 0;
-        background: transparent;
-    }
-
-        .branch-list-section .row {
-            margin-left: 0;
-            margin-right: 0;
-        }
-
-            .branch-list-section .row > [class*="col-"] {
-                padding-left: 0;
-                padding-right: 0;
-                margin-bottom: 8px;
-            }
-
-    .leave-credit-save-footer {
-        border-top: 1px solid #dee2e6;
-        background: #fff;
-        position: sticky;
-        bottom: 0;
-        z-index: 5;
-        padding-bottom: 12px;
-    }
-
-    /* =========================================================
-                       BRANCH CARD
-                       ========================================================= */
-
-    .branch-card {
-        min-height: 76px;
-        width: 100%;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 10px 16px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        cursor: pointer;
-        background: #fff;
-        transition: all .20s ease;
-    }
-
-        .branch-card:hover {
-            border-color: #0d6efd;
-            box-shadow: 0 4px 12px rgba(0,0,0,.08);
-            transform: translateY(-2px);
-        }
-
-        .branch-card.active {
-            border: 2px solid #0d6efd;
-            background: #f3f8ff;
-        }
-
-        .branch-card.all-selected {
-            border-color: #0d6efd;
-            background: #f3f8ff;
-        }
-
-
-    .branch-code {
-        flex: 0 0 44px;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: #e7f1ff;
-        color: #0d6efd;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 17px;
-    }
-
-
-    .branch-info {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 18px;
-    }
-
-
-    .branch-name {
-        font-size: 15px;
-        font-weight: 700;
-        margin-bottom: 0;
-        flex: 1;
-        min-width: 120px;
-    }
-
-
-    .branch-employee-count {
-        font-size: 14px;
-        color: #6c757d;
-        margin-bottom: 0;
-        white-space: nowrap;
-    }
-
-
-    .branch-selection-info {
-        border-top: 0;
-        padding-top: 0;
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        font-size: 12px;
-        color: #6c757d;
-        white-space: nowrap;
-    }
-
-    @@media (max-width: 768px) {
-        /* existing CSS */
-    }
-
-    {
-        align-items: flex-start;
-    }
-
-    .branch-info {
-        flex-wrap: wrap;
-        gap: 6px 14px;
-    }
-
-    .branch-name {
-        flex-basis: 100%;
-        min-width: 0;
-    }
-
-    .branch-selection-info {
-        flex-wrap: wrap;
-    }
-
-    }
-
-
-    .branch-selected-count {
-        color: #198754 !important;
-        font-weight: 800;
-    }
-
-
-    /* =========================================================
-                       GLOBAL SELECT ALL
-                       ========================================================= */
-
-    .global-select-all-box {
-        border: 1px solid #dee2e6;
-        border-radius: 7px;
-        padding: 10px 16px;
-        background: #f8f9fa;
-        min-width: 130px;
-    }
-
-        .global-select-all-box:hover {
-            border-color: #0d6efd;
-            background: #f3f8ff;
-        }
-
-    #selectAllBranches {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-    }
-
-        #selectAllBranches + label {
-            cursor: pointer;
-        }
-
-
-    /* =========================================================
-                       EMPLOYEE
-                       ========================================================= */
-
     .employee-header {
         background: #f3f8ff;
         border-bottom: 1px solid #dee2e6;
     }
-
 
     .employee-search {
         width: 350px;
         max-width: 100%;
     }
 
-
     .employee-footer {
         background: #fafafa;
     }
 
-
-    .employee-checkbox {
+    .employee-checkbox, #selectAllEmployees {
         cursor: pointer;
         width: 17px;
         height: 17px;
     }
 
+    .select-all-top {
+        border: 1px solid #dee2e6;
+        border-radius: 7px;
+        padding: 12px 14px 12px 38px;
+        background: #fff;
+    }
+
+        .select-all-top:hover {
+            border-color: #0d6efd;
+            background: #f8fbff;
+        }
 
     .all-selected-box {
         background: #e9f9ef;
@@ -691,2340 +114,221 @@
         text-align: center;
     }
 
+    .leave-credit-save-footer {
+        border-top: 1px solid #dee2e6;
+        background: #fff;
+        position: sticky;
+        bottom: 0;
+        z-index: 5;
+        padding-bottom: 12px;
+    }
 </style>
 
-
-@section Scripts
-{
+@section Scripts {
     <script>
-
         $(document).ready(function () {
-
             const employeesPerPage = 20;
-
             let employees = [];
-
             let currentPage = 1;
-
-            let currentBranchCode = null;
-
-            const selectedEmployeesByBranch = {};
-
-
-            // =====================================================
-            // LEAVE LIMIT
-            // =====================================================
-
+            const selectedEmployeeCodes = new Set();
             let currentLeaveLimit = null;
             let currentLeaveName = "";
             let leaveLimitLoaded = false;
             let leaveLimitLoading = false;
+            let employeesLoading = false;
 
-
-            // =====================================================
-            // YEAR / LEAVE TYPE CHANGE
-            // =====================================================
-
-            $("#SelectedYear, #LeaveCode").on(
-                "change",
-                function () {
-
-                    clearSelectionMemory();
-
-                    $("#selectAllBranches")
-                        .prop("checked", false)
-                        .prop("indeterminate", false);
-
-                    $("#employeeSection")
-                        .hide();
-
-                    $(".branch-card")
-                        .removeClass(
-                            "active all-selected"
-                        );
-
-                    loadBranchSelectedCounts();
-                }
-            );
-
-
-            // =====================================================
-            // LEAVE LIMIT
-            // =====================================================
-
-            $("#LeaveCode").on("change", function () {
-                loadLeaveLimit();
+            $("#SelectedYear, #LeaveCode").on("change", function () {
+                selectedEmployeeCodes.clear();
+                currentPage = 1;
+                employees = [];
+                $("#employeeSearch").val("").prop("disabled", true);
+                $("#selectAllEmployees").prop("checked", false).prop("indeterminate", false).prop("disabled", true);
+                updateSelectedCounts();
+                loadEmployees();
             });
+            $("#LeaveCode").on("change", function () { loadLeaveLimit(); updateMaternityLeaveNote(); });
+            $("#NumberOfDays").on("input change", validateNumberOfDays);
+            $("#employeeSearch").on("input", function () { currentPage = 1; renderEmployeePage(); });
 
-            $("#NumberOfDays").on("input change", function () {
-                validateNumberOfDays();
-            });
-
-            function formatLeaveLimit(value) {
-                const number = Number(value);
-                if (!Number.isFinite(number)) return "";
-                return number.toString();
-            }
-
-            function hideLeaveLimitError() {
-                $("#leaveLimitError").hide();
-                $("#leaveLimitErrorText").text("");
-            }
-
-            function showLeaveLimitError(message) {
-                $("#leaveLimitErrorText").text(message || "");
-                $("#leaveLimitError").show();
-            }
-
-            function updateLeaveLimitSaveButton() {
-
-                const button = $("#btnSaveLeaveCredit");
-                const leaveCode = $("#LeaveCode").val();
-                const rawValue = $("#NumberOfDays").val();
-                const days = parseFloat(rawValue);
-
-                let disabled = false;
-
-                if (leaveLimitLoading) disabled = true;
+            function formatLeaveLimit(value) { const n = Number(value); return Number.isFinite(n) ? n.toString() : ""; }
+            function hideLeaveLimitError() { $("#leaveLimitError").hide(); $("#leaveLimitErrorText").text(""); }
+            function showLeaveLimitError(message) { $("#leaveLimitErrorText").text(message || ""); $("#leaveLimitError").show(); }
+            function updateSaveButtonState() {
+                const raw = $("#NumberOfDays").val(), days = parseFloat(raw), leaveCode = $("#LeaveCode").val();
+                let disabled = employeesLoading || leaveLimitLoading;
                 if (leaveCode && !leaveLimitLoaded) disabled = true;
-
-                if (rawValue && !isNaN(days) && days <= 0) {
-                    disabled = true;
-                }
-
-                if (
-                    leaveCode &&
-                    leaveLimitLoaded &&
-                    currentLeaveLimit !== null &&
-                    rawValue &&
-                    !isNaN(days) &&
-                    days > currentLeaveLimit
-                ) {
-                    disabled = true;
-                }
-
-                button.prop("disabled", disabled);
+                if (raw && !isNaN(days) && days <= 0) disabled = true;
+                if (leaveCode && leaveLimitLoaded && currentLeaveLimit !== null && raw && !isNaN(days) && days > currentLeaveLimit) disabled = true;
+                $("#btnSaveLeaveCredit").prop("disabled", disabled);
             }
 
             function loadLeaveLimit() {
-
                 const leaveCode = $("#LeaveCode").val();
-
-                currentLeaveLimit = null;
-                currentLeaveName = "";
-                leaveLimitLoaded = false;
-                leaveLimitLoading = false;
-
-                $("#NumberOfDays")
-                    .removeAttr("max")
-                    .removeClass("is-invalid");
-
-                $("#leaveLimitInfo").hide();
-                hideLeaveLimitError();
-
-                if (!leaveCode) {
-                    updateLeaveLimitSaveButton();
-                    return;
-                }
-
-                leaveLimitLoading = true;
-                updateLeaveLimitSaveButton();
-
+                currentLeaveLimit = null; currentLeaveName = ""; leaveLimitLoaded = false; leaveLimitLoading = false;
+                $("#NumberOfDays").removeAttr("max").removeClass("is-invalid"); $("#leaveLimitInfo").hide(); hideLeaveLimitError();
+                if (!leaveCode) { updateSaveButtonState(); return; }
+                leaveLimitLoading = true; updateSaveButtonState();
                 $.ajax({
-                    url: '@Url.Action("GetLeaveLimit", "LeaveCredit")',
-                    type: "GET",
-                    data: { leaveCode: leaveCode },
-
-                    success: function (response) {
-
+                    url:'@Url.Action("GetLeaveLimit", "LeaveCredit")', type:"GET", data:{leaveCode:leaveCode},
+                    success:function(response) {
                         leaveLimitLoading = false;
-
                         if (!response || response.success !== true) {
-
-                            if (response && response.sessionExpired === true) {
-                                window.location.href =
-                                    '@Url.Action("Login", "Account")';
-                                return;
-                            }
-
-                            showLeaveLimitError(
-                                response?.message ||
-                                "Unable to load Leave Limit."
-                            );
-
-                            updateLeaveLimitSaveButton();
-                            return;
+                            if (response && response.sessionExpired === true) { window.location.href='@Url.Action("Login", "Account")'; return; }
+                            showLeaveLimitError(response?.message || "Unable to load Leave Limit."); updateSaveButtonState(); return;
                         }
-
                         currentLeaveName = response.leaveName || "";
-
-                        if (
-                            response.leaveLimit === null ||
-                            response.leaveLimit === undefined
-                        ) {
-                            currentLeaveLimit = null;
-                            leaveLimitLoaded = false;
-
-                            showLeaveLimitError(
-                                "Leave limit is not configured for " +
-                                (currentLeaveName || "selected Leave Type") +
-                                "."
-                            );
-
-                            updateLeaveLimitSaveButton();
-                            return;
-                        }
-
+                        if (response.leaveLimit === null || response.leaveLimit === undefined) { showLeaveLimitError("Leave limit is not configured for " + (currentLeaveName || "selected Leave Type") + "."); updateSaveButtonState(); return; }
                         currentLeaveLimit = parseFloat(response.leaveLimit);
-
-                        if (isNaN(currentLeaveLimit)) {
-                            currentLeaveLimit = null;
-                            leaveLimitLoaded = false;
-
-                            showLeaveLimitError(
-                                "Invalid Leave Limit configuration."
-                            );
-
-                            updateLeaveLimitSaveButton();
-                            return;
-                        }
-
-                        // leave_limit = 0 is a valid zero maximum.
-                        leaveLimitLoaded = true;
-
-                        $("#NumberOfDays").attr("max", currentLeaveLimit);
-
-                        $("#leaveLimitValue")
-                            .text(formatLeaveLimit(currentLeaveLimit));
-
-                        $("#leaveLimitInfo").show();
-
-                        validateNumberOfDays();
+                        if (isNaN(currentLeaveLimit)) { currentLeaveLimit = null; showLeaveLimitError("Invalid Leave Limit configuration."); updateSaveButtonState(); return; }
+                        leaveLimitLoaded = true; $("#NumberOfDays").attr("max", currentLeaveLimit); $("#leaveLimitValue").text(formatLeaveLimit(currentLeaveLimit)); $("#leaveLimitInfo").show(); validateNumberOfDays();
                     },
-
-                    error: function (xhr) {
-
-                        leaveLimitLoading = false;
-                        leaveLimitLoaded = false;
-                        currentLeaveLimit = null;
-
-                        console.log(
-                            "Leave Limit Error:",
-                            xhr.responseText
-                        );
-
-                        showLeaveLimitError(
-                            "Unable to retrieve Leave Limit."
-                        );
-
-                        updateLeaveLimitSaveButton();
-                    }
+                    error:function(xhr) { leaveLimitLoading=false; leaveLimitLoaded=false; currentLeaveLimit=null; console.log("Leave Limit Error:",xhr.responseText); showLeaveLimitError("Unable to retrieve Leave Limit."); updateSaveButtonState(); }
                 });
             }
 
             function validateNumberOfDays() {
-
-                const leaveCode = $("#LeaveCode").val();
-                const rawValue = $("#NumberOfDays").val();
-                const days = parseFloat(rawValue);
-
-                $("#NumberOfDays").removeClass("is-invalid");
-                hideLeaveLimitError();
-
-                if (!leaveCode) {
-                    updateLeaveLimitSaveButton();
-                    return true;
-                }
-
-                if (leaveLimitLoading) {
-                    updateLeaveLimitSaveButton();
-                    return false;
-                }
-
-                if (!leaveLimitLoaded || currentLeaveLimit === null) {
-
-                    $("#NumberOfDays").addClass("is-invalid");
-
-                    showLeaveLimitError(
-                        "Leave limit is not configured for selected Leave Type."
-                    );
-
-                    updateLeaveLimitSaveButton();
-                    return false;
-                }
-
-                if (!rawValue || isNaN(days)) {
-                    updateLeaveLimitSaveButton();
-                    return true;
-                }
-
-                if (days <= 0) {
-
-                    $("#NumberOfDays").addClass("is-invalid");
-
-                    showLeaveLimitError(
-                        "Number of Days must be greater than 0."
-                    );
-
-                    updateLeaveLimitSaveButton();
-                    return false;
-                }
-
-                const doubledDays = days * 2;
-
-                if (
-                    Math.abs(
-                        doubledDays - Math.round(doubledDays)
-                    ) > 0.000001
-                ) {
-
-                    $("#NumberOfDays").addClass("is-invalid");
-
-                    showLeaveLimitError(
-                        "Number of Days must be entered in 0.5 day steps."
-                    );
-
-                    updateLeaveLimitSaveButton();
-                    return false;
-                }
-
-                if (days > currentLeaveLimit) {
-
-                    $("#NumberOfDays").addClass("is-invalid");
-
-                    showLeaveLimitError(
-                        "Maximum leave limit for " +
-                        (currentLeaveName || "selected Leave Type") +
-                        " is " +
-                        formatLeaveLimit(currentLeaveLimit) +
-                        " day(s)."
-                    );
-
-                    updateLeaveLimitSaveButton();
-                    return false;
-                }
-
-                updateLeaveLimitSaveButton();
-                return true;
+                const leaveCode=$("#LeaveCode").val(), raw=$("#NumberOfDays").val(), days=parseFloat(raw);
+                $("#NumberOfDays").removeClass("is-invalid"); hideLeaveLimitError();
+                if (!leaveCode) { updateSaveButtonState(); return true; }
+                if (leaveLimitLoading) { updateSaveButtonState(); return false; }
+                if (!leaveLimitLoaded || currentLeaveLimit===null) { $("#NumberOfDays").addClass("is-invalid"); showLeaveLimitError("Leave limit is not configured for selected Leave Type."); updateSaveButtonState(); return false; }
+                if (!raw || isNaN(days)) { updateSaveButtonState(); return true; }
+                if (days<=0) { $("#NumberOfDays").addClass("is-invalid"); showLeaveLimitError("Number of Days must be greater than 0."); updateSaveButtonState(); return false; }
+                if (Math.abs((days*2)-Math.round(days*2))>0.000001) { $("#NumberOfDays").addClass("is-invalid"); showLeaveLimitError("Number of Days must be entered in 0.5 day steps."); updateSaveButtonState(); return false; }
+                if (days>currentLeaveLimit) { $("#NumberOfDays").addClass("is-invalid"); showLeaveLimitError("Maximum leave limit for " + (currentLeaveName || "selected Leave Type") + " is " + formatLeaveLimit(currentLeaveLimit) + " day(s)."); updateSaveButtonState(); return false; }
+                updateSaveButtonState(); return true;
             }
-
-
-            // =====================================================
-            // MATERNITY LEAVE UI NOTE
-            // Female-only employee filtering is enforced by controller.
-            // =====================================================
             function updateMaternityLeaveNote() {
-                const leaveText =
-                    String($("#LeaveCode option:selected").text() || "").toUpperCase();
-
-                $("#maternityLeaveNote")
-                    .toggleClass("d-none", leaveText.indexOf("MATERNITY") < 0);
+                const text=String($("#LeaveCode option:selected").text() || "").toUpperCase();
+                $("#maternityLeaveNote").toggleClass("d-none", text.indexOf("MATERNITY")<0);
             }
 
-            $("#LeaveCode").on("change", updateMaternityLeaveNote);
-            updateMaternityLeaveNote();
-
-
-            // =====================================================
-            // LOAD BRANCH SELECTED COUNTS
-            // =====================================================
-
-            function loadBranchSelectedCounts() {
-
-                const year =
-                    $("#SelectedYear").val();
-
-                const leaveCode =
-                    $("#LeaveCode").val();
-
-                $(".branch-selected-count")
-                    .text("0");
-
+            // Existing GetAllEmployees endpoint is used to fetch the full eligible employee list.
+            function loadEmployees() {
+                const year=$("#SelectedYear").val(), leaveCode=$("#LeaveCode").val();
                 if (!year || !leaveCode) {
-
-                    return;
+                    $("#selectAllHint").text("Select year and leave type to load employees.");
+                    $("#employeeTableBody").html("<tr><td colspan='4' class='text-center text-muted py-4'>Please select year and leave type to load employees.</td></tr>");
+                    $("#employeePagination").empty(); $("#totalEmployeeCount").text("0"); updateSelectedCounts(); updateSaveButtonState(); return;
                 }
-
+                employeesLoading=true; updateSaveButtonState(); $("#selectAllHint").text("Loading employees...");
+                $("#employeeTableBody").html("<tr><td colspan='4' class='text-center py-4'><span class='spinner-border spinner-border-sm me-2'></span>Loading employees...</td></tr>");
                 $.ajax({
-
-                    url:
-                        '@Url.Action("GetBranchSelectedCounts", "LeaveCredit")',
-
-                    type: "GET",
-
-                    data: {
-                        year: year,
-                        leaveCode: leaveCode
-                    },
-
-                    success: function (response) {
-
-                        if (!response ||
-                            response.success !== true) {
-
-                            console.log(
-                                response?.message ||
-                                "Unable to load selected counts."
-                            );
-
-                            return;
+                    url:'@Url.Action("GetAllEmployees", "LeaveCredit")', type:"GET", data:{year:year, leaveCode:leaveCode},
+                    success:function(response) {
+                        if (!response || response.success!==true) {
+                            if (response && response.sessionExpired===true) { window.location.href='@Url.Action("Login", "Account")'; return; }
+                            employees=[]; showEmployeeMessage(response?.message || "Unable to load employees.","text-danger"); $("#selectAllHint").text(response?.message || "Unable to load employees."); return;
                         }
-
-                        const data =
-                            response.data || [];
-
-                        data.forEach(
-                            function (item) {
-
-                                const branchCode =
-                                    String(
-                                        item.branchCode
-                                    );
-
-                                const selectedCount =
-                                    item.selectedCount || 0;
-
-                                $(".branch-selected-count")
-                                    .filter(function () {
-
-                                        return String(
-                                            $(this).attr(
-                                                "data-branch-count"
-                                            )
-                                        ) === branchCode;
-
-                                    })
-                                    .text(selectedCount);
-                            }
-                        );
+                        employees=response.data || []; selectedEmployeeCodes.clear();
+                        employees.forEach(function(employee) { if (employee.isSelected===true) selectedEmployeeCodes.add(String(employee.employeeCode)); });
+                        currentPage=1; $("#employeeSearch").prop("disabled",false); $("#selectAllEmployees").prop("disabled",employees.length===0);
+                        $("#selectAllHint").text(employees.length ? "Select or clear all employees. You can also select employees individually." : "No eligible employees found.");
+                        renderEmployeePage();
                     },
-
-                    error: function (xhr) {
-
-                        console.log(
-                            "Branch count error:",
-                            xhr.responseText
-                        );
-                    }
+                    error:function(xhr) { console.log("Employee load error:",xhr.responseText); employees=[]; showEmployeeMessage("Unable to load employees.","text-danger"); $("#selectAllHint").text("Unable to load employees."); },
+                    complete:function() { employeesLoading=false; updateSaveButtonState(); }
                 });
             }
 
-
-            // =====================================================
-            // GLOBAL SELECT ALL
-            // ALL BRANCHES + ALL EMPLOYEES
-            // =====================================================
-
-            $("#selectAllBranches").on(
-                "change",
-                function () {
-
-                    const checkbox =
-                        $(this);
-
-                    const checked =
-                        checkbox.is(":checked");
-
-                    const year =
-                        $("#SelectedYear").val();
-
-                    const leaveCode =
-                        $("#LeaveCode").val();
-
-
-                    // YEAR VALIDATION
-
-                    if (!year) {
-
-                        checkbox
-                            .prop("checked", false);
-
-                        alert(
-                            "Please select year."
-                        );
-
-                        $("#SelectedYear")
-                            .focus();
-
-                        return;
-                    }
-
-
-                    // LEAVE TYPE VALIDATION
-
-                    if (!leaveCode) {
-
-                        checkbox
-                            .prop("checked", false);
-
-                        alert(
-                            "Please select Leave Type."
-                        );
-
-                        $("#LeaveCode")
-                            .focus();
-
-                        return;
-                    }
-
-
-                    // =============================================
-                    // GLOBAL UNCHECK
-                    // =============================================
-
-                    if (!checked) {
-
-                        Object.keys(
-                            selectedEmployeesByBranch
-                        ).forEach(
-                            function (key) {
-
-                                selectedEmployeesByBranch[
-                                    key
-                                ] = new Set();
-                            }
-                        );
-
-
-                        $(".branch-selected-count")
-                            .text("0");
-
-
-                        $(".branch-card")
-                            .removeClass(
-                                "all-selected"
-                            );
-
-
-                        $(".employee-checkbox")
-                            .prop(
-                                "checked",
-                                false
-                            );
-
-
-                        $("#selectAll")
-                            .prop(
-                                "checked",
-                                false
-                            );
-
-
-                        updateCurrentBranchCount();
-
-                        updateAllBranchSelectedCount();
-
-                        return;
-                    }
-
-
-                    // =============================================
-                    // GLOBAL SELECT
-                    // =============================================
-
-                    checkbox
-                        .prop(
-                            "disabled",
-                            true
-                        );
-
-
-                    $.ajax({
-
-                        url:
-                            '@Url.Action("GetAllEmployees", "LeaveCredit")',
-
-                        type: "GET",
-
-                        data: {
-
-                            year: year,
-
-                            leaveCode: leaveCode
-                        },
-
-
-                        success: function (response) {
-
-                            if (!response ||
-                                response.success !== true) {
-
-                                checkbox
-                                    .prop(
-                                        "checked",
-                                        false
-                                    );
-
-                                if (
-                                    response &&
-                                    response.sessionExpired === true
-                                ) {
-
-                                    window.location.href =
-                                        '@Url.Action("Login", "Account")';
-
-                                    return;
-                                }
-
-                                alert(
-                                    response?.message ||
-                                    "Unable to select all employees."
-                                );
-
-                                return;
-                            }
-
-
-                            const allEmployees =
-                                response.data || [];
-
-
-                            // CLEAR OLD MEMORY
-
-                            Object.keys(
-                                selectedEmployeesByBranch
-                            ).forEach(
-                                function (key) {
-
-                                    delete selectedEmployeesByBranch[
-                                        key
-                                    ];
-                                }
-                            );
-
-
-                            // GROUP BY BRANCH
-
-                            allEmployees.forEach(
-                                function (employee) {
-
-                                    const branchCode =
-                                        String(
-                                            employee.branchCode
-                                        );
-
-                                    const employeeCode =
-                                        String(
-                                            employee.employeeCode
-                                        );
-
-
-                                    if (
-                                        !selectedEmployeesByBranch[
-                                            branchCode
-                                        ]
-                                    ) {
-
-                                        selectedEmployeesByBranch[
-                                            branchCode
-                                        ] = new Set();
-                                    }
-
-
-                                    selectedEmployeesByBranch[
-                                        branchCode
-                                    ].add(
-                                        employeeCode
-                                    );
-                                }
-                            );
-
-
-                            // UPDATE BRANCH CARDS
-
-                            $(".branch-card")
-                                .each(function () {
-
-                                    const card =
-                                        $(this);
-
-                                    const branchCode =
-                                        String(
-                                            card.attr(
-                                                "data-branch-code"
-                                            )
-                                        );
-
-                                    const selectedSet =
-                                        selectedEmployeesByBranch[
-                                            branchCode
-                                        ];
-
-                                    const selectedCount =
-                                        selectedSet
-                                            ? selectedSet.size
-                                            : 0;
-
-
-                                    $(".branch-selected-count")
-                                        .filter(function () {
-
-                                            return String(
-                                                $(this).attr(
-                                                    "data-branch-count"
-                                                )
-                                            ) === branchCode;
-
-                                        })
-                                        .text(
-                                            selectedCount
-                                        );
-
-
-                                    const totalEmployees =
-                                        parseInt(
-                                            card.attr(
-                                                "data-total-employees"
-                                            )
-                                        ) || 0;
-
-
-                                    if (
-                                        totalEmployees > 0 &&
-                                        selectedCount ===
-                                        totalEmployees
-                                    ) {
-
-                                        card.addClass(
-                                            "all-selected"
-                                        );
-                                    }
-                                    else {
-
-                                        card.removeClass(
-                                            "all-selected"
-                                        );
-                                    }
-                                });
-
-
-                            // CURRENT OPEN BRANCH
-
-                            if (currentBranchCode) {
-
-                                renderEmployeePage();
-                            }
-
-
-                            updateCurrentBranchCount();
-
-                            updateAllBranchSelectedCount();
-
-
-                            const totalSelected =
-                                getAllSelectedEmployees()
-                                    .size;
-
-
-                            console.log(
-                                totalSelected +
-                                " employees selected."
-                            );
-                        },
-
-
-                        error: function (xhr) {
-
-                            console.log(
-                                "Global Select All Error:",
-                                xhr.responseText
-                            );
-
-                            checkbox
-                                .prop(
-                                    "checked",
-                                    false
-                                );
-
-                            alert(
-                                "Unable to select all employees."
-                            );
-                        },
-
-
-                        complete: function () {
-
-                            checkbox
-                                .prop(
-                                    "disabled",
-                                    false
-                                );
-                        }
-                    });
-                }
-            );
-
-
-            // =====================================================
-            // BRANCH CLICK
-            // =====================================================
-
-            $(".branch-card").on(
-                "click",
-                function () {
-
-                    const year =
-                        $("#SelectedYear").val();
-
-                    const leaveCode =
-                        $("#LeaveCode").val();
-
-
-                    if (!year) {
-
-                        alert(
-                            "Please select year."
-                        );
-
-                        $("#SelectedYear")
-                            .focus();
-
-                        return;
-                    }
-
-
-                    if (!leaveCode) {
-
-                        alert(
-                            "Please select Leave Type."
-                        );
-
-                        $("#LeaveCode")
-                            .focus();
-
-                        return;
-                    }
-
-
-                    const branchCode =
-                        String(
-                            $(this).attr(
-                                "data-branch-code"
-                            )
-                        );
-
-
-                    const branchName =
-                        $(this).attr(
-                            "data-branch-name"
-                        );
-
-
-                    currentBranchCode =
-                        branchCode;
-
-
-                    $(".branch-card")
-                        .removeClass(
-                            "active"
-                        );
-
-
-                    $(this)
-                        .addClass(
-                            "active"
-                        );
-
-
-                    $("#selectedBranchName")
-                        .text(
-                            branchName
-                        );
-
-
-                    $("#employeeSection")
-                        .show();
-
-
-                    employees = [];
-
-                    currentPage = 1;
-
-
-                    $("#employeeSearch")
-                        .val("");
-
-
-                    $("#selectAll")
-                        .prop(
-                            "checked",
-                            false
-                        );
-
-
-                    $("#employeeTableBody")
-                        .html(
-                            "<tr>" +
-                            "<td colspan='3' class='text-center py-4'>" +
-                            "Loading employees..." +
-                            "</td>" +
-                            "</tr>"
-                        );
-
-
-                    $.ajax({
-
-                        url:
-                            '@Url.Action("GetEmployeesByBranch", "LeaveCredit")',
-
-                        type: "GET",
-
-                        data: {
-
-                            branchCode:
-                                branchCode,
-
-                            year:
-                                year,
-
-                            leaveCode:
-                                leaveCode
-                        },
-
-
-                        success: function (response) {
-
-                            if (!response ||
-                                response.success !== true) {
-
-                                showEmployeeError(
-                                    response?.message ||
-                                    "Unable to load employees."
-                                );
-
-                                return;
-                            }
-
-
-                            employees =
-                                response.data || [];
-
-
-                            // =====================================
-                            // IMPORTANT:
-                            // DO NOT OVERWRITE GLOBAL/MANUAL
-                            // SELECTION MEMORY
-                            // =====================================
-
-                            let selectedSet;
-
-
-                            if (
-                                selectedEmployeesByBranch[
-                                    branchCode
-                                ]
-                            ) {
-
-                                selectedSet =
-                                    selectedEmployeesByBranch[
-                                        branchCode
-                                    ];
-                            }
-                            else {
-
-                                selectedSet =
-                                    new Set();
-
-
-                                // Previously credited DB records
-
-                                employees.forEach(
-                                    function (employee) {
-
-                                        if (
-                                            employee.isSelected === true
-                                        ) {
-
-                                            selectedSet.add(
-                                                String(
-                                                    employee.employeeCode
-                                                )
-                                            );
-                                        }
-                                    }
-                                );
-
-
-                                selectedEmployeesByBranch[
-                                    branchCode
-                                ] = selectedSet;
-                            }
-
-
-                            // GLOBAL SELECT ALL IS ON
-
-                            if (
-                                $("#selectAllBranches")
-                                    .is(":checked")
-                            ) {
-
-                                employees.forEach(
-                                    function (employee) {
-
-                                        selectedSet.add(
-                                            String(
-                                                employee.employeeCode
-                                            )
-                                        );
-                                    }
-                                );
-                            }
-
-
-                            $("#branchEmployeeCount")
-                                .text(
-                                    employees.length
-                                );
-
-
-                            $("#totalEmployeeCount")
-                                .text(
-                                    employees.length
-                                );
-
-
-                            renderEmployeePage();
-
-
-                            updateCurrentBranchCount();
-
-
-                            updateBranchSelectedCount(
-                                branchCode
-                            );
-
-
-                            updateAllBranchSelectedCount();
-
-
-                            updateGlobalSelectAllState();
-
-
-                            // AUTO SCROLL
-
-                            setTimeout(
-                                function () {
-
-                                    const section =
-                                        document.getElementById(
-                                            "employeeSection"
-                                        );
-
-                                    if (!section)
-                                        return;
-
-
-                                    const headerOffset =
-                                        90;
-
-
-                                    const position =
-                                        section
-                                            .getBoundingClientRect()
-                                            .top +
-                                        window.pageYOffset -
-                                        headerOffset;
-
-
-                                    window.scrollTo({
-
-                                        top:
-                                            position,
-
-                                        behavior:
-                                            "smooth"
-                                    });
-
-                                },
-                                150
-                            );
-                        },
-
-
-                        error: function (xhr) {
-
-                            console.log(
-                                "Employee load error:",
-                                xhr.responseText
-                            );
-
-                            showEmployeeError(
-                                "Unable to load employees."
-                            );
-                        }
-                    });
-                }
-            );
-
-
-            // =====================================================
-            // CURRENT SELECTED SET
-            // =====================================================
-
-            function getCurrentSelectedSet() {
-
-                if (!currentBranchCode)
-                    return new Set();
-
-
-                const key =
-                    String(
-                        currentBranchCode
-                    );
-
-
-                if (
-                    !selectedEmployeesByBranch[
-                        key
-                    ]
-                ) {
-
-                    selectedEmployeesByBranch[
-                        key
-                    ] = new Set();
-                }
-
-
-                return selectedEmployeesByBranch[
-                    key
-                ];
-            }
-
-
-            // =====================================================
-            // FILTER EMPLOYEES
-            // =====================================================
-
             function getFilteredEmployees() {
-
-                const search =
-                    $("#employeeSearch")
-                        .val()
-                        .toLowerCase()
-                        .trim();
-
-
-                if (!search)
-                    return employees;
-
-
-                return employees.filter(
-                    function (employee) {
-
-                        const code =
-                            String(
-                                employee.employeeCode ?? ""
-                            ).toLowerCase();
-
-
-                        const name =
-                            String(
-                                employee.employeeName ?? ""
-                            ).toLowerCase();
-
-
-                        return (
-                            code.includes(search) ||
-                            name.includes(search)
-                        );
-                    }
-                );
+                const search=String($("#employeeSearch").val() || "").toLowerCase().trim();
+                if (!search) return employees;
+                return employees.filter(function(e) { return String(e.employeeCode ?? "").toLowerCase().includes(search) || String(e.employeeName ?? "").toLowerCase().includes(search); });
             }
-
-
-            // =====================================================
-            // RENDER EMPLOYEE PAGE
-            // =====================================================
-
             function renderEmployeePage() {
-
-                const filtered =
-                    getFilteredEmployees();
-
-
-                let totalPages =
-                    Math.ceil(
-                        filtered.length /
-                        employeesPerPage
-                    );
-
-
-                if (totalPages < 1)
-                    totalPages = 1;
-
-
-                if (currentPage > totalPages)
-                    currentPage = totalPages;
-
-
-                const start =
-                    (currentPage - 1) *
-                    employeesPerPage;
-
-
-                const pageEmployees =
-                    filtered.slice(
-                        start,
-                        start + employeesPerPage
-                    );
-
-
-                const selectedSet =
-                    getCurrentSelectedSet();
-
-
-                let html = "";
-
-
-                if (
-                    pageEmployees.length === 0
-                ) {
-
-                    html =
-                        "<tr>" +
-                        "<td colspan='3' class='text-center text-muted py-4'>" +
-                        "No employees found." +
-                        "</td>" +
-                        "</tr>";
-                }
-                else {
-
-                    pageEmployees.forEach(
-                        function (employee) {
-
-                            const code =
-                                String(
-                                    employee.employeeCode
-                                );
-
-
-                            const name =
-                                employee.employeeName || "";
-
-
-                            const checked =
-                                selectedSet.has(
-                                    code
-                                );
-
-
-                            html +=
-                                "<tr>" +
-
-                                "<td>" +
-
-                                "<input " +
-                                "type='checkbox' " +
-                                "class='form-check-input employee-checkbox' " +
-                                "value='" +
-                                escapeHtml(code) +
-                                "' " +
-                                (checked
-                                    ? "checked"
-                                    : "") +
-                                " />" +
-
-                                "</td>" +
-
-                                "<td>" +
-                                escapeHtml(code) +
-                                "</td>" +
-
-                                "<td>" +
-                                escapeHtml(name) +
-                                "</td>" +
-
-                                "</tr>";
+                const filtered=getFilteredEmployees(); let totalPages=Math.max(1,Math.ceil(filtered.length/employeesPerPage));
+                if (currentPage>totalPages) currentPage=totalPages;
+                const pageEmployees=filtered.slice((currentPage-1)*employeesPerPage,currentPage*employeesPerPage); let html="";
+                if (!pageEmployees.length) html="<tr><td colspan='4' class='text-center text-muted py-4'>No employees found.</td></tr>";
+                else pageEmployees.forEach(function(e) {
+                    const code=String(e.employeeCode ?? ""), name=e.employeeName || "", checked=selectedEmployeeCodes.has(code);
+                    const joiningDateRaw = e.joiningDate || e.join_date || e.joinDate || "";
+                    let joiningDate = "-";
+                    if (joiningDateRaw) {
+                        const parsedDate = new Date(joiningDateRaw);
+                        if (!isNaN(parsedDate.getTime())) {
+                            joiningDate = String(parsedDate.getDate()).padStart(2, "0") + "-" + String(parsedDate.getMonth() + 1).padStart(2, "0") + "-" + parsedDate.getFullYear();
+                        } else {
+                            joiningDate = String(joiningDateRaw).split("T")[0];
                         }
-                    );
-                }
-
-
-                $("#employeeTableBody")
-                    .html(
-                        html
-                    );
-
-
-                $("#totalEmployeeCount")
-                    .text(
-                        employees.length
-                    );
-
-
-                createPagination(
-                    totalPages
-                );
-
-
-                updateCurrentBranchCount();
-
-
-                updateSelectAllState();
-            }
-
-
-            // =====================================================
-            // EMPLOYEE CHECKBOX CHANGE
-            // =====================================================
-
-            $(document).on(
-                "change",
-                ".employee-checkbox",
-                function () {
-
-                    const employeeCode =
-                        String(
-                            $(this).val()
-                        );
-
-
-                    const selectedSet =
-                        getCurrentSelectedSet();
-
-
-                    if (
-                        $(this).is(":checked")
-                    ) {
-
-                        selectedSet.add(
-                            employeeCode
-                        );
                     }
-                    else {
-
-                        selectedSet.delete(
-                            employeeCode
-                        );
-                    }
-
-
-                    updateCurrentBranchCount();
-
-
-                    updateBranchSelectedCount(
-                        currentBranchCode
-                    );
-
-
-                    updateAllBranchSelectedCount();
-
-
-                    updateSelectAllState();
-
-
-                    updateGlobalSelectAllState();
-                }
-            );
-
-
-            // =====================================================
-            // SELECT ALL CURRENT DISPLAYED PAGE
-            // =====================================================
-
-            $("#selectAll").on(
-                "change",
-                function () {
-
-                    const checked =
-                        $(this).is(":checked");
-
-
-                    const selectedSet =
-                        getCurrentSelectedSet();
-
-
-                    $(".employee-checkbox")
-                        .each(
-                            function () {
-
-                                const code =
-                                    String(
-                                        $(this).val()
-                                    );
-
-
-                                $(this).prop(
-                                    "checked",
-                                    checked
-                                );
-
-
-                                if (checked) {
-
-                                    selectedSet.add(
-                                        code
-                                    );
-                                }
-                                else {
-
-                                    selectedSet.delete(
-                                        code
-                                    );
-                                }
-                            }
-                        );
-
-
-                    updateCurrentBranchCount();
-
-
-                    updateBranchSelectedCount(
-                        currentBranchCode
-                    );
-
-
-                    updateAllBranchSelectedCount();
-
-
-                    updateGlobalSelectAllState();
-                }
-            );
-
-
-            // =====================================================
-            // CURRENT BRANCH COUNT
-            // =====================================================
-
-            function updateCurrentBranchCount() {
-
-                if (!currentBranchCode) {
-
-                    $("#selectedEmployeeCount")
-                        .text("0");
-
-                    return;
-                }
-
-
-                const selectedSet =
-                    getCurrentSelectedSet();
-
-
-                $("#selectedEmployeeCount")
-                    .text(
-                        selectedSet.size
-                    );
+                    html += "<tr><td class='text-center'><input type='checkbox' class='form-check-input employee-checkbox' value='"+escapeHtml(code)+"' "+(checked?"checked":"")+" /></td><td>"+escapeHtml(code)+"</td><td>"+escapeHtml(name)+"</td><td>"+escapeHtml(joiningDate)+"</td></tr>";
+                });
+                $("#employeeTableBody").html(html); $("#totalEmployeeCount").text(employees.length); createPagination(totalPages); updateSelectedCounts(); updateSelectAllState();
             }
-
-
-            // =====================================================
-            // UPDATE BRANCH CARD COUNT
-            // =====================================================
-
-            function updateBranchSelectedCount(
-                branchCode
-            ) {
-
-                if (!branchCode)
-                    return;
-
-
-                const key =
-                    String(
-                        branchCode
-                    );
-
-
-                const selectedSet =
-                    selectedEmployeesByBranch[
-                        key
-                    ];
-
-
-                const count =
-                    selectedSet
-                        ? selectedSet.size
-                        : 0;
-
-
-                $(".branch-selected-count")
-                    .each(
-                        function () {
-
-                            if (
-                                String(
-                                    $(this).attr(
-                                        "data-branch-count"
-                                    )
-                                ) === key
-                            ) {
-
-                                $(this).text(
-                                    count
-                                );
-                            }
-                        }
-                    );
-
-
-                const card =
-                    $(".branch-card")
-                        .filter(
-                            function () {
-
-                                return String(
-                                    $(this).attr(
-                                        "data-branch-code"
-                                    )
-                                ) === key;
-                            }
-                        );
-
-
-                const total =
-                    parseInt(
-                        card.attr(
-                            "data-total-employees"
-                        )
-                    ) || 0;
-
-
-                if (
-                    total > 0 &&
-                    count === total
-                ) {
-
-                    card.addClass(
-                        "all-selected"
-                    );
-                }
-                else {
-
-                    card.removeClass(
-                        "all-selected"
-                    );
-                }
+            function showEmployeeMessage(message, cssClass) {
+                $("#employeeTableBody").html("<tr><td colspan='4' class='text-center "+(cssClass||"text-muted")+" py-4'>"+escapeHtml(message)+"</td></tr>");
+                $("#totalEmployeeCount").text(employees.length); $("#employeePagination").empty(); updateSelectedCounts(); updateSelectAllState();
             }
-
-
-            // =====================================================
-            // ALL SELECTED EMPLOYEES
-            // =====================================================
-
-            function getAllSelectedEmployees() {
-
-                const all =
-                    new Set();
-
-
-                Object.keys(
-                    selectedEmployeesByBranch
-                ).forEach(
-                    function (branchCode) {
-
-                        const set =
-                            selectedEmployeesByBranch[
-                                branchCode
-                            ];
-
-
-                        if (!set)
-                            return;
-
-
-                        set.forEach(
-                            function (employeeCode) {
-
-                                all.add(
-                                    String(
-                                        employeeCode
-                                    )
-                                );
-                            }
-                        );
-                    }
-                );
-
-
-                return all;
-            }
-
-
-            // =====================================================
-            // UPDATE TOTAL SELECTED
-            // =====================================================
-
-            function updateAllBranchSelectedCount() {
-
-                $("#allBranchSelectedCount")
-                    .text(
-                        getAllSelectedEmployees()
-                            .size
-                    );
-            }
-
-
-            // =====================================================
-            // CURRENT PAGE SELECT ALL STATE
-            // =====================================================
-
+            function updateSelectedCounts() { $("#selectedEmployeeCount").text(selectedEmployeeCodes.size); $("#allSelectedCount").text(selectedEmployeeCodes.size); }
             function updateSelectAllState() {
-
-                const checkboxes =
-                    $(".employee-checkbox");
-
-
-                if (
-                    checkboxes.length === 0
-                ) {
-
-                    $("#selectAll")
-                        .prop(
-                            "checked",
-                            false
-                        );
-
-                    return;
-                }
-
-
-                const checked =
-                    checkboxes
-                        .filter(
-                            ":checked"
-                        )
-                        .length;
-
-
-                $("#selectAll")
-                    .prop(
-                        "checked",
-                        checked ===
-                        checkboxes.length
-                    );
+                const visible=$(".employee-checkbox");
+                if (!visible.length) { $("#selectAllEmployees").prop("checked",false).prop("indeterminate",false); return; }
+                const checked=visible.filter(":checked").length;
+                const allLoadedSelected=employees.length>0 && employees.every(e=>selectedEmployeeCodes.has(String(e.employeeCode)));
+                $("#selectAllEmployees").prop("checked",allLoadedSelected).prop("indeterminate",!allLoadedSelected && selectedEmployeeCodes.size>0);
             }
 
+            // Select All applies to every employee in the list, including employees on other pages.
+            $("#selectAllEmployees").on("change",function() {
+                const checked=$(this).is(":checked");
+                employees.forEach(function(e) { const code=String(e.employeeCode); if (checked) selectedEmployeeCodes.add(code); else selectedEmployeeCodes.delete(code); });
+                renderEmployeePage();
+            });
+            $(document).on("change",".employee-checkbox",function() {
+                const code=String($(this).val()); if ($(this).is(":checked")) selectedEmployeeCodes.add(code); else selectedEmployeeCodes.delete(code);
+                updateSelectedCounts(); updateSelectAllState();
+            });
+            function createPagination(totalPages) {
+                let html="<li class='page-item "+(currentPage===1?"disabled":"")+"'><button type='button' class='page-link employee-page-btn' data-page='"+(currentPage-1)+"'>Previous</button></li>";
+                for (let p=1;p<=totalPages;p++) html += "<li class='page-item "+(p===currentPage?"active":"")+"'><button type='button' class='page-link employee-page-btn' data-page='"+p+"'>"+p+"</button></li>";
+                html += "<li class='page-item "+(currentPage===totalPages?"disabled":"")+"'><button type='button' class='page-link employee-page-btn' data-page='"+(currentPage+1)+"'>Next</button></li>";
+                $("#employeePagination").html(html);
+            }
+            $(document).on("click",".employee-page-btn",function() {
+                if ($(this).closest(".page-item").hasClass("disabled")) return;
+                const page=parseInt($(this).attr("data-page")); if (!page || page<1) return; currentPage=page; renderEmployeePage();
+            });
 
-            // =====================================================
-            // GLOBAL SELECT ALL STATE
-            // =====================================================
-
-            function updateGlobalSelectAllState() {
-
-                const checkbox =
-                    $("#selectAllBranches");
-
-
-                let totalEmployees =
-                    0;
-
-
-                let totalSelected =
-                    0;
-
-
-                $(".branch-card")
-                    .each(
-                        function () {
-
-                            const branchCode =
-                                String(
-                                    $(this).attr(
-                                        "data-branch-code"
-                                    )
-                                );
-
-
-                            const total =
-                                parseInt(
-                                    $(this).attr(
-                                        "data-total-employees"
-                                    )
-                                ) || 0;
-
-
-                            totalEmployees +=
-                                total;
-
-
-                            const set =
-                                selectedEmployeesByBranch[
-                                    branchCode
-                                ];
-
-
-                            totalSelected +=
-                                set
-                                    ? set.size
-                                    : 0;
+            // Save action URL, antiforgery token and posted parameter names remain unchanged.
+            $("#btnSaveLeaveCredit").on("click",function() {
+                const year=$("#SelectedYear").val(), leaveCode=$("#LeaveCode").val(), numberOfDays=$("#NumberOfDays").val();
+                if (!year) { alert("Please select year."); $("#SelectedYear").focus(); return; }
+                if (!leaveCode) { alert("Please select Leave Type."); $("#LeaveCode").focus(); return; }
+                if (!numberOfDays || parseFloat(numberOfDays)<=0) { alert("Please enter valid Number of Days."); $("#NumberOfDays").focus(); return; }
+                const days=parseFloat(numberOfDays);
+                if (Math.abs((days*2)-Math.round(days*2))>0.000001) { alert("Number of Days must be entered in 0.5 day steps."); $("#NumberOfDays").focus(); return; }
+                if (leaveLimitLoading) { alert("Please wait. Leave Limit is loading."); return; }
+                if (!leaveLimitLoaded || currentLeaveLimit===null) { alert("Leave limit is not configured for selected Leave Type."); $("#LeaveCode").focus(); return; }
+                if (days>currentLeaveLimit) { const msg="Maximum leave limit for "+(currentLeaveName||"selected Leave Type")+" is "+formatLeaveLimit(currentLeaveLimit)+" day(s)."; $("#NumberOfDays").addClass("is-invalid").focus(); showLeaveLimitError(msg); alert(msg); updateSaveButtonState(); return; }
+                if (!validateNumberOfDays()) { $("#NumberOfDays").focus(); return; }
+                if (selectedEmployeeCodes.size===0) { alert("Please select at least one employee."); return; }
+                const formData=new FormData();
+                formData.append("__RequestVerificationToken",$("input[name='__RequestVerificationToken']").val());
+                formData.append("year",year); formData.append("leaveCode",leaveCode); formData.append("numberOfDays",numberOfDays);
+                selectedEmployeeCodes.forEach(function(code) { formData.append("selectedEmployeeCodes",code); });
+                const button=$("#btnSaveLeaveCredit"); button.prop("disabled",true).html("<span class='spinner-border spinner-border-sm me-2'></span>Saving...");
+                $.ajax({
+                    url:'@Url.Action("Save", "LeaveCredit")', type:"POST", data:formData, processData:false, contentType:false,
+                    success:function(response) {
+                        if (response && response.success===true) {
+                            alert(response.message+"\n\nLeave App ID: "+response.leaveAppId+"\nLogin ID: "+response.loginId+"\nInserted: "+response.insertedCount+"\nSkipped: "+response.skippedCount);
+                            loadEmployees();
+                        } else {
+                            if (response && response.sessionExpired===true) { window.location.href='@Url.Action("Login", "Account")'; return; }
+                            alert(response?.message || "Unable to save Leave Credit.");
                         }
-                    );
-
-
-                if (
-                    totalEmployees <= 0
-                ) {
-
-                    checkbox
-                        .prop(
-                            "checked",
-                            false
-                        )
-                        .prop(
-                            "indeterminate",
-                            false
-                        );
-
-                    return;
-                }
-
-
-                if (
-                    totalSelected ===
-                    totalEmployees
-                ) {
-
-                    checkbox
-                        .prop(
-                            "checked",
-                            true
-                        )
-                        .prop(
-                            "indeterminate",
-                            false
-                        );
-                }
-                else if (
-                    totalSelected > 0
-                ) {
-
-                    checkbox
-                        .prop(
-                            "checked",
-                            false
-                        )
-                        .prop(
-                            "indeterminate",
-                            true
-                        );
-                }
-                else {
-
-                    checkbox
-                        .prop(
-                            "checked",
-                            false
-                        )
-                        .prop(
-                            "indeterminate",
-                            false
-                        );
-                }
-            }
-
-
-            // =====================================================
-            // SEARCH
-            // =====================================================
-
-            $("#employeeSearch").on(
-                "input",
-                function () {
-
-                    currentPage =
-                        1;
-
-
-                    renderEmployeePage();
-                }
-            );
-
-
-            // =====================================================
-            // PAGINATION
-            // =====================================================
-
-            function createPagination(
-                totalPages
-            ) {
-
-                let html = "";
-
-
-                html +=
-                    "<li class='page-item " +
-                    (
-                        currentPage === 1
-                            ? "disabled"
-                            : ""
-                    ) +
-                    "'>" +
-
-                    "<button type='button' " +
-                    "class='page-link employee-page-btn' " +
-                    "data-page='" +
-                    (currentPage - 1) +
-                    "'>Previous</button>" +
-
-                    "</li>";
-
-
-                for (
-                    let page = 1;
-                    page <= totalPages;
-                    page++
-                ) {
-
-                    html +=
-                        "<li class='page-item " +
-                        (
-                            page === currentPage
-                                ? "active"
-                                : ""
-                        ) +
-                        "'>" +
-
-                        "<button type='button' " +
-                        "class='page-link employee-page-btn' " +
-                        "data-page='" +
-                        page +
-                        "'>" +
-                        page +
-                        "</button>" +
-
-                        "</li>";
-                }
-
-
-                html +=
-                    "<li class='page-item " +
-                    (
-                        currentPage === totalPages
-                            ? "disabled"
-                            : ""
-                    ) +
-                    "'>" +
-
-                    "<button type='button' " +
-                    "class='page-link employee-page-btn' " +
-                    "data-page='" +
-                    (currentPage + 1) +
-                    "'>Next</button>" +
-
-                    "</li>";
-
-
-                $("#employeePagination")
-                    .html(
-                        html
-                    );
-            }
-
-
-            $(document).on(
-                "click",
-                ".employee-page-btn",
-                function () {
-
-                    if (
-                        $(this)
-                            .closest(
-                                ".page-item"
-                            )
-                            .hasClass(
-                                "disabled"
-                            )
-                    ) {
-
-                        return;
-                    }
-
-
-                    const page =
-                        parseInt(
-                            $(this).attr(
-                                "data-page"
-                            )
-                        );
-
-
-                    if (!page || page < 1)
-                        return;
-
-
-                    currentPage =
-                        page;
-
-
-                    renderEmployeePage();
-                }
-            );
-
-
-            // =====================================================
-            // SAVE LEAVE CREDIT
-            // =====================================================
-
-            $("#btnSaveLeaveCredit").on(
-                "click",
-                function () {
-
-                    const year =
-                        $("#SelectedYear")
-                            .val();
-
-
-                    const leaveCode =
-                        $("#LeaveCode")
-                            .val();
-
-
-                    const numberOfDays =
-                        $("#NumberOfDays")
-                            .val();
-
-
-                    const selectedEmployees =
-                        getAllSelectedEmployees();
-
-
-                    // VALIDATION
-
-                    if (!year) {
-
-                        alert(
-                            "Please select year."
-                        );
-
-                        return;
-                    }
-
-
-                    if (!leaveCode) {
-
-                        alert(
-                            "Please select Leave Type."
-                        );
-
-                        return;
-                    }
-
-
-                    if (
-                        !numberOfDays ||
-                        parseFloat(
-                            numberOfDays
-                        ) <= 0
-                    ) {
-
-                        alert(
-                            "Please enter valid Number of Days."
-                        );
-
-                        $("#NumberOfDays").focus();
-
-                        return;
-                    }
-
-
-                    const enteredDays = parseFloat(numberOfDays);
-                    const doubledDays = enteredDays * 2;
-
-                    if (
-                        Math.abs(
-                            doubledDays - Math.round(doubledDays)
-                        ) > 0.000001
-                    ) {
-
-                        alert(
-                            "Number of Days must be entered in 0.5 day steps."
-                        );
-
-                        $("#NumberOfDays").focus();
-
-                        return;
-                    }
-
-
-                    if (leaveLimitLoading) {
-
-                        alert(
-                            "Please wait. Leave Limit is loading."
-                        );
-
-                        return;
-                    }
-
-
-                    if (
-                        !leaveLimitLoaded ||
-                        currentLeaveLimit === null
-                    ) {
-
-                        alert(
-                            "Leave limit is not configured for selected Leave Type."
-                        );
-
-                        $("#LeaveCode").focus();
-
-                        return;
-                    }
-
-
-                    if (enteredDays > currentLeaveLimit) {
-
-                        const limitMessage =
-                            "Maximum leave limit for " +
-                            (currentLeaveName || "selected Leave Type") +
-                            " is " +
-                            formatLeaveLimit(currentLeaveLimit) +
-                            " day(s).";
-
-                        $("#NumberOfDays")
-                            .addClass("is-invalid")
-                            .focus();
-
-                        showLeaveLimitError(limitMessage);
-
-                        alert(limitMessage);
-
-                        updateLeaveLimitSaveButton();
-
-                        return;
-                    }
-
-
-                    if (!validateNumberOfDays()) {
-
-                        $("#NumberOfDays").focus();
-
-                        return;
-                    }
-
-
-                    if (
-                        selectedEmployees.size === 0
-                    ) {
-
-                        alert(
-                            "Please select at least one employee."
-                        );
-
-                        return;
-                    }
-
-
-                    const formData =
-                        new FormData();
-
-
-                    formData.append(
-                        "__RequestVerificationToken",
-
-                        $(
-                            "input[name='__RequestVerificationToken']"
-                        ).val()
-                    );
-
-
-                    formData.append(
-                        "year",
-                        year
-                    );
-
-
-                    formData.append(
-                        "leaveCode",
-                        leaveCode
-                    );
-
-
-                    formData.append(
-                        "numberOfDays",
-                        numberOfDays
-                    );
-
-
-                    selectedEmployees.forEach(
-                        function (employeeCode) {
-
-                            formData.append(
-                                "selectedEmployeeCodes",
-                                employeeCode
-                            );
-                        }
-                    );
-
-
-                    const button =
-                        $("#btnSaveLeaveCredit");
-
-
-                    button.prop(
-                        "disabled",
-                        true
-                    );
-
-
-                    button.html(
-                        "<span class='spinner-border spinner-border-sm me-2'></span>" +
-                        "Saving..."
-                    );
-
-
-                    $.ajax({
-
-                        url:
-                            '@Url.Action("Save", "LeaveCredit")',
-
-                        type:
-                            "POST",
-
-                        data:
-                            formData,
-
-                        processData:
-                            false,
-
-                        contentType:
-                            false,
-
-
-                        success: function (response) {
-
-                            if (
-                                response &&
-                                response.success === true
-                            ) {
-
-                                alert(
-                                    response.message +
-                                    "\n\n" +
-                                    "Leave App ID: " +
-                                    response.leaveAppId +
-                                    "\n" +
-                                    "Login ID: " +
-                                    response.loginId +
-                                    "\n" +
-                                    "Inserted: " +
-                                    response.insertedCount +
-                                    "\n" +
-                                    "Skipped: " +
-                                    response.skippedCount
-                                );
-
-
-                                loadBranchSelectedCounts();
-
-
-                                reloadCurrentBranch();
-                            }
-                            else {
-
-                                if (
-                                    response &&
-                                    response.sessionExpired === true
-                                ) {
-
-                                    window.location.href =
-                                        '@Url.Action("Login", "Account")';
-
-                                    return;
-                                }
-
-
-                                alert(
-                                    response?.message ||
-                                    "Unable to save Leave Credit."
-                                );
-                            }
-                        },
-
-
-                        error: function (xhr) {
-
-                            console.log(
-                                "Save error:",
-                                xhr.responseText
-                            );
-
-
-                            alert(
-                                "Unable to save Leave Credit."
-                            );
-                        },
-
-
-                        complete: function () {
-
-                            button.html(
-                                "<i class='bi bi-floppy-fill me-2'></i>" +
-                                "Save Leave Credit"
-                            );
-
-                            updateLeaveLimitSaveButton();
-                        }
-                    });
-                }
-            );
-
-
-            // =====================================================
-            // RELOAD CURRENT BRANCH
-            // =====================================================
-
-            function reloadCurrentBranch() {
-
-                if (!currentBranchCode)
-                    return;
-
-
-                const card =
-                    $(".branch-card")
-                        .filter(
-                            function () {
-
-                                return String(
-                                    $(this).attr(
-                                        "data-branch-code"
-                                    )
-                                ) ===
-                                    String(
-                                        currentBranchCode
-                                    );
-                            }
-                        )
-                        .first();
-
-
-                if (
-                    card.length > 0
-                ) {
-
-                    card.trigger(
-                        "click"
-                    );
-                }
-            }
-
-
-            // =====================================================
-            // CLEAR SELECTION MEMORY
-            // =====================================================
-
-            function clearSelectionMemory() {
-
-                Object.keys(
-                    selectedEmployeesByBranch
-                ).forEach(
-                    function (key) {
-
-                        delete selectedEmployeesByBranch[
-                            key
-                        ];
-                    }
-                );
-
-
-                currentBranchCode =
-                    null;
-
-
-                employees =
-                    [];
-
-
-                currentPage =
-                    1;
-
-
-                $("#allBranchSelectedCount")
-                    .text(
-                        "0"
-                    );
-
-
-                $("#selectAllBranches")
-                    .prop(
-                        "checked",
-                        false
-                    )
-                    .prop(
-                        "indeterminate",
-                        false
-                    );
-
-
-                $(".branch-card")
-                    .removeClass(
-                        "all-selected"
-                    );
-            }
-
-
-            // =====================================================
-            // SHOW EMPLOYEE ERROR
-            // =====================================================
-
-            function showEmployeeError(
-                message
-            ) {
-
-                $("#employeeTableBody")
-                    .html(
-                        "<tr>" +
-                        "<td colspan='3' " +
-                        "class='text-center text-danger py-4'>" +
-                        escapeHtml(
-                            message ||
-                            "Unable to load employees."
-                        ) +
-                        "</td>" +
-                        "</tr>"
-                    );
-
-
-                $("#branchEmployeeCount")
-                    .text(
-                        "0"
-                    );
-
-
-                $("#totalEmployeeCount")
-                    .text(
-                        "0"
-                    );
-
-
-                $("#selectedEmployeeCount")
-                    .text(
-                        "0"
-                    );
-
-
-                $("#employeePagination")
-                    .html(
-                        ""
-                    );
-            }
-
-
-            // =====================================================
-            // HTML SAFE
-            // =====================================================
-
-            function escapeHtml(
-                value
-            ) {
-
-                return $("<div>")
-                    .text(
-                        value ?? ""
-                    )
-                    .html();
-            }
-
-
-            // =====================================================
-            // INITIAL LOAD
-            // =====================================================
-
-            loadBranchSelectedCounts();
+                    },
+                    error:function(xhr) { console.log("Save error:",xhr.responseText); alert("Unable to save Leave Credit."); },
+                    complete:function() { button.html("<i class='bi bi-floppy-fill me-2'></i>Save Leave Credit"); updateSaveButtonState(); }
+                });
+            });
+            function escapeHtml(value) { return $("<div>").text(value ?? "").html(); }
 
             loadLeaveLimit();
-
+            updateMaternityLeaveNote();
+            updateSaveButtonState();
         });
-
     </script>
 }

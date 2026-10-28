@@ -46,7 +46,6 @@
 
     <!-- Filter Card -->
     <div class="card border-0 shadow-sm mb-4">
-
         <div class="card-header bg-white py-3">
             <h5 class="mb-0 fw-semibold">
                 <i class="bi bi-funnel text-primary me-2"></i>
@@ -55,20 +54,16 @@
         </div>
 
         <div class="card-body">
-
             <form asp-controller="LeaveBalanceReport"
                   asp-action="Index"
                   method="get">
 
                 <div class="row g-3 align-items-end">
-
                     <!-- Report Date -->
                     <div class="col-12 col-md-4 col-lg-3">
-                        <label asp-for="SelectedDate"
-                               class="form-label fw-semibold">
+                        <label asp-for="SelectedDate" class="form-label fw-semibold">
                             Report Date
                         </label>
-
                         <input asp-for="SelectedDate"
                                type="date"
                                class="form-control"
@@ -77,11 +72,9 @@
 
                     <!-- Leave Type -->
                     <div class="col-12 col-md-5 col-lg-4">
-                        <label asp-for="SelectedLeaveCode"
-                               class="form-label fw-semibold">
+                        <label asp-for="SelectedLeaveCode" class="form-label fw-semibold">
                             Leave Type
                         </label>
-
                         <select asp-for="SelectedLeaveCode"
                                 asp-items="Model.LeaveTypes"
                                 class="form-select">
@@ -91,8 +84,7 @@
 
                     <!-- Search -->
                     <div class="col-12 col-md-3 col-lg-2">
-                        <button type="submit"
-                                class="btn btn-primary w-100">
+                        <button type="submit" class="btn btn-primary w-100">
                             <i class="bi bi-search me-1"></i>
                             Search
                         </button>
@@ -107,59 +99,38 @@
                             Reset
                         </a>
                     </div>
-
                 </div>
             </form>
-
         </div>
     </div>
 
     <!-- Report Table Card -->
     <div class="card border-0 shadow-sm">
-
-        <div class="card-header bg-white py-3
-                    d-flex flex-wrap justify-content-between
-                    align-items-center gap-2">
-
+        <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h5 class="mb-0 fw-semibold">
                 <i class="bi bi-people text-primary me-2"></i>
                 Employee Leave Balances
             </h5>
-
             <span class="badge text-bg-light border">
                 Records: @(Model.Records?.Count ?? 0)
             </span>
-
         </div>
 
         <div class="card-body p-0">
-
             @if (Model.Records == null || !Model.Records.Any())
             {
                 <div class="text-center py-5 px-3">
-
-                    <i class="bi bi-inbox text-secondary"
-                       style="font-size:2.5rem;">
-                    </i>
-
-                    <h6 class="mt-3 mb-1">
-                        No Records Found
-                    </h6>
-
+                    <i class="bi bi-inbox text-secondary" style="font-size:2.5rem;"></i>
+                    <h6 class="mt-3 mb-1">No Records Found</h6>
                     <p class="text-muted mb-0">
-                        Select a leave type and report date,
-                        then click Search.
+                        Select a leave type and report date, then click Search.
                     </p>
-
                 </div>
             }
             else
             {
                 <div class="table-responsive">
-
-                    <table class="table table-hover table-striped
-                                      align-middle mb-0">
-
+                    <table class="table table-hover table-striped align-middle mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th class="text-nowrap">Sr. No.</th>
@@ -171,7 +142,6 @@
                                 <th class="text-end text-nowrap">Leave Balance</th>
                             </tr>
                         </thead>
-
                         <tbody>
                             @{
                                 var srNo = 0;
@@ -180,62 +150,32 @@
                             @foreach (var item in Model.Records)
                             {
                                 srNo++;
-
                                 <tr>
                                     <td>@srNo</td>
-
-                                    <td class="fw-semibold">
-                                        @item.EmployeeCode
+                                    <td class="fw-semibold">@item.EmployeeCode</td>
+                                    <td>@item.EmployeeName</td>
+                                    <td>@item.LeaveType</td>
+                                    <td class="text-end">@item.LeaveLimit.ToString("0.##")</td>
+                                    <td class="text-end">@item.LeaveTaken.ToString("0.##")</td>
+                                    <td class="text-end fw-bold @(item.LeaveBalance < 0 ? "text-danger" : "text-success")">
+                                        @item.LeaveBalance.ToString("0.##")
                                     </td>
-
-                                    <td>
-                                        @item.EmployeeName
-                                    </td>
-
-                                    <td>
-                                        @item.LeaveType
-                                    </td>
-
-                                    <td class="text-end">
-                                        @item.LeaveLimit.ToString("0.##")
-                                    </td>
-
-                                    <td class="text-end">
-                                        @item.LeaveTaken.ToString("0.##")
-                                    </td>
-
-                                    <td class="text-end fw-bold
-                                                @(item.LeaveBalance < 0
-                                                                                    ? "text-danger"
-                                                                                    : "text-success")">
-                                @item.LeaveBalance.ToString("0.##")
-                            </td>
-                        </tr>
-                                                }
+                                </tr>
+                            }
                         </tbody>
-
                     </table>
                 </div>
             }
-
         </div>
 
         <!-- Report Footer -->
-        <div class="card-footer bg-white
-                    d-flex justify-content-between
-                    align-items-center flex-wrap gap-2">
-
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span class="text-muted small">
-                Report Date:
-                @Model.SelectedDate.ToString("dd-MMM-yyyy")
+                Report Date: @Model.SelectedDate.ToString("dd-MMM-yyyy")
             </span>
-
             <span class="text-muted small">
                 Total Records: @(Model.Records?.Count ?? 0)
             </span>
-
         </div>
-
     </div>
-
 </div>

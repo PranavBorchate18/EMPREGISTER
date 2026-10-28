@@ -1,53 +1,342 @@
-﻿@{
-    ViewData["Title"] = "Form 26AS";
+﻿
+@{
+    ViewData["Title"] = "Form 26AS - Tax Credit Statement";
 }
 
-<div class="container-fluid py-4">
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-primary text-white py-3">
-            <h4 class="mb-1">Form 26AS</h4>
-            <div>Tax Credit Statement</div>
-        </div>
+<style>
+    .tax26-page {
+        background: #f4f7fb;
+        min-height: 100vh;
+        padding: 24px;
+        border-radius: 12px;
+    }
 
-        <div class="card-body p-4">
-            <p>
-                Form 26AS provides tax-related information associated
-                with your PAN, including available TDS/TCS details,
-                tax payments, and other applicable tax credit information.
-            </p>
+    .tax26-header {
+        background: linear-gradient(120deg, #142b4a, #2457a6);
+        color: white;
+        border-radius: 14px;
+        padding: 28px;
+        margin-bottom: 24px;
+    }
 
-            <div class="alert alert-info">
-                <strong>Important:</strong>
-                The official Form 26AS must be accessed through the
-                Income Tax e-Filing portal. This application page
-                does not generate an official government tax statement.
+        .tax26-header h2 {
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+    .tax26-card {
+        background: #fff;
+        border: 1px solid #e5eaf2;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(25, 45, 75, .05);
+        margin-bottom: 22px;
+        overflow: hidden;
+    }
+
+    .tax26-card-header {
+        padding: 18px 22px;
+        border-bottom: 1px solid #edf0f5;
+    }
+
+        .tax26-card-header h5 {
+            margin: 0;
+            color: #1c3557;
+            font-weight: 700;
+        }
+
+    .tax26-card-body {
+        padding: 24px;
+    }
+
+    .tax26-info {
+        height: 100%;
+        border: 1px solid #e5eaf2;
+        border-radius: 12px;
+        padding: 20px;
+        background: #fff;
+    }
+
+    .tax26-icon {
+        width: 46px;
+        height: 46px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        background: #eaf1ff;
+        color: #2457a6;
+        border-radius: 12px;
+        font-size: 1.35rem;
+        margin-bottom: 14px;
+    }
+
+    .tax26-info h6 {
+        color: #1c3557;
+        font-weight: 700;
+    }
+
+    .tax26-info p {
+        color: #64748b;
+        margin-bottom: 0;
+        font-size: .9rem;
+    }
+
+    .tax26-step {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .tax26-step-number {
+        flex: 0 0 36px;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #eaf1ff;
+        color: #2457a6;
+        font-weight: 700;
+        border-radius: 50%;
+    }
+
+    .tax26-step h6 {
+        color: #1c3557;
+        font-weight: 700;
+        margin: 2px 0 5px;
+    }
+
+    .tax26-step p {
+        color: #64748b;
+        margin: 0;
+        font-size: .9rem;
+    }
+
+    .tax26-notice {
+        background: #fff8e8;
+        border: 1px solid #f5dfaa;
+        color: #6f5318;
+        border-radius: 10px;
+        padding: 18px;
+    }
+
+    @@media (max-width: 767px) {
+        .tax26-page {
+            padding: 12px;
+        }
+
+        .tax26-header {
+            padding: 20px;
+        }
+
+        .tax26-card-body {
+            padding: 16px;
+        }
+    }
+
+    @@media print {
+        .tax26-page {
+            background: #fff !important;
+            padding: 0 !important;
+        }
+
+        .tax26-header {
+            background: #fff !important;
+            color: #111 !important;
+            border: 1px solid #bbb;
+        }
+
+            .tax26-header p {
+                color: #333 !important;
+            }
+
+        .tax26-no-print,
+        nav,
+        aside,
+        .sidebar {
+            display: none !important;
+        }
+
+        .tax26-card,
+        .tax26-info {
+            box-shadow: none !important;
+        }
+    }
+</style>
+
+<div class="tax26-page">
+
+    <!-- Page Header -->
+    <div class="tax26-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <div class="mb-2">
+                    <i class="bi bi-file-earmark-ruled me-2"></i>
+                    TAX MANAGEMENT
+                </div>
+
+                <h2>Form 26AS</h2>
+
+                <p class="mb-0">
+                    Tax Credit Statement &amp; TDS Information
+                </p>
             </div>
 
-            <h5 class="mt-4">How to Access Form 26AS</h5>
-
-            <ol class="mb-4">
-                <li>Log in to the Income Tax e-Filing portal.</li>
-                <li>Navigate to the e-File section.</li>
-                <li>Select the View Form 26AS option, if available.</li>
-                <li>
-                    Complete the required authentication and view
-                    or download your tax statement.
-                </li>
-            </ol>
-
-            <a href="https://www.incometax.gov.in/"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="btn btn-primary">
-                <i class="bi bi-box-arrow-up-right me-2"></i>
-                Open Income Tax Portal
-            </a>
-
-            <div class="text-muted small mt-3">
-                Portal menu names and navigation steps may change.
-                Follow the latest instructions provided on the
-                official Income Tax portal.
+            <div class="text-md-end">
+                <div class="small">Statement Information</div>
+                <div class="fs-5 fw-bold">Official Tax Portal</div>
+                <span class="badge bg-light text-primary mt-2">
+                    External Government Service
+                </span>
             </div>
         </div>
     </div>
+
+    <!-- Information Cards -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-12 col-md-4">
+            <div class="tax26-info">
+                <div class="tax26-icon">
+                    <i class="bi bi-receipt"></i>
+                </div>
+
+                <h6>TDS / TCS Details</h6>
+
+                <p>
+                    Review tax deducted or collected and the
+                    related information reported against your PAN.
+                </p>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="tax26-info">
+                <div class="tax26-icon">
+                    <i class="bi bi-bank"></i>
+                </div>
+
+                <h6>Tax Payments</h6>
+
+                <p>
+                    Review applicable tax payment and tax credit
+                    information available in the official statement.
+                </p>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="tax26-info">
+                <div class="tax26-icon">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+
+                <h6>PAN-linked Information</h6>
+
+                <p>
+                    Verify available tax-related entries using
+                    the official Income Tax Department service.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Access Instructions -->
+    <div class="tax26-card">
+        <div class="tax26-card-header">
+            <h5>
+                <i class="bi bi-list-check me-2"></i>
+                How to Access Form 26AS
+            </h5>
+        </div>
+
+        <div class="tax26-card-body">
+
+            <div class="tax26-step">
+                <div class="tax26-step-number">1</div>
+
+                <div>
+                    <h6>Open the Income Tax e-Filing Portal</h6>
+                    <p>
+                        Use the official government portal to access
+                        your tax-related services.
+                    </p>
+                </div>
+            </div>
+
+            <div class="tax26-step">
+                <div class="tax26-step-number">2</div>
+
+                <div>
+                    <h6>Sign In Securely</h6>
+                    <p>
+                        Log in using your own authorized credentials
+                        and complete any required authentication.
+                    </p>
+                </div>
+            </div>
+
+            <div class="tax26-step">
+                <div class="tax26-step-number">3</div>
+
+                <div>
+                    <h6>Locate Form 26AS</h6>
+                    <p>
+                        Follow the current portal instructions to
+                        open the Form 26AS / tax credit statement service.
+                    </p>
+                </div>
+            </div>
+
+            <div class="tax26-step mb-0">
+                <div class="tax26-step-number">4</div>
+
+                <div>
+                    <h6>Review or Download the Statement</h6>
+                    <p>
+                        Check the available tax entries and save the
+                        statement securely for your records.
+                    </p>
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 tax26-no-print">
+                <div>
+                    <div class="fw-bold text-dark">
+                        Income Tax e-Filing Portal
+                    </div>
+
+                    <div class="text-muted small">
+                        Official external government website
+                    </div>
+                </div>
+
+                <a href="https://www.incometax.gov.in/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="btn btn-primary">
+                    <i class="bi bi-box-arrow-up-right me-2"></i>
+                    Open Income Tax Portal
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Important Notice -->
+    <div class="tax26-notice">
+        <div class="fw-bold mb-2">
+            <i class="bi bi-info-circle me-2"></i>
+            Important Information
+        </div>
+
+        This application page provides access instructions only.
+        It does not fetch, store, or generate an official Form 26AS.
+        The statement must be accessed through the authorized
+        government service. Portal navigation may change over time.
+    </div>
+
 </div>
+

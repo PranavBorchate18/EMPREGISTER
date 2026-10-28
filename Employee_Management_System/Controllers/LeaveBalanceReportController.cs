@@ -1,5 +1,4 @@
-﻿
-using Employee_Management_System.Data;
+﻿using Employee_Management_System.Data;
 using Employee_Management_System.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -85,8 +84,7 @@ ORDER BY code;";
 
                 while (await reader.ReadAsync())
                 {
-                    short code =
-                        Convert.ToInt16(reader["code"]);
+                    short code = Convert.ToInt16(reader["code"]);
 
                     string name =
                         Convert.ToString(reader["LeaveName"])?.Trim() ?? "";
@@ -113,8 +111,9 @@ ORDER BY code;";
         // c_d_code = 1 : Credit
         // c_d_code = 2 : Debit
         // Status = A   : Approved
-        //
-        // Credit आणि Debit साठी sact_code आणि sact_from_date वापरले आहेत.
+        // Balance = Leave Limit/Credit - Approved Debit.
+        // Display formatting without unnecessary decimal zeros should be
+        // handled in Views/LeaveBalanceReport/Index.cshtml using ToString("0.##").
         private async Task<List<LeaveBalanceReportRowViewModel>> LoadReport(
             DateTime selectedDate,
             short leaveCode)
@@ -139,15 +138,11 @@ SELECT
     p.code AS EmployeeCode,
     ISNULL(p.name, '') AS EmployeeName,
     ISNULL(lm.name, '') AS LeaveName,
-    CONVERT(DECIMAL(18, 2),
-        ISNULL(lm.leave_limit, 0)) AS LeaveLimit,
-    CONVERT(DECIMAL(18, 2),
-        ISNULL(credit.TotalCredit, 0)) AS TotalCredit,
-    CONVERT(DECIMAL(18, 2),
-        ISNULL(taken.TotalTaken, 0)) AS TotalTaken
+    CONVERT(DECIMAL(18, 2), ISNULL(lm.leave_limit, 0)) AS LeaveLimit,
+    CONVERT(DECIMAL(18, 2), ISNULL(credit.TotalCredit, 0)) AS TotalCredit,
+    CONVERT(DECIMAL(18, 2), ISNULL(taken.TotalTaken, 0)) AS TotalTaken
 FROM dbo.PayMast p
 CROSS JOIN dbo.leavmast lm
-
 LEFT JOIN
 (
     SELECT
@@ -163,7 +158,6 @@ LEFT JOIN
 ) credit
     ON credit.empl = p.code
    AND credit.LeaveCode = lm.code
-
 LEFT JOIN
 (
     SELECT
@@ -179,7 +173,6 @@ LEFT JOIN
 ) taken
     ON taken.empl = p.code
    AND taken.LeaveCode = lm.code
-
 WHERE lm.code = @LeaveCode
   AND UPPER(LTRIM(RTRIM(ISNULL(lm.Active, 'N')))) = 'Y'
   AND ISNULL(lm.leave_limit, 0) > 0
@@ -220,9 +213,15 @@ ORDER BY p.code;";
                         LeaveType =
                             Convert.ToString(reader["LeaveName"])?.Trim() ?? "",
 
+                        // Leave Credit column displays the configured leave limit.
                         LeaveLimit = leaveLimit,
+
+                        // Leave Debit column displays approved debit days.
                         LeaveTaken = totalTaken,
-                        LeaveBalance = totalCredit - totalTaken
+
+                        // Correct balance: configured leave credit minus debit.
+                        // Example: 15 - 0.5 = 14.5; 15 - 0 = 15.
+                        LeaveBalance = leaveLimit - totalTaken
                     });
                 }
             }

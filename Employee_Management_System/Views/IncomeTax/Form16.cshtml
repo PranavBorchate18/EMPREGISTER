@@ -1,18 +1,235 @@
-﻿```cshtml
-@model Employee_Management_System.Models.IncomeTaxViewModel
+﻿@model Employee_Management_System.Models.IncomeTaxViewModel
 
 @{
-    ViewData["Title"] = "Form 16 - Salary Tax Summary";
+    ViewData["Title"] = "Form 16 - Salary & Tax Summary";
     int nextFY = Model.FinancialYear + 1;
+    string fyLabel = $"{Model.FinancialYear}-{(nextFY % 100):00}";
+    var inr = new System.Globalization.CultureInfo("en-IN");
+    string F(decimal v) => v == 0 ? "-" : v.ToString("N2", inr);
+    string Or(string? v, string fallback = "-") => string.IsNullOrWhiteSpace(v) ? fallback : v;
 }
 
-<div class="container-fluid py-4">
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-primary text-white py-3">
-            <h4 class="mb-1">Form 16</h4>
-            <div>Employee Salary &amp; Tax Summary</div>
-        </div>
+<style>
+    .f16-head {
+        background: #0b3a6e;
+        color: #fff;
+        font-weight: 600;
+        padding: .55rem 1rem;
+        border-radius: .35rem .35rem 0 0;
+    }
 
+    .f16-box {
+        border: 1px solid #dbe3ee;
+        border-radius: 0 0 .35rem .35rem;
+        background: #fff;
+    }
+
+        .f16-box table {
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        .f16-box th {
+            background: #f1f5fa;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+    .f16-total td {
+        background: #e8f1fb;
+        font-weight: 700;
+    }
+
+    .f16-info {
+        background: #eef8f1;
+        border: 1px solid #b9e0c6;
+        border-radius: .35rem;
+        padding: .75rem 1rem;
+    }
+
+    .f16-emp {
+        background: #eef4fb;
+        border: 1px solid #d3e0f0;
+        border-radius: .35rem;
+        padding: 1rem 1.25rem;
+    }
+
+        .f16-emp .lbl {
+            color: #555;
+            font-size: .85rem;
+        }
+
+        .f16-emp .val {
+            font-weight: 700;
+        }
+
+    /* Print-only blocks are hidden on screen */
+    .print-only {
+        display: none;
+    }
+
+    @@media print {
+        @@page {
+            size: A4 portrait;
+            margin: 0;
+        }
+        /* margin 0 also removes browser date/URL header-footer */
+
+        html, body {
+            background: #fff !important;
+        }
+
+        * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        /* hide application chrome */
+        .sidebar, .topbar, .main-footer, .sidebar-toggle,
+        .modal, .no-print, .f16-emp, form, .btn, .alert {
+            display: none !important;
+        }
+
+        .main-wrapper {
+            margin: 0 !important;
+        }
+
+        .page-content {
+            padding: 0 !important;
+        }
+
+        .container-fluid {
+            padding: 0 !important;
+        }
+
+        .print-only {
+            display: block !important;
+        }
+
+        .print-sheet {
+            padding: 16mm 16mm 14mm 16mm;
+            font-size: 11pt;
+            color: #111;
+        }
+
+        .p-title {
+            text-align: center;
+            border-bottom: 3px double #0b3a6e;
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+        }
+
+            .p-title h1 {
+                font-size: 20pt;
+                letter-spacing: 2px;
+                margin: 0;
+                color: #0b3a6e;
+                font-weight: 700;
+            }
+
+            .p-title div {
+                font-size: 11pt;
+                color: #444;
+                margin-top: 2px;
+            }
+
+        table.p-emp {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+
+            table.p-emp td {
+                border: 1px solid #9fb2c8;
+                padding: 6px 10px;
+                font-size: 10.5pt;
+            }
+
+                table.p-emp td.k {
+                    background: #eaf0f8;
+                    font-weight: 600;
+                    width: 18%;
+                    color: #0b3a6e;
+                }
+
+                table.p-emp td.v {
+                    width: 32%;
+                    font-weight: 600;
+                }
+
+        .f16-head {
+            border-radius: 0;
+            font-size: 11pt;
+            padding: 6px 10px;
+        }
+
+        .f16-box {
+            border: 1px solid #9fb2c8;
+            border-radius: 0;
+        }
+
+            .f16-box table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .f16-box th, .f16-box td {
+                border: 1px solid #9fb2c8 !important;
+                padding: 5px 8px !important;
+                font-size: 10.5pt;
+            }
+
+            .f16-box th {
+                background: #eaf0f8 !important;
+            }
+
+        .f16-total td {
+            background: #dbe8f6 !important;
+        }
+
+        .f16-info {
+            background: none;
+            border: none;
+            padding: 0;
+            font-size: 9pt;
+            color: #555;
+            margin-top: 12px;
+        }
+
+        .p-sign {
+            display: flex !important;
+            justify-content: space-between;
+            margin-top: 60px;
+            font-size: 10pt;
+        }
+
+            .p-sign div {
+                width: 40%;
+                border-top: 1px solid #333;
+                text-align: center;
+                padding-top: 4px;
+            }
+
+        .p-foot {
+            text-align: right;
+            font-size: 8.5pt;
+            color: #666;
+            margin-top: 18px;
+        }
+
+        tr, td, th {
+            page-break-inside: avoid;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4 print-sheet">
+
+    <div class="mb-3 no-print">
+        <h3 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Form 16</h3>
+        <div class="text-muted">Employee Salary &amp; Tax Summary · Draft pending tax/TDS verification</div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4 no-print">
         <div class="card-body">
             <form method="get"
                   asp-controller="IncomeTax"
@@ -20,7 +237,7 @@
                   class="row g-3 align-items-end">
 
                 <div class="col-md-5">
-                    <label class="form-label">Employee</label>
+                    <label class="form-label fw-semibold">Employee</label>
                     <select name="employeeCode"
                             class="form-select"
                             asp-items="Model.Employees">
@@ -29,15 +246,12 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label">Financial Year</label>
+                    <label class="form-label fw-semibold">Financial Year</label>
                     <select name="financialYear" class="form-select">
-                        @for (int y = DateTime.Today.Year;
-                                                y >= DateTime.Today.Year - 10;
-                                                y--)
+                        @for (int y = DateTime.Today.Year + 1; y >= DateTime.Today.Year - 10; y--)
                         {
-                            <option value="@y"
-                                    selected="@(Model.FinancialYear == y)">
-                                @y-@(y + 1)
+                            <option value="@y" selected="@(Model.FinancialYear == y)">
+                                @($"{y}-{((y + 1) % 100):00}")
                             </option>
                         }
                     </select>
@@ -54,101 +268,196 @@
 
     @if (Model.EmployeeCode > 0)
     {
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
-
-                <div class="d-flex justify-content-between flex-wrap mb-4">
-                    <div>
-                        <h5 class="mb-1">@Model.EmployeeName</h5>
-
-                        <div class="text-muted">
-                            Employee Code: @Model.EmployeeCode
-                        </div>
-
-                        <div class="text-muted">
-                            PAN:
-                            @(string.IsNullOrWhiteSpace(Model.PAN)
-                                                    ? "Not available"
-                                                    : Model.PAN)
-                    </div>
+        <!-- Screen view: employee card -->
+        <div class="f16-emp mb-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="lbl">Employee Name</div>
+                    <div class="val">@Model.EmployeeName</div>
+                    <div class="lbl mt-2">Employee Code</div>
+                    <div class="val">@Model.EmployeeCode</div>
                 </div>
-
-                    <div class="text-md-end mt-3 mt-md-0">
-                        <div class="text-muted">Financial Year</div>
-                        <h5>@Model.FinancialYear-@nextFY</h5>
-                    </div>
+                <div class="col-md-4">
+                    <div class="lbl">PAN</div>
+                    <div class="val">@Or(Model.PAN, "Not available")</div>
+                    <div class="lbl mt-2">UID</div>
+                    <div class="val">@Or(Model.UID, "Not available")</div>
                 </div>
-
-            @if (!Model.SalaryDataAvailable)
-                {
-                    <div class="alert alert-warning">
-                        No saved salary records are available for this
-                        employee for the selected financial year.
-                    </div>
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-bordered align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Salary Particulars</th>
-                                    <th class="text-end">Amount (₹)</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        Annual Basic Salary — Saved Payroll Total
-                                    </td>
-                                    <td class="text-end">
-                                        @Model.AnnualBasic.ToString("N2")
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <td>
-                                        Annual Allowances — Saved Payroll Total
-                                    </td>
-                                    <td class="text-end">
-                                        @Model.AnnualAllowance.ToString("N2")
-                                    </td>
-                                </tr>
-
-                                <tr class="table-primary fw-bold">
-                                    <td>Annual Gross Salary Summary</td>
-                                    <td class="text-end">
-                                        @Model.AnnualGrossSalary.ToString("N2")
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <td>Verified TDS</td>
-                                    <td class="text-end">Not configured</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                }
-
-                <div class="alert alert-info mt-3">
-                    <strong>Draft / Preview Only:</strong>
-                    @Model.Notice
-                    This summary is not an official Form 16.
-                    An official certificate should be issued only after
-                    verifying TDS, taxable income, exemptions, deductions,
-                    and tax calculations.
+                <div class="col-md-4">
+                    <div class="lbl">Branch</div>
+                    <div class="val">@Or(Model.BranchName)</div>
+                    <div class="lbl mt-2">Financial Year</div>
+                    <div class="val">@fyLabel</div>
                 </div>
-
-                <button type="button"
-                        class="btn btn-outline-secondary"
-                        onclick="window.print()">
-                    <i class="bi bi-printer me-1"></i> Print Preview
-                </button>
-
             </div>
         </div>
+
+        <!-- Print / PDF view: title + employee detail table -->
+        <div class="print-only">
+            <div class="p-title">
+                <h1>FORM 16</h1>
+                <div>Employee Salary &amp; Tax Summary &nbsp;|&nbsp; Financial Year @fyLabel</div>
+            </div>
+
+            <table class="p-emp">
+                <tr>
+                    <td class="k">Employee Name</td>
+                    <td class="v">@Model.EmployeeName</td>
+                    <td class="k">Employee Code</td>
+                    <td class="v">@Model.EmployeeCode</td>
+                </tr>
+                <tr>
+                    <td class="k">PAN</td>
+                    <td class="v">@Or(Model.PAN, "Not available")</td>
+                    <td class="k">UID</td>
+                    <td class="v">@Or(Model.UID, "Not available")</td>
+                </tr>
+                <tr>
+                    <td class="k">Branch</td>
+                    <td class="v">@Or(Model.BranchName)</td>
+                    <td class="k">Financial Year</td>
+                    <td class="v">@fyLabel</td>
+                </tr>
+            </table>
+        </div>
+
+        @if (!Model.SalaryDataAvailable)
+        {
+            <div class="alert alert-warning">
+                No saved salary records are available for this employee
+                for the selected financial year.
+            </div>
+        }
+        else
+        {
+            <div class="mb-4">
+                <div class="f16-head">Salary Details (Month Wise)</div>
+                <div class="f16-box table-responsive">
+                    <table class="table table-bordered table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Basic Salary (₹)</th>
+                                <th>Total Allowance (₹)</th>
+                                <th>Total (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in Model.Months)
+                            {
+                                <tr>
+                                    <td class="text-center">@m.MonthName</td>
+                                    <td class="text-center">@F(m.Basic)</td>
+                                    <td class="text-center">@F(m.TotalAllowance)</td>
+                                    <td class="text-center fw-semibold">@F(m.Total)</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="f16-total">
+                                <td class="text-center">Total</td>
+                                <td class="text-center">@F(Model.TotalBasic)</td>
+                                <td class="text-center">@F(Model.TotalAllowanceSum)</td>
+                                <td class="text-center">@F(Model.GrandTotal)</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+
+            <!-- Tax computation summary. Controller must populate these values from verified tax data. -->
+            <div class="mb-4">
+                <div class="f16-head">Annual Tax Summary</div>
+                <div class="f16-box">
+                    <table class="table table-bordered table-sm align-middle">
+                        <tbody>
+                            <tr>
+                                <th class="text-start">Gross Salary (available salary records)</th>
+                                <td class="text-end">@F(Model.GrossSalary)</td>
+                            </tr>
+                            <tr>
+                                <th class="text-start">Exemptions</th>
+                                <td class="text-end">@F(Model.Exemptions)</td>
+                            </tr>
+                            <tr>
+                                <th class="text-start">Standard Deduction</th>
+                                <td class="text-end">@F(Model.StandardDeduction)</td>
+                            </tr>
+                            <tr>
+                                <th class="text-start">Chapter VI-A Deductions</th>
+                                <td class="text-end">@F(Model.ChapterVIA_Deductions)</td>
+                            </tr>
+                            <tr class="f16-total">
+                                <th class="text-start">Taxable Income</th>
+                                <td class="text-end">@F(Model.TaxableIncome)</td>
+                            </tr>
+                            <tr>
+                                <th class="text-start">Income Tax</th>
+                                <td class="text-end">@F(Model.IncomeTax)</td>
+                            </tr>
+                            <tr>
+                                <th class="text-start">Surcharge</th>
+                                <td class="text-end">@F(Model.Surcharge)</td>
+                            </tr>
+                            <tr>
+                                <th class="text-start">Health and Education Cess</th>
+                                <td class="text-end">@F(Model.Cess)</td>
+                            </tr>
+                            <tr>
+                                <th class="text-start">Tax Relief</th>
+                                <td class="text-end">@F(Model.TaxRelief)</td>
+                            </tr>
+                            <tr class="f16-total">
+                                <th class="text-start">Net Tax Payable</th>
+                                <td class="text-end">@F(Model.NetTaxPayable)</td>
+                            </tr>
+                            <tr>
+                                <th class="text-start">TDS Deducted</th>
+                                <td class="text-end">@F(Model.TotalTDS)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="alert alert-warning no-print">
+                Tax computation and TDS figures are not yet loaded from verified tax/TDS records.
+                Do not issue this summary as an official Form 16 until the controller is connected
+                to the required employer, challan, exemption, deduction and TDS data.
+            </div>
+
+            @if (!Model.IncentiveAvailable)
+            {
+                <div class="alert alert-warning">
+                    Prize, Bonus, Recovery and Gold allowances are not included in Total Allowance
+                    because the incentive table (<code>Incentive_Trn</code>) is not
+                    available in this database.
+                </div>
+            }
+
+            <div class="f16-info">
+                <i class="bi bi-info-circle me-1 no-print"></i>
+                @Model.Notice
+            </div>
+
+            <div class="print-only">
+                <div class="p-sign">
+                    <div>Prepared By</div>
+                    <div>Authorised Signatory</div>
+                </div>
+                <div class="p-foot">Generated on @DateTime.Now.ToString("dd-MMM-yyyy hh:mm tt")</div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-3 no-print">
+                <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> Print Preview
+                </button>
+                <button type="button" class="btn btn-primary" onclick="window.print()"
+                        title="In the print dialog choose 'Save as PDF'">
+                    <i class="bi bi-download me-1"></i> Download (PDF)
+                </button>
+            </div>
+        }
     }
 </div>
-```
