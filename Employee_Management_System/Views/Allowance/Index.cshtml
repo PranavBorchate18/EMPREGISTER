@@ -4,101 +4,54 @@
     ViewData["Title"] = "Allowance Master";
 }
 
-
 <div class="container mt-4 mb-5">
 
     <div class="card shadow">
 
         <div class="card-header bg-primary text-white">
-
             <h3 class="text-center mb-0">
-
                 <i class="bi bi-cash-stack me-2"></i>
-
                 Allowance Master
-
             </h3>
-
         </div>
 
-
         <div class="card-body">
-
-
-            @* =========================================
-               SUCCESS MESSAGE
-               ========================================= *@
 
             @if (TempData["Success"] != null)
             {
                 <div class="alert alert-success alert-dismissible fade show">
-
                     <i class="bi bi-check-circle-fill me-2"></i>
-
                     @TempData["Success"]
-
-                    <button type="button"
-                            class="btn-close"
-                            data-bs-dismiss="alert">
-                    </button>
-
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             }
-
-
-            @* =========================================
-               ERROR MESSAGE
-               ========================================= *@
 
             @if (TempData["Error"] != null)
             {
                 <div class="alert alert-danger alert-dismissible fade show">
-
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
-
                     @TempData["Error"]
-
-                    <button type="button"
-                            class="btn-close"
-                            data-bs-dismiss="alert">
-                    </button>
-
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             }
-
-
-            @* =========================================
-               BUTTON + SEARCH
-               ========================================= *@
 
             <div class="d-flex justify-content-between mb-3">
 
                 <button type="button"
                         class="btn btn-primary"
                         onclick="openAddAllowance()">
-
                     <i class="bi bi-plus-circle"></i>
-
                     Add Allowance
-
                 </button>
 
-
                 <div style="width:300px;">
-
                     <input type="text"
                            id="allowanceSearch"
                            class="form-control"
                            placeholder="Search Allowance..." />
-
                 </div>
 
             </div>
-
-
-            @* =========================================
-               ALLOWANCE TABLE
-               ========================================= *@
 
             <div class="table-responsive">
 
@@ -106,103 +59,85 @@
                        id="allowanceTable">
 
                     <thead class="table-dark">
-
                         <tr>
-
                             <th>Code</th>
-
                             <th>Name</th>
-
                             <th>Short Name</th>
-
                             <th>G/L Code</th>
-
                             <th>Comp</th>
-
                             <th>Effect On Pay</th>
-
                             <th>Effect On Trf</th>
-
                             <th>Trf Min Days</th>
-
-                            <th style="width:130px;">
-                                Action
-                            </th>
-
+                            <th>Allowance Type</th>
+                            <th>Apply Month</th>
+                            <th>Active</th>
+                            <th style="width:130px;">Action</th>
                         </tr>
-
                     </thead>
-
 
                     <tbody>
 
                         @foreach (var item in Model)
                         {
                             <tr>
+                                <td>@item.Code</td>
+                                <td>@item.Name</td>
+                                <td>@item.ShortName</td>
+                                <td>@item.GLC</td>
+                                <td>@item.Comp</td>
+                                <td>@item.EffectOnPay</td>
+                                <td>@item.EffectOnTrf</td>
+                                <td>@item.TrfMinDays</td>
 
                                 <td>
-                                    @item.Code
+                                    @if (item.AllowType == 2)
+                                    {
+                                        <span class="badge bg-info text-dark">HRA</span>
+                                    }
+                                    else if (item.AllowType == 3)
+                                    {
+                                        <span class="badge bg-primary">DA</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">General</span>
+                                    }
+                                </td>
+
+                                <td>@item.ApplyMonth</td>
+
+                                <td>
+                                    @if (string.Equals(
+                                                                    item.Active,
+                                                                    "Yes",
+                                                                    StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-success">Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">No</span>
+                                    }
                                 </td>
 
                                 <td>
-                                    @item.Name
-                                </td>
-
-                                <td>
-                                    @item.ShortName
-                                </td>
-
-                                <td>
-                                    @item.GLC
-                                </td>
-
-                                <td>
-                                    @item.Comp
-                                </td>
-
-                                <td>
-                                    @item.EffectOnPay
-                                </td>
-
-                                <td>
-                                    @item.EffectOnTrf
-                                </td>
-
-                                <td>
-                                    @item.TrfMinDays
-                                </td>
-
-
-                                <td>
-
                                     <button type="button"
                                             class="btn btn-warning btn-sm"
                                             onclick="editAllowance(@item.Code)">
-
                                         <i class="bi bi-pencil-square"></i>
-
                                     </button>
-
 
                                     <button type="button"
                                             class="btn btn-danger btn-sm"
                                             onclick="confirmDelete(
                                                     @item.Code,
-                                                    '@Html.Raw(
-                                                                                                System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(
-                                                                                                    item.Name ?? ""
-                                                                                                )
-                                                                                            )'
-                                            )">
-
+                                                    @Html.Raw(System.Text.Json.JsonSerializer.Serialize(item.Name ?? ""))
+                                                )">
                                         <i class="bi bi-trash"></i>
-
                                     </button>
-
                                 </td>
-
                             </tr>
-                                                }
+                        }
 
                     </tbody>
 
@@ -211,15 +146,12 @@
             </div>
 
         </div>
-
     </div>
-
 </div>
 
 
-
 @* =====================================================
-   ADD / EDIT MODAL
+   ADD / EDIT ALLOWANCE MODAL
    ===================================================== *@
 
 <div class="modal fade"
@@ -230,22 +162,15 @@
 
         <div class="modal-content">
 
-
-            <form method="post"
-                  id="allowanceForm">
+            <form method="post" id="allowanceForm">
 
                 @Html.AntiForgeryToken()
 
-
                 <div class="modal-header bg-primary text-white">
 
-                    <h5 class="modal-title"
-                        id="allowanceModalTitle">
-
+                    <h5 class="modal-title" id="allowanceModalTitle">
                         Add Allowance
-
                     </h5>
-
 
                     <button type="button"
                             class="btn-close btn-close-white"
@@ -254,43 +179,39 @@
 
                 </div>
 
-
                 <div class="modal-body">
 
+                    @* CODE + NAME *@
 
                     <div class="row">
-
 
                         <div class="col-md-6 mb-3">
 
                             <label class="form-label fw-bold">
-
                                 Allowance Code
-
                                 <span class="text-danger">*</span>
-
                             </label>
-
 
                             <input type="number"
                                    id="Code"
                                    name="Code"
-                                   class="form-control"
+                                   class="form-control bg-light"
+                                   value="@ViewBag.NextAllowanceCode"
+                                   readonly
                                    required />
 
-                        </div>
+                            <small class="text-muted">
+                                Allowance Code is generated automatically.
+                            </small>
 
+                        </div>
 
                         <div class="col-md-6 mb-3">
 
                             <label class="form-label fw-bold">
-
                                 Allowance Name
-
                                 <span class="text-danger">*</span>
-
                             </label>
-
 
                             <input type="text"
                                    id="Name"
@@ -301,19 +222,17 @@
 
                         </div>
 
-
                     </div>
 
+                    @* SHORT NAME + G/L *@
 
                     <div class="row">
-
 
                         <div class="col-md-6 mb-3">
 
                             <label class="form-label fw-bold">
                                 Short Name
                             </label>
-
 
                             <input type="text"
                                    id="ShortName"
@@ -323,13 +242,11 @@
 
                         </div>
 
-
                         <div class="col-md-6 mb-3">
 
                             <label class="form-label fw-bold">
                                 G/L Code
                             </label>
-
 
                             <input type="number"
                                    id="GLC"
@@ -338,109 +255,83 @@
 
                         </div>
 
-
                     </div>
 
+                    @* COMP + EFFECT ON PAY + EFFECT ON TRF *@
 
                     <div class="row">
-
 
                         <div class="col-md-4 mb-3">
 
                             <label class="form-label fw-bold">
                                 Comp
+                                <span class="text-danger">*</span>
                             </label>
-
 
                             <select id="Comp"
                                     name="Comp"
-                                    class="form-select">
+                                    class="form-select"
+                                    required>
 
-                                <option value="">
-                                    -- Select --
-                                </option>
-
-                                <option value="Y">
-                                    Yes
-                                </option>
-
-                                <option value="N">
-                                    No
-                                </option>
+                                <option value="">-- Select --</option>
+                                <option value="Y">Yes</option>
+                                <option value="N">No</option>
 
                             </select>
 
                         </div>
-
 
                         <div class="col-md-4 mb-3">
 
                             <label class="form-label fw-bold">
                                 Effect On Pay
+                                <span class="text-danger">*</span>
                             </label>
-
 
                             <select id="EffectOnPay"
                                     name="EffectOnPay"
-                                    class="form-select">
+                                    class="form-select"
+                                    required>
 
-                                <option value="">
-                                    -- Select --
-                                </option>
-
-                                <option value="Y">
-                                    Yes
-                                </option>
-
-                                <option value="N">
-                                    No
-                                </option>
+                                <option value="">-- Select --</option>
+                                <option value="Y">Yes</option>
+                                <option value="N">No</option>
 
                             </select>
 
                         </div>
-
 
                         <div class="col-md-4 mb-3">
 
                             <label class="form-label fw-bold">
                                 Effect On Trf
+                                <span class="text-danger">*</span>
                             </label>
-
 
                             <select id="EffectOnTrf"
                                     name="EffectOnTrf"
-                                    class="form-select">
+                                    class="form-select"
+                                    required>
 
-                                <option value="">
-                                    -- Select --
-                                </option>
-
-                                <option value="Y">
-                                    Yes
-                                </option>
-
-                                <option value="N">
-                                    No
-                                </option>
+                                <option value="">-- Select --</option>
+                                <option value="Y">Yes</option>
+                                <option value="N">No</option>
 
                             </select>
 
                         </div>
 
-
                     </div>
 
+                    @* TRF MIN DAYS + ACTIVE *@
 
                     <div class="row">
-
 
                         <div class="col-md-6 mb-3">
 
                             <label class="form-label fw-bold">
                                 Trf Min Days
                             </label>
-
 
                             <input type="number"
                                    step="any"
@@ -450,12 +341,95 @@
 
                         </div>
 
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold d-block">
+                                Active
+                            </label>
+
+                            <div class="form-check form-switch mt-2">
+
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       role="switch"
+                                       id="ActiveFlag"
+                                       style="width:48px;height:24px;cursor:pointer;" />
+
+                                <label class="form-check-label ms-2 fw-bold"
+                                       for="ActiveFlag"
+                                       id="ActiveFlagText">
+                                    No
+                                </label>
+
+                                <input type="hidden"
+                                       id="Active"
+                                       name="Active"
+                                       value="No" />
+
+                            </div>
+
+                        </div>
 
                     </div>
 
+                    @* ALLOWANCE TYPE *@
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold" for="AllowType">
+                                Allowance Type
+                            </label>
+
+                            <select id="AllowType"
+                                    name="AllowType"
+                                    class="form-select">
+
+                                <option value="1" selected>General</option>
+                                <option value="2">HRA</option>
+                                <option value="3">DA</option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                    @* APPLY FOR MONTH *@
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold d-block">
+                                Apply for Month
+                            </label>
+
+                            <button type="button"
+                                    class="btn btn-outline-primary"
+                                    onclick="openMonthSelector()">
+
+                                <i class="bi bi-calendar3"></i>
+                                Apply for Month
+
+                            </button>
+
+                            <input type="hidden"
+                                   id="ApplyMonth"
+                                   name="ApplyMonth" />
+
+                            <div id="selectedMonthText"
+                                 class="form-control mt-2 bg-light"
+                                 style="min-height:38px;">
+                                No month selected
+                            </div>
+
+                        </div>
+
+                    </div>
 
                 </div>
-
 
                 <div class="modal-footer">
 
@@ -464,38 +438,142 @@
                             data-bs-dismiss="modal">
 
                         <i class="bi bi-x-circle"></i>
-
                         Cancel
 
                     </button>
-
 
                     <button type="submit"
                             id="btnAllowanceSave"
                             class="btn btn-success">
 
                         <i class="bi bi-save"></i>
-
                         Save
 
                     </button>
 
                 </div>
 
-
             </form>
 
         </div>
-
     </div>
-
 </div>
 
 
-
 @* =====================================================
-   DELETE FORM
+   MONTH SELECTION MODAL
    ===================================================== *@
+
+<div class="modal fade"
+     id="monthModal"
+     tabindex="-1">
+
+    <div class="modal-dialog modal-md modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <div class="modal-header bg-primary text-white">
+
+                <h5 class="modal-title">
+                    <i class="bi bi-calendar3 me-2"></i>
+                    Select Months
+                </h5>
+
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        onclick="cancelMonthSelection()">
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="form-check mb-3 pb-3 border-bottom">
+
+                    <input class="form-check-input"
+                           type="checkbox"
+                           id="chkSelectAllMonths" />
+
+                    <label class="form-check-label fw-bold"
+                           for="chkSelectAllMonths">
+                        Select All
+                    </label>
+
+                </div>
+
+                <div class="row">
+
+                    @{
+                        var months = new[]
+                        {
+                                        new { Number = 1, Name = "January" },
+                                        new { Number = 7, Name = "July" },
+                                        new { Number = 2, Name = "February" },
+                                        new { Number = 8, Name = "August" },
+                                        new { Number = 3, Name = "March" },
+                                        new { Number = 9, Name = "September" },
+                                        new { Number = 4, Name = "April" },
+                                        new { Number = 10, Name = "October" },
+                                        new { Number = 5, Name = "May" },
+                                        new { Number = 11, Name = "November" },
+                                        new { Number = 6, Name = "June" },
+                                        new { Number = 12, Name = "December" }
+                                        };
+                    }
+
+                    @foreach (var month in months)
+                    {
+                        <div class="col-md-6 mb-3">
+
+                            <div class="form-check">
+
+                                <input class="form-check-input month-check"
+                                       type="checkbox"
+                                       value="@month.Number"
+                                       id="month@(month.Number)" />
+
+                                <label class="form-check-label"
+                                       for="month@(month.Number)">
+                                    @month.Name (@month.Number)
+                                </label>
+
+                            </div>
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-secondary"
+                        onclick="cancelMonthSelection()">
+
+                    <i class="bi bi-x-circle"></i>
+                    Cancel
+
+                </button>
+
+                <button type="button"
+                        class="btn btn-primary"
+                        onclick="saveMonthSelection()">
+
+                    <i class="bi bi-check-lg"></i>
+                    OK
+
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+@* DELETE FORM *@
 
 <form asp-controller="Allowance"
       asp-action="Delete"
@@ -511,253 +589,420 @@
 </form>
 
 
-
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
 <script>
 
+    // =====================================================
+    // MONTH NAMES
+    // =====================================================
+
+    const monthNames = {
+        1: "Jan",
+        2: "Feb",
+        3: "Mar",
+        4: "Apr",
+        5: "May",
+        6: "Jun",
+        7: "Jul",
+        8: "Aug",
+        9: "Sep",
+        10: "Oct",
+        11: "Nov",
+        12: "Dec"
+    };
+
+    let previousMonthSelection = "";
 
     // =====================================================
-    // ADD
+    // SELECT ALL MONTHS
+    // =====================================================
+
+    function syncSelectAllMonths() {
+
+        var all = document.getElementById("chkSelectAllMonths");
+
+        if (!all) return;
+
+        var total = document.querySelectorAll(".month-check").length;
+        var selected = document.querySelectorAll(".month-check:checked").length;
+
+        all.checked = total > 0 && selected === total;
+        all.indeterminate = selected > 0 && selected < total;
+    }
+
+    document.addEventListener("change", function (e) {
+
+        var el = e.target;
+
+        if (!el) return;
+
+        if (el.id === "chkSelectAllMonths") {
+
+            document.querySelectorAll(".month-check").forEach(function (c) {
+                c.checked = el.checked;
+            });
+
+            el.indeterminate = false;
+        }
+        else if (el.classList && el.classList.contains("month-check")) {
+
+            syncSelectAllMonths();
+        }
+    });
+
+    document.addEventListener("show.bs.modal", function (e) {
+
+        if (e.target && e.target.id === "monthModal") {
+            syncSelectAllMonths();
+        }
+    });
+
+    // =====================================================
+    // ACTIVE FLAG
+    // =====================================================
+
+    $("#ActiveFlag").on("change", function () {
+
+        if ($(this).is(":checked")) {
+            $("#Active").val("Yes");
+            $("#ActiveFlagText").text("Yes");
+        }
+        else {
+            $("#Active").val("No");
+            $("#ActiveFlagText").text("No");
+        }
+
+    });
+
+    // =====================================================
+    // ADD ALLOWANCE
     // =====================================================
 
     function openAddAllowance() {
 
-        $("#allowanceModalTitle")
-            .text("Add Allowance");
+        $("#allowanceModalTitle").text("Add Allowance");
 
-
-        $("#allowanceForm")
-            .attr(
-                "action",
-                '@Url.Action("Create", "Allowance")'
-            );
-
+        $("#allowanceForm").attr(
+            "action",
+            '@Url.Action("Create", "Allowance")'
+        );
 
         $("#allowanceForm")[0].reset();
 
-
+        // Automatic Code - Read Only
         $("#Code")
-            .prop("readonly", false);
+            .val('@ViewBag.NextAllowanceCode')
+            .prop("readonly", true);
 
+        // Active Default No
+        $("#ActiveFlag").prop("checked", false);
+        $("#Active").val("No");
+        $("#ActiveFlagText").text("No");
+
+        // Allowance Type Default General
+        $("#AllowType").val("1");
+
+        // Apply Month Reset
+        $("#ApplyMonth").val("");
+        $("#selectedMonthText").text("No month selected");
+
+        $(".month-check").prop("checked", false);
 
         $("#btnAllowanceSave")
             .removeClass("btn-warning")
             .addClass("btn-success")
-            .html(
-                '<i class="bi bi-save"></i> Save'
-            );
+            .html('<i class="bi bi-save"></i> Save');
 
-
-        var modal =
-            bootstrap.Modal.getOrCreateInstance(
-                document.getElementById(
-                    "allowanceModal"
-                )
-            );
-
+        var modal = bootstrap.Modal.getOrCreateInstance(
+            document.getElementById("allowanceModal")
+        );
 
         modal.show();
     }
 
-
-
     // =====================================================
-    // EDIT
+    // EDIT ALLOWANCE
     // =====================================================
 
     function editAllowance(code) {
 
         $.ajax({
 
-            url:
-                '@Url.Action("GetAllowance", "Allowance")',
-
-            type:
-                "GET",
-
-            data: {
-                code: code
-            },
+            url: '@Url.Action("GetAllowance", "Allowance")',
+            type: "GET",
+            data: { code: code },
 
             success: function (response) {
 
                 if (!response.success) {
-
-                    alert(
-                        response.message
-                    );
-
+                    alert(response.message);
                     return;
                 }
 
+                var data = response.data;
 
-                var data =
-                    response.data;
+                $("#allowanceModalTitle").text("Edit Allowance");
 
+                $("#allowanceForm").attr(
+                    "action",
+                    '@Url.Action("Update", "Allowance")'
+                );
 
-                $("#allowanceModalTitle")
-                    .text("Edit Allowance");
-
-
-                $("#allowanceForm")
-                    .attr(
-                        "action",
-                        '@Url.Action("Update", "Allowance")'
-                    );
-
-
+                // Existing Code - Read Only
                 $("#Code")
                     .val(data.code)
                     .prop("readonly", true);
 
+                $("#Name").val(data.name || "");
+                $("#ShortName").val(data.shortName || "");
+                $("#GLC").val(data.glc ?? "");
 
-                $("#Name")
-                    .val(
-                        data.name || ""
-                    );
+                $("#Comp").val(data.comp || "");
+                $("#EffectOnPay").val(data.effectOnPay || "");
+                $("#EffectOnTrf").val(data.effectOnTrf || "");
 
+                $("#TrfMinDays").val(data.trfMinDays ?? "");
 
-                $("#ShortName")
-                    .val(
-                        data.shortName || ""
-                    );
+                // Allowance Type
+                $("#AllowType").val(data.allowType ?? 1);
 
+                // ACTIVE
+                if (
+                    data.active &&
+                    data.active.toString().toLowerCase() === "yes"
+                ) {
 
-                $("#GLC")
-                    .val(
-                        data.glc ?? ""
-                    );
+                    $("#ActiveFlag").prop("checked", true);
+                    $("#Active").val("Yes");
+                    $("#ActiveFlagText").text("Yes");
 
+                }
+                else {
 
-                $("#Comp")
-                    .val(
-                        data.comp || ""
-                    );
+                    $("#ActiveFlag").prop("checked", false);
+                    $("#Active").val("No");
+                    $("#ActiveFlagText").text("No");
 
+                }
 
-                $("#EffectOnPay")
-                    .val(
-                        data.effectOnPay || ""
-                    );
+                // APPLY MONTH
+                var applyMonths = data.applyMonth || "";
 
+                $("#ApplyMonth").val(applyMonths);
 
-                $("#EffectOnTrf")
-                    .val(
-                        data.effectOnTrf || ""
-                    );
-
-
-                $("#TrfMinDays")
-                    .val(
-                        data.trfMinDays ?? ""
-                    );
-
+                updateSelectedMonthText(applyMonths);
+                setMonthCheckboxes(applyMonths);
 
                 $("#btnAllowanceSave")
-                    .removeClass(
-                        "btn-success"
-                    )
-                    .addClass(
-                        "btn-warning"
-                    )
-                    .html(
-                        '<i class="bi bi-pencil-square"></i> Update'
-                    );
+                    .removeClass("btn-success")
+                    .addClass("btn-warning")
+                    .html('<i class="bi bi-pencil-square"></i> Update');
 
-
-                var modal =
-                    bootstrap.Modal
-                        .getOrCreateInstance(
-                            document.getElementById(
-                                "allowanceModal"
-                            )
-                        );
-
+                var modal = bootstrap.Modal.getOrCreateInstance(
+                    document.getElementById("allowanceModal")
+                );
 
                 modal.show();
 
             },
 
             error: function () {
-
-                alert(
-                    "Unable to load allowance."
-                );
-
+                alert("Unable to load allowance.");
             }
 
         });
     }
 
+    // =====================================================
+    // OPEN MONTH SELECTOR
+    // =====================================================
 
+    function openMonthSelector() {
+
+        previousMonthSelection = $("#ApplyMonth").val() || "";
+
+        setMonthCheckboxes(previousMonthSelection);
+
+        var allowanceModal = bootstrap.Modal.getInstance(
+            document.getElementById("allowanceModal")
+        );
+
+        if (allowanceModal) {
+            allowanceModal.hide();
+        }
+
+        setTimeout(function () {
+
+            var monthModal = bootstrap.Modal.getOrCreateInstance(
+                document.getElementById("monthModal")
+            );
+
+            monthModal.show();
+
+        }, 200);
+    }
+
+    // =====================================================
+    // SAVE MONTH SELECTION
+    // =====================================================
+
+    function saveMonthSelection() {
+
+        var selectedMonths = [];
+
+        $(".month-check:checked").each(function () {
+            selectedMonths.push(parseInt($(this).val()));
+        });
+
+        selectedMonths.sort(function (a, b) {
+            return a - b;
+        });
+
+        var value = selectedMonths.join(",");
+
+        $("#ApplyMonth").val(value);
+
+        updateSelectedMonthText(value);
+
+        closeMonthModalAndReturn();
+    }
+
+    // =====================================================
+    // CANCEL MONTH SELECTION
+    // =====================================================
+
+    function cancelMonthSelection() {
+
+        setMonthCheckboxes(previousMonthSelection);
+
+        closeMonthModalAndReturn();
+    }
+
+    // =====================================================
+    // CLOSE MONTH MODAL AND RETURN
+    // =====================================================
+
+    function closeMonthModalAndReturn() {
+
+        var monthModal = bootstrap.Modal.getInstance(
+            document.getElementById("monthModal")
+        );
+
+        if (monthModal) {
+            monthModal.hide();
+        }
+
+        setTimeout(function () {
+
+            var allowanceModal = bootstrap.Modal.getOrCreateInstance(
+                document.getElementById("allowanceModal")
+            );
+
+            allowanceModal.show();
+
+        }, 200);
+    }
+
+    // =====================================================
+    // SET MONTH CHECKBOXES
+    // =====================================================
+
+    function setMonthCheckboxes(value) {
+
+        $(".month-check").prop("checked", false);
+
+        if (!value) {
+            syncSelectAllMonths();
+            return;
+        }
+
+        var months = value.toString().split(",");
+
+        months.forEach(function (month) {
+
+            month = month.trim();
+
+            $("#month" + month).prop("checked", true);
+
+        });
+
+        syncSelectAllMonths();
+    }
+
+    // =====================================================
+    // DISPLAY SELECTED MONTH NAMES
+    // =====================================================
+
+    function updateSelectedMonthText(value) {
+
+        if (!value) {
+
+            $("#selectedMonthText").text("No month selected");
+            return;
+
+        }
+
+        var monthNumbers = value
+            .toString()
+            .split(",")
+            .filter(function (x) {
+                return x !== "";
+            });
+
+        var names = monthNumbers
+            .map(function (number) {
+                return monthNames[number];
+            })
+            .filter(function (name) {
+                return name != null;
+            });
+
+        if (names.length === 0) {
+            $("#selectedMonthText").text("No month selected");
+        }
+        else {
+            $("#selectedMonthText").text(names.join(", "));
+        }
+    }
 
     // =====================================================
     // DELETE
     // =====================================================
 
-    function confirmDelete(
-        code,
-        name
-    ) {
+    function confirmDelete(code, name) {
 
-        var result =
-            confirm(
-                "Are you sure you want to delete allowance?\n\n" +
-                "Code: " + code + "\n" +
-                "Name: " + name
-            );
-
+        var result = confirm(
+            "Are you sure you want to delete allowance?\n\n" +
+            "Code: " + code + "\n" +
+            "Name: " + name
+        );
 
         if (!result) {
-
             return;
-
         }
 
+        $("#deleteAllowanceCode").val(code);
 
-        $("#deleteAllowanceCode")
-            .val(code);
-
-
-        $("#deleteAllowanceForm")
-            .submit();
+        $("#deleteAllowanceForm").submit();
     }
-
-
 
     // =====================================================
     // SEARCH
     // =====================================================
 
-    $("#allowanceSearch")
-        .on(
-            "keyup",
-            function () {
+    $("#allowanceSearch").on("keyup", function () {
 
-                var value =
-                    $(this)
-                        .val()
-                        .toLowerCase();
+        var value = $(this).val().toLowerCase();
 
+        $("#allowanceTable tbody tr").filter(function () {
 
-                $("#allowanceTable tbody tr")
-                    .filter(
-                        function () {
+            $(this).toggle(
+                $(this).text().toLowerCase().indexOf(value) > -1
+            );
 
-                            $(this)
-                                .toggle(
-                                    $(this)
-                                        .text()
-                                        .toLowerCase()
-                                        .indexOf(value) > -1
-                                );
+        });
 
-                        }
-                    );
-
-            }
-        );
-
+    });
 
 </script>

@@ -1,0 +1,448 @@
+﻿@model Employee_Management_System.Models.SalarySlipViewModel
+
+@{
+    ViewData["Title"] = "Salary Slip";
+
+    string[] months =
+    {
+        "",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+    };
+}
+
+<style>
+    .salary-slip-page {
+        max-width: 1150px;
+        margin: 0 auto;
+    }
+
+    .salary-search-card {
+        background: #fff;
+        border: 1px solid #e1e5ea;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .salary-slip-paper {
+        background: white;
+        border: 1px solid #222;
+        padding: 22px 28px;
+        max-width: 950px;
+        margin: 0 auto;
+        color: #111;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .salary-title {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .salary-month {
+        text-align: center;
+        font-size: 15px;
+        margin-top: 5px;
+        margin-bottom: 18px;
+    }
+
+    .employee-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 45px;
+        row-gap: 6px;
+        font-size: 14px;
+    }
+
+    .info-row {
+        display: grid;
+        grid-template-columns: 130px 10px 1fr;
+    }
+
+    .slip-divider {
+        border-top: 1px solid #444;
+        margin: 15px 0;
+    }
+
+    .salary-body {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 55px;
+    }
+
+    .salary-section-title {
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .salary-line {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 15px;
+        padding: 3px 0;
+        font-size: 14px;
+    }
+
+    .salary-line-name {
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+        .salary-line-name::after {
+            content: " ........................................................";
+            color: #555;
+        }
+
+    .salary-amount {
+        min-width: 90px;
+        text-align: right;
+    }
+
+    .salary-total {
+        font-weight: 700;
+        border-top: 1px solid #333;
+        margin-top: 8px;
+        padding-top: 7px;
+    }
+
+    .salary-totals {
+        margin-top: 0; /* same spacing as before: total line sits right under the last earning row */
+    }
+
+    .net-section {
+        margin-top: 14px;
+        font-size: 14px;
+    }
+
+    .net-row {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 700;
+        margin-top: 8px;
+    }
+
+    .signature {
+        margin-top: 45px;
+        text-align: right;
+        font-weight: 600;
+    }
+
+    .print-button-area {
+        max-width: 950px;
+        margin: 15px auto;
+        text-align: right;
+    }
+
+    @@media print {
+        body * {
+            visibility: hidden !important;
+        }
+
+        #salarySlipPrintArea,
+        #salarySlipPrintArea * {
+            visibility: visible !important;
+        }
+
+        #salarySlipPrintArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            border: none;
+            padding: 10mm;
+            margin: 0;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        @@page {
+            size: A4;
+            margin: 10mm;
+        }
+    }
+</style>
+
+<div class="salary-slip-page">
+
+    <div class="salary-search-card no-print">
+
+        <h4 class="mb-4">Salary Slip</h4>
+
+        <form asp-controller="SalarySlip"
+              asp-action="Index"
+              method="post">
+
+            @Html.AntiForgeryToken()
+
+            <div class="row g-3 align-items-end">
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Year</label>
+
+                    <select name="year"
+                            class="form-select"
+                            required>
+
+                        @for (int y = DateTime.Now.Year + 1;
+                                                y >= DateTime.Now.Year - 10;
+                                                y--)
+                        {
+                            if (Model.Year == y)
+                            {
+                                <option value="@y" selected>@y</option>
+                            }
+                            else
+                            {
+                                <option value="@y">@y</option>
+                            }
+                        }
+
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Month</label>
+
+                    <select name="month"
+                            class="form-select"
+                            required>
+
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            if (Model.Month == m)
+                            {
+                                <option value="@m" selected>@months[m]</option>
+                            }
+                            else
+                            {
+                                <option value="@m">@months[m]</option>
+                            }
+                        }
+
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Employee Code</label>
+
+                    <input type="number"
+                           name="employeeCode"
+                           value="@(Model.EmployeeCode > 0 ? Model.EmployeeCode : "")"
+                           class="form-control"
+                           min="1"
+                           placeholder="Enter Employee Code"
+                           required />
+                </div>
+
+                <div class="col-md-3">
+                    <button type="submit"
+                            class="btn btn-primary w-100">
+                        <i class="bi bi-file-earmark-text me-1"></i>
+                        Generate Salary Slip
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Message))
+    {
+        <div class="alert alert-warning no-print">
+            @Model.Message
+        </div>
+    }
+
+    @if (Model.IsGenerated)
+    {
+        <div class="print-button-area no-print">
+            <button type="button"
+                    class="btn btn-dark"
+                    onclick="window.print();">
+                <i class="bi bi-printer me-1"></i>
+                Print Salary Slip
+            </button>
+        </div>
+
+        <div id="salarySlipPrintArea"
+             class="salary-slip-paper">
+
+            <!-- COMPANY TITLE - LOGO NOT SHOWN -->
+            <div class="salary-title">
+                ABC Company
+            </div>
+
+            <div class="salary-month">
+                Payslip for the month of
+                <strong>@Model.MonthName, @Model.Year</strong>
+            </div>
+
+            <div class="employee-info">
+
+                <div>
+                    <div class="info-row">
+                        <span>Emp No</span><span>:</span>
+                        <strong>@Model.EmployeeCode</strong>
+                    </div>
+
+                    <div class="info-row">
+                        <span>Name</span><span>:</span>
+                        <strong>@Model.EmployeeName</strong>
+                    </div>
+
+                    <div class="info-row">
+                        <span>Designation</span><span>:</span>
+                        <span>@Model.Designation</span>
+                    </div>
+
+                    <div class="info-row">
+                        <span>Branch</span><span>:</span>
+                        <span>@Model.BranchName</span>
+                    </div>
+
+                    <div class="info-row">
+                        <span>Date Joining</span><span>:</span>
+                        <span>@(Model.JoiningDate?.ToString("dd-MM-yyyy") ?? "")</span>
+                    </div>
+
+                    <div class="info-row">
+                        <span>Retirement</span><span>:</span>
+                        <span>@(Model.RetirementDate?.ToString("dd-MM-yyyy") ?? "")</span>
+                    </div>
+
+                    <div class="info-row">
+                        <span>Payable Days</span><span>:</span>
+                        <span>@Model.PayableDays.ToString("0.##")</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="info-row">
+                        <span>PF A/C No</span><span>:</span>
+                        <span>@Model.PFNumber</span>
+                    </div>
+
+                    <div class="info-row">
+                        <span>UAN No</span><span>:</span>
+                        <span>@Model.UANNumber</span>
+                    </div>
+
+                    <div class="info-row">
+                        <span>Aadhar No</span><span>:</span>
+                        <span>@Model.AadhaarNumber</span>
+                    </div>
+
+                    <div class="info-row">
+                        <span>PAN No</span><span>:</span>
+                        <span>@Model.PANNumber</span>
+                    </div>
+
+                    <div class="info-row">
+                        <span>Birth Date</span><span>:</span>
+                        <span>@(Model.BirthDate?.ToString("dd-MM-yyyy") ?? "")</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="slip-divider"></div>
+
+            <div class="salary-body">
+
+                <div>
+                    <div class="salary-section-title">Earnings</div>
+
+                    <div class="salary-line">
+                        <span class="salary-line-name">Basic</span>
+                        <span class="salary-amount">@Model.BasicSalary.ToString("N2")</span>
+                    </div>
+
+                    @foreach (var item in Model.Earnings)
+                    {
+                        <div class="salary-line">
+                            <span class="salary-line-name">@item.Name</span>
+                            <span class="salary-amount">@item.Amount.ToString("N2")</span>
+                        </div>
+                    }
+                </div>
+
+                <div>
+                    <div class="salary-section-title">Deductions</div>
+
+                    @if (Model.Deductions.Count > 0)
+                    {
+                        @foreach (var item in Model.Deductions)
+                        {
+                            <div class="salary-line">
+                                <span class="salary-line-name">@item.Name</span>
+                                <span class="salary-amount">@item.Amount.ToString("N2")</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="salary-line">
+                            <span>No Deductions</span>
+                            <span class="salary-amount">0.00</span>
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+            @* Totals in one row so Total Earnings and Total Deductions are on the same line *@
+            <div class="salary-body salary-totals">
+
+                <div class="salary-line salary-total">
+                    <span>Total Earnings</span>
+                    <span class="salary-amount">@Model.GrossSalary.ToString("N2")</span>
+                </div>
+
+                <div class="salary-line salary-total">
+                    <span>Total Deductions</span>
+                    <span class="salary-amount">@Model.TotalDeduction.ToString("N2")</span>
+                </div>
+
+            </div>
+
+            <div class="slip-divider"></div>
+
+            <div class="net-section">
+
+                <div>
+                    <strong>
+                        @Model.NetSalary.ToString("0.##") - @Model.NetSalaryInWords
+                    </strong>
+                </div>
+
+                <div class="net-row">
+                    <span>Net Salary</span>
+                    <span>₹ @Model.NetSalary.ToString("N2")</span>
+                </div>
+
+            </div>
+
+            <div class="signature">
+                Secretary Sign
+            </div>
+
+        </div>
+    }
+
+</div>

@@ -1,0 +1,507 @@
+﻿@model Employee_Management_System.Models.LeaveDebitViewModel
+
+@{
+    ViewData["Title"] = "Leave Debit";
+    int currentYear = DateTime.Now.Year;
+}
+
+<style>
+    .leave-debit-card {
+        border: 1px solid #d8dee7;
+        border-radius: 6px;
+        background: #fff;
+    }
+
+    .leave-debit-title {
+        font-size: 27px;
+        font-weight: 700;
+    }
+
+    .result-title {
+        color: #157347;
+        font-weight: 700;
+    }
+
+    .balance-positive {
+        color: #198754;
+        font-weight: 700;
+    }
+
+    .balance-negative {
+        color: #dc3545;
+        font-weight: 700;
+    }
+
+    .balance-zero {
+        color: #6c757d;
+        font-weight: 700;
+    }
+
+    .lapse-footer {
+        background: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .year-end-date {
+        font-size: 18px;
+        font-weight: 700;
+    }
+</style>
+
+<div class="container-fluid py-4">
+
+    @Html.AntiForgeryToken()
+
+    <div class="leave-debit-card mb-3">
+        <div class="p-3 border-bottom">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-calendar-minus fs-3 me-3"></i>
+
+                <div>
+                    <div class="leave-debit-title">Leave Debit</div>
+                    <div class="text-muted">
+                        Select year and leave type, then click Search to view employee leave balance
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-3">
+            <div class="row g-3 align-items-end">
+
+                <div class="col-lg-3 col-md-4">
+                    <label class="form-label fw-bold">
+                        Selected Year <span class="text-danger">*</span>
+                    </label>
+
+                    <select id="SelectedYear" class="form-select">
+                        @for (int year = currentYear - 5; year <= currentYear + 5; year++)
+                        {
+                            if (year == Model.SelectedYear)
+                            {
+                                <option value="@year" selected>@year</option>
+                            }
+                            else
+                            {
+                                <option value="@year">@year</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-lg-4 col-md-5">
+                    <label class="form-label fw-bold">
+                        Leave Type <span class="text-danger">*</span>
+                    </label>
+
+                    <select id="LeaveCode" class="form-select">
+                        <option value="">-- Select Leave Type --</option>
+
+                        @foreach (var item in Model.LeaveTypes)
+                        {
+                            <option value="@item.Value">@item.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-lg-2 col-md-3">
+                    <button type="button" id="btnSearch" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-1"></i>
+                        Search
+                    </button>
+                </div>
+
+                <div class="col-lg-2 col-md-3">
+                    <button type="button" id="btnClear" class="btn btn-secondary w-100">
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Clear
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="successBox" class="alert alert-success alert-dismissible fade show d-none">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <span id="successText"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div id="errorBox" class="alert alert-danger alert-dismissible fade show d-none">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span id="errorText"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div id="resultSection" class="leave-debit-card d-none">
+
+        <div class="p-3 border-bottom bg-light">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+
+                <div class="result-title fs-5">
+                    <i class="bi bi-people-fill me-2"></i>
+                    Employee Leave Balance List
+                </div>
+
+                <span id="totalEmployees" class="badge bg-success fs-6">
+                    Total Employees: 0
+                </span>
+
+            </div>
+        </div>
+
+        <div class="px-3 py-2 border-bottom">
+            <strong>Year:</strong>
+            <span id="resultYear"></span>
+
+            <span class="mx-3 text-muted">|</span>
+
+            <strong>Leave Type:</strong>
+            <span id="resultLeaveType"></span>
+        </div>
+
+        <div id="loadingBox" class="text-center py-5 d-none">
+            <div class="spinner-border text-primary"></div>
+            <div class="text-muted mt-2">Loading employee leave balance...</div>
+        </div>
+
+        <div id="messageBox" class="alert alert-info m-3 d-none"></div>
+
+        <div id="tableBox" class="table-responsive d-none">
+            <table class="table table-bordered table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center" style="width:70px;">Sr.</th>
+                        <th style="width:160px;">Employee Code</th>
+                        <th>Employee Name</th>
+                        <th class="text-end" style="width:150px;">Leave Credit</th>
+                        <th class="text-end" style="width:150px;">Leave Debit</th>
+                        <th class="text-end" style="width:180px;">Available Balance</th>
+                    </tr>
+                </thead>
+
+                <tbody id="employeeRows"></tbody>
+            </table>
+        </div>
+
+        <!-- =====================================================
+             YEAR END + LEAVE LAPSE
+        ====================================================== -->
+        <div id="lapseFooter"
+             class="lapse-footer p-3 d-none">
+
+            <div class="d-flex flex-wrap justify-content-end align-items-center gap-3">
+
+                <div class="text-end">
+                    <div class="text-muted small">Year End Date</div>
+                    <div id="yearEndDate" class="year-end-date">31-12-@Model.SelectedYear</div>
+                </div>
+
+                <button type="button"
+                        id="btnLeaveLapse"
+                        class="btn btn-danger px-4">
+
+                    <i class="bi bi-calendar-x me-1"></i>
+                    Leave Lapse
+
+                </button>
+
+            </div>
+
+            <div class="text-end text-muted small mt-2">
+                Positive available balance will be inserted as an approved Leave Debit.
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts
+{
+    <script>
+                $(document).ready(function () {
+
+                    function formatDays(value) {
+                        const number = Number(value || 0);
+
+                        if (Number.isInteger(number)) {
+                            return number.toString();
+                        }
+
+                        return number
+                            .toFixed(2)
+                            .replace(/0+$/, "")
+                            .replace(/\.$/, "");
+                    }
+
+                    function escapeHtml(value) {
+                        return $("<div>").text(value || "").html();
+                    }
+
+                    function getYearEndDate(year) {
+                        return "31-12-" + year;
+                    }
+
+                    function resetResult() {
+                        $("#resultSection").addClass("d-none");
+                        $("#employeeRows").empty();
+                        $("#tableBox").addClass("d-none");
+                        $("#messageBox").addClass("d-none").text("");
+                        $("#loadingBox").addClass("d-none");
+                        $("#lapseFooter").addClass("d-none");
+                        $("#totalEmployees").text("Total Employees: 0");
+                    }
+
+                    function showError(message) {
+                        $("#successBox").addClass("d-none");
+                        $("#errorText").text(message);
+                        $("#errorBox").removeClass("d-none");
+                    }
+
+                    function showSuccess(message) {
+                        $("#errorBox").addClass("d-none");
+                        $("#successText").text(message);
+                        $("#successBox").removeClass("d-none");
+                    }
+
+                    function searchLeaveBalance(scrollToResult) {
+
+                        const year = $("#SelectedYear").val();
+                        const leaveCode = $("#LeaveCode").val();
+                        const leaveText = $("#LeaveCode option:selected").text();
+
+                        if (!year) {
+                            alert("Please select Year.");
+                            $("#SelectedYear").focus();
+                            return;
+                        }
+
+                        if (!leaveCode) {
+                            alert("Please select Leave Type.");
+                            $("#LeaveCode").focus();
+                            return;
+                        }
+
+                        $("#successBox,#errorBox").addClass("d-none");
+
+                        $("#resultSection").removeClass("d-none");
+                        $("#resultYear").text(year);
+                        $("#resultLeaveType").text(leaveText);
+                        $("#yearEndDate").text(getYearEndDate(year));
+
+                        $("#employeeRows").empty();
+                        $("#tableBox").addClass("d-none");
+                        $("#lapseFooter").addClass("d-none");
+                        $("#messageBox").addClass("d-none").text("");
+                        $("#loadingBox").removeClass("d-none");
+                        $("#totalEmployees").text("Total Employees: 0");
+
+                        $.ajax({
+                            url: '@Url.Action("Search", "LeaveDebit")',
+                            type: "GET",
+                            data: {
+                                year: year,
+                                leaveCode: leaveCode
+                            },
+                            success: function (response) {
+
+                                $("#loadingBox").addClass("d-none");
+
+                                if (!response || response.success !== true) {
+                                    $("#messageBox")
+                                        .removeClass("d-none")
+                                        .text(response?.message || "Unable to load data.");
+                                    return;
+                                }
+
+                                const employees = response.data || [];
+
+                                $("#totalEmployees")
+                                    .text("Total Employees: " + employees.length);
+
+                                $("#yearEndDate")
+                                    .text(response.yearEndDate || getYearEndDate(year));
+
+                                if (employees.length === 0) {
+                                    $("#messageBox")
+                                        .removeClass("d-none")
+                                        .text("No approved leave credit/debit data found for selected Year and Leave Type.");
+                                    return;
+                                }
+
+                                let html = "";
+                                let hasPositiveBalance = false;
+
+                                employees.forEach(function (employee, index) {
+
+                                    const balance =
+                                        Number(employee.leaveBalance || 0);
+
+                                    if (balance > 0)
+                                        hasPositiveBalance = true;
+
+                                    let balanceClass = "balance-zero";
+
+                                    if (balance > 0)
+                                        balanceClass = "balance-positive";
+                                    else if (balance < 0)
+                                        balanceClass = "balance-negative";
+
+                                    html += `
+        <tr>
+            <td class="text-center">${index + 1}</td>
+            <td class="fw-bold">${employee.employeeCode}</td>
+            <td>${escapeHtml(employee.employeeName)}</td>
+            <td class="text-end text-success fw-semibold">${formatDays(employee.leaveCredit)}</td>
+            <td class="text-end text-danger fw-semibold">${formatDays(employee.leaveDebit)}</td>
+            <td class="text-end ${balanceClass}">${formatDays(balance)}</td>
+        </tr>`;
+                                });
+
+                                $("#employeeRows").html(html);
+                                $("#tableBox").removeClass("d-none");
+                                $("#lapseFooter").removeClass("d-none");
+
+                                $("#btnLeaveLapse")
+                                    .prop("disabled", !hasPositiveBalance);
+
+                                if (scrollToResult !== false) {
+                                    setTimeout(function () {
+                                        document.getElementById("resultSection")
+                                            ?.scrollIntoView({
+                                                behavior: "smooth",
+                                                block: "start"
+                                            });
+                                    }, 100);
+                                }
+                            },
+                            error: function (xhr) {
+                                $("#loadingBox").addClass("d-none");
+
+                                $("#messageBox")
+                                    .removeClass("d-none")
+                                    .text("Unable to load employee leave balance.");
+
+                                console.log(xhr.responseText);
+                            }
+                        });
+                    }
+
+                    $("#btnSearch").on("click", function () {
+                        searchLeaveBalance(true);
+                    });
+
+                    $("#SelectedYear").on("change", function () {
+                        $("#yearEndDate").text(getYearEndDate($(this).val()));
+                        resetResult();
+                    });
+
+                    $("#LeaveCode").on("change", function () {
+                        resetResult();
+                    });
+
+                    $("#btnClear").on("click", function () {
+                        $("#SelectedYear").val("@Model.SelectedYear");
+                        $("#LeaveCode").val("");
+                        $("#yearEndDate").text(getYearEndDate("@Model.SelectedYear"));
+                        $("#successBox,#errorBox").addClass("d-none");
+                        resetResult();
+                    });
+
+                    // =====================================================
+                    // LEAVE LAPSE
+                    // =====================================================
+                    $("#btnLeaveLapse").on("click", function () {
+
+                        const year = $("#SelectedYear").val();
+                        const leaveCode = $("#LeaveCode").val();
+                        const leaveText = $("#LeaveCode option:selected").text();
+                        const lapseDate = getYearEndDate(year);
+
+                        if (!year || !leaveCode) {
+                            alert("Please select Year and Leave Type.");
+                            return;
+                        }
+
+                        const message =
+                            "Are you sure you want to Leave Lapse all positive balances?\n\n" +
+                            "Year: " + year + "\n" +
+                            "Leave Type: " + leaveText + "\n" +
+                            "Lapse Date: " + lapseDate + "\n\n" +
+                            "This will insert approved Leave Debit transactions (C/D Code = 2).";
+
+                        if (!confirm(message))
+                            return;
+
+                        const button = $(this);
+
+                        button
+                            .prop("disabled", true)
+                            .html(
+                                '<span class="spinner-border spinner-border-sm me-1"></span> Processing...'
+                            );
+
+                        const token =
+                            $('input[name="__RequestVerificationToken"]').val();
+
+                        $.ajax({
+                            url: '@Url.Action("LeaveLapse", "LeaveDebit")',
+                            type: "POST",
+                            headers: {
+                                "RequestVerificationToken": token
+                            },
+                            data: {
+                                __RequestVerificationToken: token,
+                                year: year,
+                                leaveCode: leaveCode
+                            },
+                            success: function (response) {
+
+                                if (!response || response.success !== true) {
+                                    showError(
+                                        response?.message ||
+                                        "Leave Lapse failed."
+                                    );
+
+                                    button
+                                        .prop("disabled", false)
+                                        .html(
+                                            '<i class="bi bi-calendar-x me-1"></i> Leave Lapse'
+                                        );
+
+                                    return;
+                                }
+
+                                showSuccess(response.message);
+
+                                button.html(
+                                    '<i class="bi bi-check-circle me-1"></i> Leave Lapse Completed'
+                                );
+
+                                // Reload balances. Successful lapse rows are approved
+                                // debits, therefore positive balances should become 0.
+                                searchLeaveBalance(false);
+                            },
+                            error: function (xhr) {
+
+                                showError(
+                                    "Leave Lapse failed. Please try again."
+                                );
+
+                                button
+                                    .prop("disabled", false)
+                                    .html(
+                                        '<i class="bi bi-calendar-x me-1"></i> Leave Lapse'
+                                    );
+
+                                console.log(xhr.responseText);
+                            }
+                        });
+                    });
+
+                });
+    </script>
+}

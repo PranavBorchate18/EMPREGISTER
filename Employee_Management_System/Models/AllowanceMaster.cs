@@ -50,5 +50,59 @@ namespace Employee_Management_System.Models
         [Column("Trf_Min_Days")]
         [Display(Name = "Trf Min Days")]
         public decimal? TrfMinDays { get; set; }
+
+
+        // =====================================================
+        // APPLY MONTH
+        // Example:
+        // January = 1
+        // January + April + July = 1,4,7
+        // =====================================================
+
+        [Column("Apply_Month")]
+        [StringLength(50)]
+        [Display(Name = "Apply for Month")]
+        public string? ApplyMonth { get; set; }
+
+
+        // =====================================================
+        // ACTIVE
+        // Yes / No
+        // =====================================================
+
+        [Column("Active")]
+        [StringLength(3)]
+        [Display(Name = "Active")]
+        public string? Active { get; set; }
+
+
+        // =====================================================
+        // ALLOWANCE TYPE  (dbo.allwmast.Allow_Type)
+        // 1 = General
+        // 2 = HRA
+        // 3 = DA
+        // =====================================================
+
+        public const int TypeGeneral = 1;
+        public const int TypeHra = 2;
+        public const int TypeDa = 3;
+
+        // NOTE: the database column Allow_Type is text (varchar).
+        // ApplicationDbContext converts it to / from this number,
+        // so no change is needed in the database.
+        [Column("Allow_Type")]
+        [Display(Name = "Allowance Type")]
+        public int? AllowType { get; set; }
+
+        // Text from the database ("1", "2", "3", empty, NULL) -> number.
+        public static int? ParseAllowType(string? value)
+        {
+            if (int.TryParse(value?.Trim(), out int number))
+            {
+                return number;
+            }
+
+            return null;
+        }
     }
 }

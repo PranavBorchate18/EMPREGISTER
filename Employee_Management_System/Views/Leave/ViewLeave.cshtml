@@ -1,0 +1,1079 @@
+﻿@model Employee_Management_System.Models.LeaveSanctionListViewModel
+
+@{
+    ViewData["Title"] = "Leave Details";
+
+    // =========================================================
+    // DATABASE STATUS
+    //
+    // P = Pending
+    // A = Approved
+    // R = Rejected
+    // =========================================================
+
+    string status = (Model.Status ?? "P").Trim().ToUpper();
+
+    bool isPending = status == "P" || status == "PENDING";
+    bool isApproved = status == "A" || status == "APPROVED";
+    bool isRejected = status == "R" || status == "REJECTED";
+
+    bool isProcessed = isApproved || isRejected;
+}
+
+
+<div class="container-fluid py-3">
+
+    <!-- =========================================================
+         PAGE HEADER
+    ========================================================== -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+
+        <div>
+            <h3 class="mb-1">
+
+                <i class="bi bi-eye-fill me-2"></i>
+
+                Leave Details
+
+            </h3>
+
+            <small class="text-muted">
+                Leave Application Information
+            </small>
+        </div>
+
+
+        <a asp-controller="Leave"
+           asp-action="SanctionList"
+           class="btn btn-outline-secondary">
+
+            <i class="bi bi-arrow-left me-1"></i>
+
+            Back to List
+
+        </a>
+
+    </div>
+
+
+    <!-- =========================================================
+         SUCCESS MESSAGE
+    ========================================================== -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show"
+             role="alert">
+
+            <i class="bi bi-check-circle-fill me-2"></i>
+
+            @TempData["Success"]
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close">
+            </button>
+
+        </div>
+    }
+
+
+    <!-- =========================================================
+         ERROR MESSAGE
+    ========================================================== -->
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show"
+             role="alert">
+
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
+            @TempData["Error"]
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close">
+            </button>
+
+        </div>
+    }
+
+
+    <!-- =========================================================
+         STATUS
+    ========================================================== -->
+    <div class="mb-3">
+
+        <strong>Status:</strong>
+
+
+        @if (isApproved)
+        {
+            <span class="badge bg-success ms-2">
+
+                <i class="bi bi-check-circle-fill me-1"></i>
+
+                Approved
+
+            </span>
+        }
+        else if (isRejected)
+        {
+            <span class="badge bg-danger ms-2">
+
+                <i class="bi bi-x-circle-fill me-1"></i>
+
+                Rejected
+
+            </span>
+        }
+        else
+        {
+            <span class="badge bg-warning text-dark ms-2">
+
+                <i class="bi bi-clock-fill me-1"></i>
+
+                Pending
+
+            </span>
+        }
+
+    </div>
+
+
+    <!-- =========================================================
+         1. EMPLOYEE INFORMATION
+    ========================================================== -->
+    <div class="card shadow-sm mb-3">
+
+        <div class="card-header bg-light">
+
+            <strong class="text-primary">
+
+                <i class="bi bi-person-fill me-1"></i>
+
+                1. Employee Information
+
+            </strong>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+
+                <!-- =================================================
+                     LEAVE APPLICATION ID
+                ================================================== -->
+                <div class="col-md-4">
+
+                    <label class="form-label fw-bold">
+                        Leave App ID
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.LeaveApplicationId"
+                           readonly />
+
+                </div>
+
+
+                <!-- =================================================
+                     EMPLOYEE CODE
+                ================================================== -->
+                <div class="col-md-4">
+
+                    <label class="form-label fw-bold">
+                        Employee Code
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.EmployeeCode"
+                           readonly />
+
+                </div>
+
+
+                <!-- =================================================
+                     EMPLOYEE NAME
+                ================================================== -->
+                <div class="col-md-4">
+
+                    <label class="form-label fw-bold">
+                        Employee Name
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.EmployeeName"
+                           readonly />
+
+                </div>
+
+
+                <!-- =================================================
+                     C/D CODE
+
+                     Dashboard वर show करायचा नाही.
+
+                     Database:
+                     dbo.leavtrn.c_d_code
+
+                     Controller:
+                     Always 2
+                ================================================== -->
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         2. LEAVE REQUEST INFORMATION
+    ========================================================== -->
+    <div class="card shadow-sm mb-3">
+
+        <div class="card-header bg-light">
+
+            <strong class="text-primary">
+
+                <i class="bi bi-calendar-event me-1"></i>
+
+                2. Leave Request Information
+
+            </strong>
+
+        </div>
+
+
+        <div class="card-body">
+
+
+            <!-- =====================================================
+                 FIRST ROW
+            ====================================================== -->
+            <div class="row g-3 mb-3">
+
+
+                <!-- =================================================
+                     DEMAND FROM
+                ================================================== -->
+                <div class="col-md-3">
+
+                    <label class="form-label fw-bold">
+                        Demand From
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@(Model.DemandFromDate?.ToString("dd-MM-yyyy"))"
+                           readonly />
+
+                </div>
+
+
+                <!-- =================================================
+                     DEMAND TO
+                ================================================== -->
+                <div class="col-md-3">
+
+                    <label class="form-label fw-bold">
+                        Demand To
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@(Model.DemandToDate?.ToString("dd-MM-yyyy"))"
+                           readonly />
+
+                </div>
+
+
+                <!-- =================================================
+                     DEMAND LEAVE
+                ================================================== -->
+                <div class="col-md-4">
+
+                    <label class="form-label fw-bold">
+                        Demand Leave
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@(
+                           Model.DemandLeaveCode.HasValue
+                               ? $"{Model.DemandLeaveCode} - {Model.DemandLeaveName}"
+                               : ""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                )"
+                           readonly />
+
+                </div>
+
+
+                <!-- =================================================
+                     PREVIOUS DAYS
+                ================================================== -->
+                <div class="col-md-2">
+
+                    <label class="form-label fw-bold">
+                        Previous Days
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.PreviousDays"
+                           readonly />
+
+                </div>
+
+            </div>
+
+
+            <!-- =====================================================
+                 SECOND ROW
+            ====================================================== -->
+            <div class="row g-3">
+
+
+                <!-- =================================================
+                     REASON CODE
+                ================================================== -->
+                <div class="col-md-2">
+
+                    <label class="form-label fw-bold">
+                        Reason Code
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.ReasonCode"
+                           readonly />
+
+                </div>
+
+
+                <!-- =================================================
+                     REASON REMARK
+                ================================================== -->
+                <div class="col-md-4">
+
+                    <label class="form-label fw-bold">
+                        Reason Remark
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.ReasonRemark"
+                           readonly />
+
+                </div>
+
+
+                <!-- =================================================
+                     CHARGE TO TRANSFER
+                ================================================== -->
+                <div class="col-md-6">
+
+                    <label class="form-label fw-bold">
+                        Charge To Transfer
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@(
+                                                                                                                                           Model.ChargeTo.HasValue
+                                                                                                                                               ? $"{Model.ChargeTo} - {Model.ChargeToEmployeeName}"
+                                                                                                                                               : ""
+                                                                                                                                                                                                                                                                                                                                                                                                                                                )"
+                           readonly />
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         3. SANCTION INFORMATION
+    ========================================================== -->
+    <div class="card shadow-sm mb-3">
+
+        <div class="card-header bg-light">
+
+            <strong class="text-success">
+
+                <i class="bi bi-check-circle-fill me-1"></i>
+
+                3. Sanction Information
+
+            </strong>
+
+        </div>
+
+
+        <div class="card-body">
+
+
+            <!-- =====================================================
+                 APPROVE FORM
+            ====================================================== -->
+            <form asp-controller="Leave"
+                  asp-action="Approve"
+                  method="post"
+                  id="approveForm">
+
+                @Html.AntiForgeryToken()
+
+
+                <!-- =================================================
+                     LEAVE APPLICATION ID
+                ================================================== -->
+                <input type="hidden"
+                       name="LeaveApplicationId"
+                       value="@Model.LeaveApplicationId" />
+
+
+                <div class="row g-3">
+
+
+                    <!-- =================================================
+                         SANCTION FROM
+                    ================================================== -->
+                    <div class="col-md-2">
+
+                        <label class="form-label fw-bold">
+
+                            Sanction From
+
+                            @if (isPending)
+                            {
+                                <span class="text-danger">*</span>
+                            }
+
+                        </label>
+
+
+                        @if (isPending)
+                        {
+                            <input asp-for="SanctionFromDate"
+                                   id="SanctionFromDate"
+                                   type="date"
+                                   class="form-control"
+                                   required />
+                        }
+                        else
+                        {
+                            <input type="text"
+                                   class="form-control"
+                                   value="@(Model.SanctionFromDate?.ToString("dd-MM-yyyy"))"
+                                   readonly />
+                        }
+
+                    </div>
+
+
+                    <!-- =================================================
+                         DAYS
+
+                         Database Column:
+                         dbo.leavtrn.Num_of_days
+
+                         Pending:
+                         Admin can edit.
+
+                         Approved:
+                         Final Days displayed.
+
+                         Rejected:
+                         Existing Days displayed.
+                    ================================================== -->
+                    <div class="col-md-2">
+
+                        <label class="form-label fw-bold">
+
+                            Days
+
+                            @if (isPending)
+                            {
+                                <span class="text-danger">*</span>
+                            }
+
+                        </label>
+
+
+                        @if (isPending)
+                        {
+                            <input asp-for="NumberOfDays"
+                                   id="NumberOfDays"
+                                   type="number"
+                                   min="0.5"
+                                   step="0.5"
+                                   class="form-control"
+                                   required />
+                        }
+                        else
+                        {
+                            <input type="text"
+                                   class="form-control"
+                                   value="@Model.NumberOfDays"
+                                   readonly />
+                        }
+
+                    </div>
+
+
+                    <!-- =================================================
+                         SANCTION TO
+
+                         Formula:
+
+                         Sanction To =
+                         Sanction From + (Days - 1)
+                    ================================================== -->
+                    <div class="col-md-2">
+
+                        <label class="form-label fw-bold">
+                            Sanction To
+                        </label>
+
+
+                        @if (isPending)
+                        {
+                            <input asp-for="SanctionToDate"
+                                   id="SanctionToDate"
+                                   type="date"
+                                   class="form-control bg-light"
+                                   readonly />
+                        }
+                        else
+                        {
+                            <input type="text"
+                                   class="form-control"
+                                   value="@(Model.SanctionToDate?.ToString("dd-MM-yyyy"))"
+                                   readonly />
+                        }
+
+                    </div>
+
+
+                    <!-- =================================================
+                         SANCTION LEAVE
+                    ================================================== -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
+                            Sanction Leave
+                        </label>
+
+                        @if (isPending)
+                        {
+                            <select asp-for="SanctionLeaveCode"
+                                    class="form-select"
+                                    asp-items="@(ViewBag.SanctionLeaveTypes as System.Collections.Generic.IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)"
+                                    required>
+                                <option value="">-- Select Sanction Leave --</option>
+                            </select>
+                            <small class="text-muted">Select <strong>10 - WITHOUT PAY LEAVE</strong> when the approved leave must reduce salary.</small>
+                        }
+                        else
+                        {
+                            <input type="text"
+                                   class="form-control"
+                                   value="@(Model.SanctionLeaveCode.HasValue ? $"{Model.SanctionLeaveCode} - {Model.SanctionLeaveName}" : "")"
+                                   readonly />
+                        }
+
+                    </div>
+
+
+                    <!-- =================================================
+                         EFFECT PAY DATE
+                    ================================================== -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
+                            Effect Pay Date
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               value="@(Model.EffectPayDate?.ToString("dd-MM-yyyy"))"
+                               readonly />
+
+                    </div>
+
+
+                    <!-- =================================================
+                         OPERATOR
+                    ================================================== -->
+                    <div class="col-md-4">
+
+                        <label class="form-label fw-bold">
+                            Operator
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               value="@(
+                               string.IsNullOrWhiteSpace(Model.Operator)
+                                   ? ""
+                                   : Model.Operator
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                )"
+                               readonly />
+
+                    </div>
+
+                </div>
+
+
+                <!-- =====================================================
+                     BUTTONS
+
+                     ONLY P STATUS CAN SHOW BUTTONS
+                ====================================================== -->
+                @if (isPending)
+                {
+                    <div class="d-flex justify-content-center gap-2 mt-4">
+
+                        <!-- APPROVE -->
+                        <button type="submit"
+                                class="btn btn-success px-4"
+                                id="btnApprove">
+
+                            <i class="bi bi-check-circle-fill me-1"></i>
+
+                            Approve
+
+                        </button>
+
+
+                        <!-- REJECT BUTTON
+                             This button submits separate Reject form
+                             using JavaScript below.
+                        -->
+                        <button type="button"
+                                class="btn btn-danger px-4"
+                                id="btnReject">
+
+                            <i class="bi bi-x-circle-fill me-1"></i>
+
+                            Reject
+
+                        </button>
+
+                    </div>
+                }
+
+            </form>
+
+
+            <!-- =====================================================
+                 REJECT FORM
+
+                 Separate form.
+                 Only LeaveApplicationId required.
+            ====================================================== -->
+            @if (isPending)
+            {
+                <form asp-controller="Leave"
+                      asp-action="Reject"
+                      method="post"
+                      id="rejectForm">
+
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden"
+                           name="LeaveApplicationId"
+                           value="@Model.LeaveApplicationId" />
+
+                </form>
+            }
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         PROCESSED MESSAGE
+    ========================================================== -->
+    @if (isApproved)
+    {
+        <div class="alert alert-success text-center mt-3">
+
+            <i class="bi bi-check-circle-fill me-1"></i>
+
+            This leave application has already been
+
+            <strong>Approved</strong>.
+
+        </div>
+    }
+    else if (isRejected)
+    {
+        <div class="alert alert-danger text-center mt-3">
+
+            <i class="bi bi-x-circle-fill me-1"></i>
+
+            This leave application has already been
+
+            <strong>Rejected</strong>.
+
+        </div>
+    }
+
+</div>
+
+
+@section Scripts
+{
+    <script>
+
+        $(document).ready(function () {
+
+
+            // =====================================================
+            // CALCULATE SANCTION TO DATE
+            //
+            // Formula:
+            //
+            // Sanction To =
+            // Sanction From + (Days - 1)
+            //
+            // Example:
+            //
+            // Sanction From = 21-09-2026
+            // Days          = 3
+            // Sanction To   = 23-09-2026
+            // =====================================================
+            function calculateSanctionToDate() {
+
+
+                var sanctionFrom =
+                    $("#SanctionFromDate").val();
+
+
+                var days =
+                    parseFloat(
+                        $("#NumberOfDays").val()
+                    );
+
+
+                // =================================================
+                // VALIDATION
+                // =================================================
+                if (!sanctionFrom ||
+                    isNaN(days) ||
+                    days <= 0) {
+
+                    $("#SanctionToDate").val("");
+
+                    return;
+                }
+
+
+                // =================================================
+                // DATE FORMAT:
+                // yyyy-MM-dd
+                // =================================================
+                var parts =
+                    sanctionFrom.split("-");
+
+
+                if (parts.length !== 3) {
+
+                    $("#SanctionToDate").val("");
+
+                    return;
+                }
+
+
+                var year =
+                    parseInt(
+                        parts[0],
+                        10
+                    );
+
+
+                var month =
+                    parseInt(
+                        parts[1],
+                        10
+                    ) - 1;
+
+
+                var day =
+                    parseInt(
+                        parts[2],
+                        10
+                    );
+
+
+                // =================================================
+                // CREATE LOCAL DATE
+                // =================================================
+                var calculatedDate =
+                    new Date(
+                        year,
+                        month,
+                        day
+                    );
+
+
+                // =================================================
+                // INCLUSIVE DATE CALCULATION
+                //
+                // 1 Day:
+                // 21 -> 21
+                //
+                // 2 Days:
+                // 21 -> 22
+                //
+                // 3 Days:
+                // 21 -> 23
+                //
+                // 5 Days:
+                // 21 -> 25
+                // =================================================
+                var daysToAdd =
+                    Math.ceil(days) - 1;
+
+
+                calculatedDate.setDate(
+                    calculatedDate.getDate() +
+                    daysToAdd
+                );
+
+
+                // =================================================
+                // FORMAT BACK TO yyyy-MM-dd
+                // =================================================
+                var calculatedYear =
+                    calculatedDate.getFullYear();
+
+
+                var calculatedMonth =
+                    String(
+                        calculatedDate.getMonth() + 1
+                    ).padStart(
+                        2,
+                        "0"
+                    );
+
+
+                var calculatedDay =
+                    String(
+                        calculatedDate.getDate()
+                    ).padStart(
+                        2,
+                        "0"
+                    );
+
+
+                var sanctionTo =
+                    calculatedYear +
+                    "-" +
+                    calculatedMonth +
+                    "-" +
+                    calculatedDay;
+
+
+                // =================================================
+                // SET SANCTION TO
+                // =================================================
+                $("#SanctionToDate").val(
+                    sanctionTo
+                );
+
+            }
+
+
+            // =====================================================
+            // DAYS CHANGE
+            //
+            // Example:
+            //
+            // Sanction From = 21-09-2026
+            //
+            // Old:
+            // Days = 5
+            // To   = 25-09-2026
+            //
+            // Admin:
+            // Days = 3
+            //
+            // Automatic:
+            // To = 23-09-2026
+            // =====================================================
+            $("#NumberOfDays").on(
+                "input change",
+                function () {
+
+                    calculateSanctionToDate();
+
+                }
+            );
+
+
+            // =====================================================
+            // SANCTION FROM CHANGE
+            //
+            // Days same राहतील.
+            // To Date automatic change होईल.
+            // =====================================================
+            $("#SanctionFromDate").on(
+                "change",
+                function () {
+
+                    calculateSanctionToDate();
+
+                }
+            );
+
+
+            // =====================================================
+            // APPROVE FORM
+            // =====================================================
+            $("#approveForm").on(
+                "submit",
+                function (event) {
+
+
+                    var sanctionFrom =
+                        $("#SanctionFromDate").val();
+
+
+                    var days =
+                        parseFloat(
+                            $("#NumberOfDays").val()
+                        );
+
+
+                    // =================================================
+                    // SANCTION FROM VALIDATION
+                    // =================================================
+                    if (!sanctionFrom) {
+
+                        alert(
+                            "Please select Sanction From Date."
+                        );
+
+                        event.preventDefault();
+
+                        return false;
+                    }
+
+
+                    // =================================================
+                    // DAYS VALIDATION
+                    // =================================================
+                    if (isNaN(days) ||
+                        days <= 0) {
+
+                        alert(
+                            "Please enter valid Days."
+                        );
+
+
+                        $("#NumberOfDays").focus();
+
+
+                        event.preventDefault();
+
+                        return false;
+                    }
+
+
+                    // =================================================
+                    // RECALCULATE BEFORE APPROVE
+                    // =================================================
+                    calculateSanctionToDate();
+
+
+                    var sanctionTo =
+                        $("#SanctionToDate").val();
+
+
+                    if (!sanctionTo) {
+
+                        alert(
+                            "Unable to calculate Sanction To Date."
+                        );
+
+                        event.preventDefault();
+
+                        return false;
+                    }
+
+
+                    // =================================================
+                    // APPROVE CONFIRMATION
+                    // =================================================
+                    var message =
+                        "Are you sure you want to approve this leave?" +
+                        "\n\n" +
+                        "Sanction From: " +
+                        sanctionFrom +
+                        "\n" +
+                        "Days: " +
+                        days +
+                        "\n" +
+                        "Sanction To: " +
+                        sanctionTo;
+
+
+                    if (!confirm(message)) {
+
+                        event.preventDefault();
+
+                        return false;
+                    }
+
+
+                    return true;
+
+                }
+            );
+
+
+            // =====================================================
+            // REJECT
+            // =====================================================
+            $("#btnReject").on(
+                "click",
+                function () {
+
+
+                    var confirmed =
+                        confirm(
+                            "Are you sure you want to reject this leave?"
+                        );
+
+
+                    if (!confirmed) {
+
+                        return;
+
+                    }
+
+
+                    $("#rejectForm").submit();
+
+                }
+            );
+
+
+        });
+
+    </script>
+}

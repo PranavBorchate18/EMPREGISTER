@@ -9,28 +9,47 @@
     <div class="card shadow">
 
         <div class="card-header bg-primary text-white">
+
             <h3 class="text-center mb-0">
                 <i class="bi bi-dash-circle me-2"></i>
                 Deduction Master
             </h3>
+
         </div>
 
         <div class="card-body">
 
             @if (TempData["Success"] != null)
             {
-                <div class="alert alert-success">
+                <div class="alert alert-success alert-dismissible fade show">
+
+                    <i class="bi bi-check-circle-fill me-2"></i>
+
                     @TempData["Success"]
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert">
+                    </button>
+
                 </div>
             }
 
             @if (TempData["Error"] != null)
             {
-                <div class="alert alert-danger">
+                <div class="alert alert-danger alert-dismissible fade show">
+
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
                     @TempData["Error"]
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert">
+                    </button>
+
                 </div>
             }
-
 
             <div class="d-flex justify-content-between mb-3">
 
@@ -43,7 +62,6 @@
 
                 </button>
 
-
                 <input type="text"
                        id="searchDeduction"
                        class="form-control"
@@ -52,10 +70,9 @@
 
             </div>
 
-
             <div class="table-responsive">
 
-                <table class="table table-bordered table-hover"
+                <table class="table table-bordered table-hover align-middle"
                        id="deductionTable">
 
                     <thead class="table-dark">
@@ -69,12 +86,12 @@
                             <th>Flag</th>
                             <th>HO Cutting</th>
                             <th>Income Tax Report</th>
+                            <th>Apply Month</th>
                             <th>Active</th>
                             <th>Action</th>
                         </tr>
 
                     </thead>
-
 
                     <tbody>
 
@@ -99,12 +116,33 @@
                                 </td>
 
                                 <td>
-                                    @(item.PrintInIncomeTaxReport == true
-                                                                    ? "Yes"
-                                                                    : "No")
-                            </td>
+                                    @(item.PrintInIncomeTaxReport == true ? "Yes" : "No")
+                                </td>
 
-                                <td>@item.Active</td>
+                                <td>
+                                    @item.ApplyMonth
+                                </td>
+
+                                <td>
+
+                                    @if (string.Equals(
+                                                                    item.Active,
+                                                                    "Yes",
+                                                                    StringComparison.OrdinalIgnoreCase
+                                                                    ) || string.Equals(
+                                                                    item.Active,
+                                                                    "Y",
+                                                                    StringComparison.OrdinalIgnoreCase
+                                                                    ))
+                                    {
+                                        <span class="badge bg-success">Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">No</span>
+                                    }
+
+                                </td>
 
                                 <td>
 
@@ -115,7 +153,6 @@
                                         <i class="bi bi-pencil-square"></i>
 
                                     </button>
-
 
                                     <button type="button"
                                             class="btn btn-danger btn-sm"
@@ -128,7 +165,7 @@
                                 </td>
 
                             </tr>
-                                                }
+                        }
 
                     </tbody>
 
@@ -151,7 +188,7 @@
      id="deductionModal"
      tabindex="-1">
 
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
 
         <div class="modal-content">
 
@@ -159,7 +196,6 @@
                   id="deductionForm">
 
                 @Html.AntiForgeryToken()
-
 
                 <div class="modal-header bg-primary text-white">
 
@@ -177,31 +213,36 @@
 
                 </div>
 
-
                 <div class="modal-body">
 
                     <div class="row">
 
-
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
-                                Deduction Code *
+                            <label class="form-label fw-bold">
+                                Deduction Code
+                                <span class="text-danger">*</span>
                             </label>
 
                             <input type="number"
                                    name="Code"
                                    id="Code"
-                                   class="form-control"
+                                   class="form-control bg-light"
+                                   value="@ViewBag.NextDeductionCode"
+                                   readonly
                                    required />
+
+                            <small class="text-muted">
+                                Deduction Code is generated automatically.
+                            </small>
 
                         </div>
 
-
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
-                                Deduction Name *
+                            <label class="form-label fw-bold">
+                                Deduction Name
+                                <span class="text-danger">*</span>
                             </label>
 
                             <input type="text"
@@ -213,10 +254,13 @@
 
                         </div>
 
+                    </div>
+
+                    <div class="row">
 
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                            <label class="form-label fw-bold">
                                 Short Name
                             </label>
 
@@ -228,10 +272,9 @@
 
                         </div>
 
-
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                            <label class="form-label fw-bold">
                                 G/L Code
                             </label>
 
@@ -242,16 +285,21 @@
 
                         </div>
 
+                    </div>
+
+                    <div class="row">
 
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                            <label class="form-label fw-bold">
                                 Comp
+                                <span class="text-danger">*</span>
                             </label>
 
                             <select name="Comp"
                                     id="Comp"
-                                    class="form-select">
+                                    class="form-select"
+                                    required>
 
                                 <option value="">Select</option>
                                 <option value="Y">Yes</option>
@@ -261,16 +309,17 @@
 
                         </div>
 
-
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                            <label class="form-label fw-bold">
                                 Flag
+                                <span class="text-danger">*</span>
                             </label>
 
                             <select name="Flag"
                                     id="Flag"
-                                    class="form-select">
+                                    class="form-select"
+                                    required>
 
                                 <option value="">Select</option>
                                 <option value="Y">Yes</option>
@@ -280,10 +329,13 @@
 
                         </div>
 
+                    </div>
+
+                    <div class="row">
 
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                            <label class="form-label fw-bold">
                                 HO Cutting
                             </label>
 
@@ -299,10 +351,9 @@
 
                         </div>
 
-
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                            <label class="form-label fw-bold">
                                 Print In Income Tax Report
                             </label>
 
@@ -318,29 +369,79 @@
 
                         </div>
 
+                    </div>
+
+                    <!-- ACTIVE -->
+
+                    <div class="row">
 
                         <div class="col-md-6 mb-3">
 
-                            <label class="form-label">
+                            <label class="form-label fw-bold d-block">
                                 Active
                             </label>
 
-                            <select name="Active"
-                                    id="Active"
-                                    class="form-select">
+                            <div class="form-check form-switch mt-2">
 
-                                <option value="">Select</option>
-                                <option value="Y">Yes</option>
-                                <option value="N">No</option>
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       role="switch"
+                                       id="ActiveFlag"
+                                       style="width:48px;height:24px;cursor:pointer;" />
 
-                            </select>
+                                <label class="form-check-label ms-2 fw-bold"
+                                       id="ActiveFlagText"
+                                       for="ActiveFlag">
+                                    No
+                                </label>
+
+                                <input type="hidden"
+                                       name="Active"
+                                       id="Active"
+                                       value="No" />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- APPLY FOR MONTH -->
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-bold d-block">
+                                Apply for Month
+                            </label>
+
+                            <button type="button"
+                                    class="btn btn-outline-primary"
+                                    onclick="openMonthSelector()">
+
+                                <i class="bi bi-calendar3 me-1"></i>
+                                Apply for Month
+
+                            </button>
+
+                            <input type="hidden"
+                                   name="ApplyMonth"
+                                   id="ApplyMonth" />
+
+                            <div id="selectedMonthText"
+                                 class="form-control bg-light mt-2"
+                                 style="min-height:38px;">
+
+                                No month selected
+
+                            </div>
 
                         </div>
 
                     </div>
 
                 </div>
-
 
                 <div class="modal-footer">
 
@@ -353,7 +454,8 @@
                     </button>
 
                     <button type="submit"
-                            class="btn btn-success">
+                            class="btn btn-success"
+                            id="btnDeductionSave">
 
                         <i class="bi bi-save"></i>
                         Save
@@ -363,6 +465,118 @@
                 </div>
 
             </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ===========================================================
+     MONTH MODAL
+     =========================================================== -->
+
+<div class="modal fade"
+     id="monthModal"
+     tabindex="-1">
+
+    <div class="modal-dialog modal-md modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <div class="modal-header bg-primary text-white">
+
+                <h5 class="modal-title">
+                    <i class="bi bi-calendar3 me-2"></i>
+                    Select Months
+                </h5>
+
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        onclick="cancelMonthSelection()">
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="form-check mb-3 pb-3 border-bottom">
+
+                    <input class="form-check-input"
+                           type="checkbox"
+                           id="chkSelectAllMonths" />
+
+                    <label class="form-check-label fw-bold"
+                           for="chkSelectAllMonths">
+                        Select All
+                    </label>
+
+                </div>
+
+                <div class="row">
+
+                    @{
+                        var months = new[]
+                        {
+                                        new { Number = 1, Name = "January" },
+                                        new { Number = 7, Name = "July" },
+                                        new { Number = 2, Name = "February" },
+                                        new { Number = 8, Name = "August" },
+                                        new { Number = 3, Name = "March" },
+                                        new { Number = 9, Name = "September" },
+                                        new { Number = 4, Name = "April" },
+                                        new { Number = 10, Name = "October" },
+                                        new { Number = 5, Name = "May" },
+                                        new { Number = 11, Name = "November" },
+                                        new { Number = 6, Name = "June" },
+                                        new { Number = 12, Name = "December" }
+                                        };
+                    }
+
+                    @foreach (var month in months)
+                    {
+                        <div class="col-md-6 mb-3">
+
+                            <div class="form-check">
+
+                                <input class="form-check-input month-check"
+                                       type="checkbox"
+                                       value="@month.Number"
+                                       id="month@(month.Number)" />
+
+                                <label class="form-check-label"
+                                       for="month@(month.Number)">
+                                    @month.Name (@month.Number)
+                                </label>
+
+                            </div>
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-secondary"
+                        onclick="cancelMonthSelection()">
+                    Cancel
+                </button>
+
+                <button type="button"
+                        class="btn btn-primary"
+                        onclick="saveMonthSelection()">
+
+                    <i class="bi bi-check-lg"></i>
+                    OK
+
+                </button>
+
+            </div>
 
         </div>
 
@@ -392,157 +606,448 @@
     <script>
 
         var deductionModal;
+        var monthModal;
+        var previousMonthSelection = "";
+
+        const monthNames = {
+            1: "Jan",
+            2: "Feb",
+            3: "Mar",
+            4: "Apr",
+            5: "May",
+            6: "Jun",
+            7: "Jul",
+            8: "Aug",
+            9: "Sep",
+            10: "Oct",
+            11: "Nov",
+            12: "Dec"
+        };
+
+        // ==========================================
+        // PAGE LOAD
+        // ==========================================
 
         document.addEventListener("DOMContentLoaded", function () {
 
-            deductionModal =
-                new bootstrap.Modal(
-                    document.getElementById("deductionModal")
-                );
+            deductionModal = bootstrap.Modal.getOrCreateInstance(
+                document.getElementById("deductionModal")
+            );
 
+            monthModal = bootstrap.Modal.getOrCreateInstance(
+                document.getElementById("monthModal")
+            );
 
             // SEARCH
+
             document.getElementById("searchDeduction")
                 .addEventListener("keyup", function () {
 
-                    var value =
-                        this.value.toLowerCase();
+                    var value = this.value.toLowerCase();
 
-                    document
-                        .querySelectorAll(
-                            "#deductionTable tbody tr"
-                        )
+                    document.querySelectorAll("#deductionTable tbody tr")
                         .forEach(function (row) {
 
                             row.style.display =
-                                row.innerText
-                                   .toLowerCase()
-                                   .includes(value)
-                                ? ""
-                                : "none";
+                                row.innerText.toLowerCase().includes(value)
+                                    ? ""
+                                    : "none";
 
                         });
 
                 });
 
+            // ACTIVE FLAG
+
+            document.getElementById("ActiveFlag")
+                .addEventListener("change", function () {
+
+                    setActiveValue(this.checked);
+
+                });
+
+            // SELECT ALL MONTHS
+
+            document.getElementById("chkSelectAllMonths")
+                .addEventListener("change", function () {
+
+                    document.querySelectorAll(".month-check")
+                        .forEach(function (checkbox) {
+                            checkbox.checked = this.checked;
+                        }, this);
+
+                    syncSelectAllMonths();
+
+                });
+
+            document.querySelectorAll(".month-check")
+                .forEach(function (checkbox) {
+
+                    checkbox.addEventListener("change", syncSelectAllMonths);
+
+                });
+
         });
 
+        // ==========================================
+        // ACTIVE
+        // ==========================================
+
+        function setActiveValue(isActive) {
+
+            document.getElementById("Active").value =
+                isActive ? "Yes" : "No";
+
+            document.getElementById("ActiveFlag").checked =
+                isActive;
+
+            document.getElementById("ActiveFlagText").innerText =
+                isActive ? "Yes" : "No";
+
+        }
+
+        // ==========================================
+        // ADD
+        // ==========================================
 
         function openAddDeduction() {
 
-            document.getElementById(
-                "deductionModalTitle"
-            ).innerText = "Add Deduction";
+            document.getElementById("deductionModalTitle").innerText =
+                "Add Deduction";
 
-            document.getElementById(
-                "deductionForm"
-            ).action =
+            document.getElementById("deductionForm").action =
                 '@Url.Action("Create", "Deduction")';
 
-            document.getElementById("Code").value = "";
-            document.getElementById("Code").readOnly = false;
+            document.getElementById("deductionForm").reset();
 
-            document.getElementById("Name").value = "";
-            document.getElementById("ShortName").value = "";
-            document.getElementById("GLC").value = "";
+            // Automatic Code - Read Only
+            document.getElementById("Code").value =
+                '@ViewBag.NextDeductionCode';
 
-            document.getElementById("Comp").value = "";
-            document.getElementById("Flag").value = "";
+            document.getElementById("Code").readOnly = true;
 
-            document.getElementById("HOCutting").value = "";
-            document.getElementById(
-                "PrintInIncomeTaxReport"
-            ).value = "";
+            // ACTIVE DEFAULT NO
+            setActiveValue(false);
 
-            document.getElementById("Active").value = "";
+            // APPLY MONTH RESET
+            document.getElementById("ApplyMonth").value = "";
+
+            document.getElementById("selectedMonthText").innerText =
+                "No month selected";
+
+            clearMonthCheckboxes();
+
+            var saveButton =
+                document.getElementById("btnDeductionSave");
+
+            saveButton.classList.remove("btn-warning");
+            saveButton.classList.add("btn-success");
+
+            saveButton.innerHTML =
+                '<i class="bi bi-save"></i> Save';
 
             deductionModal.show();
+
         }
 
+        // ==========================================
+        // EDIT
+        // ==========================================
 
         function editDeduction(code) {
 
             fetch(
-                '@Url.Action("GetDeduction", "Deduction")'
-                + '?code='
-                + code
+                '@Url.Action("GetDeduction", "Deduction")' +
+                '?code=' + encodeURIComponent(code)
             )
-            .then(response => response.json())
+            .then(response => {
+
+                if (!response.ok) {
+                    throw new Error("Unable to load deduction.");
+                }
+
+                return response.json();
+
+            })
             .then(result => {
 
                 if (!result.success) {
 
                     alert(result.message);
                     return;
+
                 }
 
                 var d = result.data;
 
-                document.getElementById(
-                    "deductionModalTitle"
-                ).innerText = "Edit Deduction";
+                document.getElementById("deductionModalTitle").innerText =
+                    "Edit Deduction";
 
-                document.getElementById(
-                    "deductionForm"
-                ).action =
+                document.getElementById("deductionForm").action =
                     '@Url.Action("Update", "Deduction")';
 
-
+                // Existing Code - Read Only
                 document.getElementById("Code").value = d.code;
                 document.getElementById("Code").readOnly = true;
 
-                document.getElementById("Name").value =
-                    d.name ?? "";
+                document.getElementById("Name").value = d.name ?? "";
+                document.getElementById("ShortName").value = d.shortName ?? "";
+                document.getElementById("GLC").value = d.glc ?? "";
 
-                document.getElementById("ShortName").value =
-                    d.shortName ?? "";
-
-                document.getElementById("GLC").value =
-                    d.glc ?? "";
-
-                document.getElementById("Comp").value =
-                    d.comp ?? "";
-
-                document.getElementById("Flag").value =
-                    d.flag ?? "";
+                document.getElementById("Comp").value = d.comp ?? "";
+                document.getElementById("Flag").value = d.flag ?? "";
 
                 document.getElementById("HOCutting").value =
-                    d.hoCutting === null
-                    ? ""
-                    : d.hoCutting.toString();
+                    d.hoCutting === null || d.hoCutting === undefined
+                        ? ""
+                        : d.hoCutting.toString();
 
-                document.getElementById(
-                    "PrintInIncomeTaxReport"
-                ).value =
-                    d.printInIncomeTaxReport === null
-                    ? ""
-                    : d.printInIncomeTaxReport.toString();
+                document.getElementById("PrintInIncomeTaxReport").value =
+                    d.printInIncomeTaxReport === null ||
+                    d.printInIncomeTaxReport === undefined
+                        ? ""
+                        : d.printInIncomeTaxReport.toString();
 
-                document.getElementById("Active").value =
-                    d.active ?? "";
+                // ACTIVE
+                var active = (d.active ?? "").toString().toLowerCase();
+
+                setActiveValue(active === "yes" || active === "y");
+
+                // APPLY MONTH
+                var applyMonth = d.applyMonth ?? "";
+
+                document.getElementById("ApplyMonth").value = applyMonth;
+
+                setMonthCheckboxes(applyMonth);
+                updateSelectedMonthText(applyMonth);
+
+                var saveButton =
+                    document.getElementById("btnDeductionSave");
+
+                saveButton.classList.remove("btn-success");
+                saveButton.classList.add("btn-warning");
+
+                saveButton.innerHTML =
+                    '<i class="bi bi-pencil-square"></i> Update';
 
                 deductionModal.show();
+
+            })
+            .catch(error => {
+
+                console.error(error);
+                alert("Unable to load deduction.");
 
             });
 
         }
 
+        // ==========================================
+        // OPEN MONTH SELECTOR
+        // ==========================================
 
-        function deleteDeduction(code) {
+        function openMonthSelector() {
 
-            if (!confirm(
-                "Are you sure you want to delete this deduction?"
-            )) {
+            previousMonthSelection =
+                document.getElementById("ApplyMonth").value || "";
+
+            setMonthCheckboxes(previousMonthSelection);
+
+            deductionModal.hide();
+
+            document.getElementById("deductionModal")
+                .addEventListener("hidden.bs.modal", function () {
+
+                    monthModal.show();
+
+                }, { once: true });
+
+        }
+
+        // ==========================================
+        // SAVE MONTH
+        // ==========================================
+
+        function saveMonthSelection() {
+
+            var selectedMonths = [];
+
+            document.querySelectorAll(".month-check:checked")
+                .forEach(function (checkbox) {
+
+                    var month = parseInt(checkbox.value);
+
+                    if (month >= 1 && month <= 12) {
+                        selectedMonths.push(month);
+                    }
+
+                });
+
+            selectedMonths = [...new Set(selectedMonths)];
+
+            selectedMonths.sort(function (a, b) {
+                return a - b;
+            });
+
+            var value = selectedMonths.join(",");
+
+            document.getElementById("ApplyMonth").value = value;
+
+            updateSelectedMonthText(value);
+
+            closeMonthModalAndReturn();
+
+        }
+
+        // ==========================================
+        // CANCEL MONTH
+        // ==========================================
+
+        function cancelMonthSelection() {
+
+            setMonthCheckboxes(previousMonthSelection);
+
+            closeMonthModalAndReturn();
+
+        }
+
+        // ==========================================
+        // CLOSE MONTH
+        // ==========================================
+
+        function closeMonthModalAndReturn() {
+
+            monthModal.hide();
+
+            document.getElementById("monthModal")
+                .addEventListener("hidden.bs.modal", function () {
+
+                    deductionModal.show();
+
+                }, { once: true });
+
+        }
+
+        // ==========================================
+        // CLEAR MONTH
+        // ==========================================
+
+        function clearMonthCheckboxes() {
+
+            document.querySelectorAll(".month-check")
+                .forEach(function (checkbox) {
+
+                    checkbox.checked = false;
+
+                });
+
+            syncSelectAllMonths();
+
+        }
+
+        // ==========================================
+        // SET MONTH CHECKBOX
+        // ==========================================
+
+        function setMonthCheckboxes(value) {
+
+            clearMonthCheckboxes();
+
+            if (!value) {
                 return;
             }
 
-            document.getElementById(
-                "DeleteCode"
-            ).value = code;
+            var months = value.toString().split(",");
 
-            document.getElementById(
-                "deleteDeductionForm"
-            ).submit();
+            months.forEach(function (month) {
+
+                month = month.trim();
+
+                var checkbox =
+                    document.getElementById("month" + month);
+
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+
+            });
+
+            syncSelectAllMonths();
+
+        }
+
+        // ==========================================
+        // SELECT ALL MONTHS STATE
+        // ==========================================
+
+        function syncSelectAllMonths() {
+
+            var all = document.getElementById("chkSelectAllMonths");
+
+            var total = document.querySelectorAll(".month-check").length;
+
+            var selected =
+                document.querySelectorAll(".month-check:checked").length;
+
+            all.checked = total > 0 && selected === total;
+
+            all.indeterminate =
+                selected > 0 && selected < total;
+
+        }
+
+        // ==========================================
+        // DISPLAY MONTH NAME
+        // ==========================================
+
+        function updateSelectedMonthText(value) {
+
+            var display =
+                document.getElementById("selectedMonthText");
+
+            if (!value) {
+
+                display.innerText = "No month selected";
+                return;
+
+            }
+
+            var numbers = value.toString()
+                .split(",")
+                .map(function (value) {
+                    return parseInt(value.trim());
+                })
+                .filter(function (value) {
+                    return value >= 1 && value <= 12;
+                });
+
+            var names = numbers
+                .map(function (number) {
+                    return monthNames[number];
+                })
+                .filter(function (name) {
+                    return name;
+                });
+
+            display.innerText = names.length === 0
+                ? "No month selected"
+                : names.join(", ");
+
+        }
+
+        // ==========================================
+        // DELETE
+        // ==========================================
+
+        function deleteDeduction(code) {
+
+            if (!confirm("Are you sure you want to delete this deduction?")) {
+                return;
+            }
+
+            document.getElementById("DeleteCode").value = code;
+
+            document.getElementById("deleteDeductionForm").submit();
 
         }
 

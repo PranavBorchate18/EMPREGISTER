@@ -1,0 +1,396 @@
+﻿@model Employee_Management_System.Models.LeaveCreditViewModel
+
+@{
+    ViewData["Title"] = "Leave Credit";
+}
+
+<div class="container-fluid py-3">
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h4 class="mb-1"><i class="bi bi-calendar-plus me-2"></i>Leave Credit</h4>
+            <small class="text-muted">Select year, leave type, number of days and then choose employees.</small>
+        </div>
+        <div class="card-body">
+            <form id="leaveCreditForm" autocomplete="off">
+                @Html.AntiForgeryToken()
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Selected Year <span class="text-danger">*</span></label>
+                        <select asp-for="SelectedYear" id="SelectedYear" class="form-select">
+                            <option value="">Select Year</option>
+                            @for (int year = DateTime.Now.Year - 2; year <= DateTime.Now.Year + 5; year++)
+                            {
+                                <option value="@year">@year</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Leave Type <span class="text-danger">*</span></label>
+                        <select asp-for="LeaveCode" asp-items="Model.LeaveTypes" id="LeaveCode" class="form-select">
+                            <option value="">Select Leave Type</option>
+                        </select>
+                        <small id="maternityLeaveNote" class="text-success d-none">Maternity Leave: only Female employees will be shown and eligible for credit.</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Number of Days <span class="text-danger">*</span></label>
+                        <input asp-for="NumberOfDays" id="NumberOfDays" type="number" min="0.5" step="0.5" class="form-control" placeholder="Enter Number of Days" />
+                        <div id="leaveLimitInfo" class="mt-1" style="display:none"><small class="text-primary"><i class="bi bi-info-circle-fill me-1"></i>Maximum allowed: <strong id="leaveLimitValue"></strong> day(s)</small></div>
+                        <div id="leaveLimitError" class="text-danger small mt-1" style="display:none"><i class="bi bi-exclamation-circle-fill me-1"></i><span id="leaveLimitErrorText"></span></div>
+                    </div>
+                </div>
+
+                <div id="employeeListSection" style="display:none">
+                    <div class="border rounded">
+                        <div class="employee-header p-3">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                <div><h5 class="mb-1"><i class="bi bi-people-fill me-2"></i>Employee List</h5><small class="text-muted">Select all employees or select employees individually.</small></div>
+                                <div class="employee-search">
+                                    <div class="input-group"><span class="input-group-text bg-white"><i class="bi bi-search"></i></span><input type="text" id="employeeSearch" class="form-control" placeholder="Search by Employee Code or Name..." disabled /></div>
+                                </div>
+                            </div>
+                            <div class="form-check select-all-top mt-3">
+                                <input type="checkbox" class="form-check-input" id="selectAllEmployees" disabled />
+                                <label class="form-check-label fw-bold" for="selectAllEmployees">Select All Employees</label>
+                                <span class="text-muted small ms-2" id="selectAllHint">Select year and leave type to load employees.</span>
+                            </div>
+                        </div>
+                        <div class="table-responsive px-3">
+                            <table class="table table-bordered table-hover align-middle mb-2">
+                                <thead class="table-light"><tr><th style="width:80px">Select</th><th style="width:220px">Employee Code</th><th>Employee Name</th><th style="width:160px">Number of Days</th><th style="width:170px">Joining Date</th></tr></thead>
+                                <tbody id="employeeTableBody"><tr><td colspan="5" class="text-center text-muted py-4">Please select year and leave type to load employees.</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="employee-footer d-flex justify-content-between align-items-center flex-wrap gap-3 px-3 py-3">
+                            <div>Total Employees: <strong id="totalEmployeeCount">0</strong><span class="mx-2">|</span>Selected Employees: <strong id="selectedEmployeeCount">0</strong></div>
+                            <nav aria-label="Employee pagination"><ul id="employeePagination" class="pagination pagination-sm mb-0"></ul></nav>
+                        </div>
+                    </div>
+
+                    <div class="all-selected-box mt-3"><i class="bi bi-people-fill me-2"></i>Total Selected Employees: <strong id="allSelectedCount">0</strong></div>
+                </div>
+                <div class="leave-credit-save-footer d-flex justify-content-end align-items-center flex-wrap gap-4 mt-4 pt-3">
+                    <div id="creditDateInfo" class="fw-semibold text-muted"></div>
+                    <button type="button" id="btnSaveLeaveCredit" class="btn btn-success px-4 py-2"><i class="bi bi-floppy-fill me-2"></i>Save Leave Credit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .employee-header {
+        background: #f3f8ff;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .employee-search {
+        width: 350px;
+        max-width: 100%;
+    }
+
+    .employee-footer {
+        background: #fafafa;
+    }
+
+    .employee-checkbox, #selectAllEmployees {
+        cursor: pointer;
+        width: 17px;
+        height: 17px;
+    }
+
+    .select-all-top {
+        border: 1px solid #dee2e6;
+        border-radius: 7px;
+        padding: 12px 14px 12px 38px;
+        background: #fff;
+    }
+
+        .select-all-top:hover {
+            border-color: #0d6efd;
+            background: #f8fbff;
+        }
+
+    .all-selected-box {
+        background: #e9f9ef;
+        border: 1px solid #badbcc;
+        color: #146c43;
+        padding: 13px 16px;
+        border-radius: 6px;
+        text-align: center;
+    }
+
+    .leave-credit-save-footer {
+        border-top: 1px solid #dee2e6;
+        background: #fff;
+        position: sticky;
+        bottom: 0;
+        z-index: 5;
+        padding-bottom: 12px;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            const employeesPerPage = 20;
+            let employees = [];
+            let currentPage = 1;
+            const selectedEmployeeCodes = new Set();
+            let currentLeaveLimit = null;
+            let currentLeaveName = "";
+            let leaveLimitLoaded = false;
+            let leaveLimitLoading = false;
+            let employeesLoading = false;
+            let loadedKey = null;   // "year|leaveCode" for which the employee list is loaded
+
+            $("#SelectedYear, #LeaveCode").on("change", function () {
+                selectedEmployeeCodes.clear();
+                currentPage = 1;
+                employees = [];
+                $("#employeeSearch").val("").prop("disabled", true);
+                $("#selectAllEmployees").prop("checked", false).prop("indeterminate", false).prop("disabled", true);
+                loadedKey = null;
+                updateSelectedCounts();
+                // Leave Type change: list is shown after the leave limit is loaded (see loadLeaveLimit).
+                if (this.id === "SelectedYear") refreshEmployeeSection();
+            });
+            $("#LeaveCode").on("change", function () { loadLeaveLimit(); updateMaternityLeaveNote(); });
+            $("#NumberOfDays").on("input change", validateNumberOfDays);
+            $("#NumberOfDays").on("input change", function () { if (employees.length) renderEmployeePage(); });
+            $("#employeeSearch").on("input", function () { currentPage = 1; renderEmployeePage(); });
+
+            function formatLeaveLimit(value) { const n = Number(value); return Number.isFinite(n) ? n.toString() : ""; }
+            function hideLeaveLimitError() { $("#leaveLimitError").hide(); $("#leaveLimitErrorText").text(""); }
+            function showLeaveLimitError(message) { $("#leaveLimitErrorText").text(message || ""); $("#leaveLimitError").show(); }
+            // All three top fields must be filled and valid.
+            function isFormComplete() {
+                const year=$("#SelectedYear").val(), leaveCode=$("#LeaveCode").val(), raw=$("#NumberOfDays").val(), days=parseFloat(raw);
+                if (!year || !leaveCode || !raw || isNaN(days) || days<=0) return false;
+                if (!leaveLimitLoaded || currentLeaveLimit===null || days>currentLeaveLimit) return false;
+                if (Math.abs((days*2)-Math.round(days*2))>0.000001) return false;
+                return true;
+            }
+            // Employee list is shown (and loaded) only after Year, Leave Type and Number of Days are filled.
+            function refreshEmployeeSection() {
+                if (isFormComplete()) {
+                    $("#employeeListSection").show();
+                    const key=$("#SelectedYear").val()+"|"+$("#LeaveCode").val();
+                    if (loadedKey!==key) { loadedKey=key; loadEmployees(); }
+                } else {
+                    $("#employeeListSection").hide();
+                }
+            }
+            // Save button works only when all top fields are filled and valid.
+            // Enabled only when Year, Leave Type, Number of Days are valid AND at least one employee is selected.
+            function setSaveButtonState() {
+                $("#btnSaveLeaveCredit").prop("disabled", employeesLoading || leaveLimitLoading || !isFormComplete() || selectedEmployeeCodes.size===0);
+            }
+            function updateSaveButtonState() {
+                setSaveButtonState();
+                refreshEmployeeSection();
+            }
+
+            function loadLeaveLimit() {
+                const leaveCode = $("#LeaveCode").val();
+                currentLeaveLimit = null; currentLeaveName = ""; leaveLimitLoaded = false; leaveLimitLoading = false;
+                $("#NumberOfDays").removeAttr("max").removeClass("is-invalid"); $("#leaveLimitInfo").hide(); hideLeaveLimitError();
+                if (!leaveCode) { updateSaveButtonState(); return; }
+                leaveLimitLoading = true; updateSaveButtonState();
+                $.ajax({
+                    url:'@Url.Action("GetLeaveLimit", "LeaveCredit")', type:"GET", data:{leaveCode:leaveCode},
+                    success:function(response) {
+                        leaveLimitLoading = false;
+                        if (!response || response.success !== true) {
+                            if (response && response.sessionExpired === true) { window.location.href='@Url.Action("Login", "Account")'; return; }
+                            showLeaveLimitError(response?.message || "Unable to load Leave Limit."); updateSaveButtonState(); return;
+                        }
+                        currentLeaveName = response.leaveName || "";
+                        if (response.leaveLimit === null || response.leaveLimit === undefined) { showLeaveLimitError("Leave limit is not configured for " + (currentLeaveName || "selected Leave Type") + "."); updateSaveButtonState(); return; }
+                        currentLeaveLimit = parseFloat(response.leaveLimit);
+                        if (isNaN(currentLeaveLimit)) { currentLeaveLimit = null; showLeaveLimitError("Invalid Leave Limit configuration."); updateSaveButtonState(); return; }
+                        leaveLimitLoaded = true; $("#NumberOfDays").attr("max", currentLeaveLimit); $("#leaveLimitValue").text(formatLeaveLimit(currentLeaveLimit)); $("#leaveLimitInfo").show(); validateNumberOfDays();
+                    },
+                    error:function(xhr) { leaveLimitLoading=false; leaveLimitLoaded=false; currentLeaveLimit=null; console.log("Leave Limit Error:",xhr.responseText); showLeaveLimitError("Unable to retrieve Leave Limit."); updateSaveButtonState(); }
+                });
+            }
+
+            function validateNumberOfDays() {
+                const leaveCode=$("#LeaveCode").val(), raw=$("#NumberOfDays").val(), days=parseFloat(raw);
+                $("#NumberOfDays").removeClass("is-invalid"); hideLeaveLimitError();
+                if (!leaveCode) { updateSaveButtonState(); return true; }
+                if (leaveLimitLoading) { updateSaveButtonState(); return false; }
+                if (!leaveLimitLoaded || currentLeaveLimit===null) { $("#NumberOfDays").addClass("is-invalid"); showLeaveLimitError("Leave limit is not configured for selected Leave Type."); updateSaveButtonState(); return false; }
+                if (!raw || isNaN(days)) { updateSaveButtonState(); return true; }
+                if (days<=0) { $("#NumberOfDays").addClass("is-invalid"); showLeaveLimitError("Number of Days must be greater than 0."); updateSaveButtonState(); return false; }
+                if (Math.abs((days*2)-Math.round(days*2))>0.000001) { $("#NumberOfDays").addClass("is-invalid"); showLeaveLimitError("Number of Days must be entered in 0.5 day steps."); updateSaveButtonState(); return false; }
+                if (days>currentLeaveLimit) { $("#NumberOfDays").addClass("is-invalid"); showLeaveLimitError("Maximum leave limit for " + (currentLeaveName || "selected Leave Type") + " is " + formatLeaveLimit(currentLeaveLimit) + " day(s)."); updateSaveButtonState(); return false; }
+                updateSaveButtonState(); return true;
+            }
+            function updateMaternityLeaveNote() {
+                const text=String($("#LeaveCode option:selected").text() || "").toUpperCase();
+                $("#maternityLeaveNote").toggleClass("d-none", text.indexOf("MATERNITY")<0);
+            }
+
+            // Existing GetAllEmployees endpoint is used to fetch the full eligible employee list.
+            function loadEmployees() {
+                const year=$("#SelectedYear").val(), leaveCode=$("#LeaveCode").val();
+                if (!year || !leaveCode) {
+                    $("#selectAllHint").text("Select year and leave type to load employees.");
+                    $("#employeeTableBody").html("<tr><td colspan='5' class='text-center text-muted py-4'>Please select year and leave type to load employees.</td></tr>");
+                    $("#employeePagination").empty(); $("#totalEmployeeCount").text("0"); updateSelectedCounts(); updateSaveButtonState(); return;
+                }
+                employeesLoading=true; updateSaveButtonState(); $("#selectAllHint").text("Loading employees...");
+                $("#employeeTableBody").html("<tr><td colspan='5' class='text-center py-4'><span class='spinner-border spinner-border-sm me-2'></span>Loading employees...</td></tr>");
+                $.ajax({
+                    url:'@Url.Action("GetAllEmployees", "LeaveCredit")', type:"GET", data:{year:year, leaveCode:leaveCode},
+                    success:function(response) {
+                        if (!response || response.success!==true) {
+                            if (response && response.sessionExpired===true) { window.location.href='@Url.Action("Login", "Account")'; return; }
+                            employees=[]; showEmployeeMessage(response?.message || "Unable to load employees.","text-danger"); $("#selectAllHint").text(response?.message || "Unable to load employees."); return;
+                        }
+                        employees=response.data || []; selectedEmployeeCodes.clear();
+                        employees.forEach(function(employee) { if (employee.isSelected===true) selectedEmployeeCodes.add(String(employee.employeeCode)); });
+                        currentPage=1; $("#employeeSearch").prop("disabled",false); $("#selectAllEmployees").prop("disabled",employees.length===0);
+                        $("#selectAllHint").text(employees.length ? "Select or clear all employees. You can also select employees individually." : "No eligible employees found.");
+                        renderEmployeePage();
+                    },
+                    error:function(xhr) { console.log("Employee load error:",xhr.responseText); employees=[]; showEmployeeMessage("Unable to load employees.","text-danger"); $("#selectAllHint").text("Unable to load employees."); },
+                    complete:function() { employeesLoading=false; updateSaveButtonState(); }
+                });
+            }
+
+            function getFilteredEmployees() {
+                const search=String($("#employeeSearch").val() || "").toLowerCase().trim();
+                if (!search) return employees;
+                return employees.filter(function(e) { return String(e.employeeCode ?? "").toLowerCase().includes(search) || String(e.employeeName ?? "").toLowerCase().includes(search); });
+            }
+            function renderEmployeePage() {
+                const filtered=getFilteredEmployees(); let totalPages=Math.max(1,Math.ceil(filtered.length/employeesPerPage));
+                if (currentPage>totalPages) currentPage=totalPages;
+                const pageEmployees=filtered.slice((currentPage-1)*employeesPerPage,currentPage*employeesPerPage); let html="";
+                if (!pageEmployees.length) html="<tr><td colspan='5' class='text-center text-muted py-4'>No employees found.</td></tr>";
+                else pageEmployees.forEach(function(e) {
+                    const code=String(e.employeeCode ?? ""), name=e.employeeName || "", checked=selectedEmployeeCodes.has(code);
+                    // Number of Days: stored days if already credited, otherwise the value typed in the Number of Days box above.
+                    const typedDays=String($("#NumberOfDays").val() || "").trim();
+                    const daysText=(e.numberOfDays!==null && e.numberOfDays!==undefined) ? String(Number(e.numberOfDays)) : (typedDays || "-");
+                    const joiningDateRaw = e.joiningDate || e.join_date || e.joinDate || "";
+                    let joiningDate = "-";
+                    if (joiningDateRaw) {
+                        const parsedDate = new Date(joiningDateRaw);
+                        if (!isNaN(parsedDate.getTime())) {
+                            joiningDate = String(parsedDate.getDate()).padStart(2, "0") + "-" + String(parsedDate.getMonth() + 1).padStart(2, "0") + "-" + parsedDate.getFullYear();
+                        } else {
+                            joiningDate = String(joiningDateRaw).split("T")[0];
+                        }
+                    }
+                    html += "<tr><td class='text-center'><input type='checkbox' class='form-check-input employee-checkbox' value='"+escapeHtml(code)+"' "+(checked?"checked":"")+" /></td><td>"+escapeHtml(code)+"</td><td>"+escapeHtml(name)+"</td><td>"+escapeHtml(daysText)+"</td><td>"+escapeHtml(joiningDate)+"</td></tr>";
+                });
+                $("#employeeTableBody").html(html); $("#totalEmployeeCount").text(employees.length); createPagination(totalPages); updateSelectedCounts(); updateSelectAllState();
+            }
+            function showEmployeeMessage(message, cssClass) {
+                $("#employeeTableBody").html("<tr><td colspan='5' class='text-center "+(cssClass||"text-muted")+" py-4'>"+escapeHtml(message)+"</td></tr>");
+                $("#totalEmployeeCount").text(employees.length); $("#employeePagination").empty(); updateSelectedCounts(); updateSelectAllState();
+            }
+            function updateSelectedCounts() { $("#selectedEmployeeCount").text(selectedEmployeeCodes.size); $("#allSelectedCount").text(selectedEmployeeCodes.size); updateCreditDateInfo(); setSaveButtonState(); }
+            // Shows credit date to the left of the Save button.
+            // 1) one employee searched -> that employee's credit date
+            // 2) Select All            -> 01-04-<selected year>
+            // 3) otherwise             -> credit date(s) of the selected employees already credited
+            function updateCreditDateInfo() {
+                const box=$("#creditDateInfo"), year=$("#SelectedYear").val();
+                const search=String($("#employeeSearch").val() || "").trim();
+                const filtered=getFilteredEmployees();
+                if (search && filtered.length===1) {
+                    const e=filtered[0];
+                    box.html(e.creditDate
+                        ? '<i class="bi bi-calendar-check me-1"></i>Leave Credited On: <strong>'+escapeHtml(e.creditDate)+'</strong>'
+                        : '<i class="bi bi-calendar-x me-1"></i>Leave not credited yet');
+                    return;
+                }
+                if (employees.length>0 && selectedEmployeeCodes.size===employees.length && year) {
+                    box.html('<i class="bi bi-calendar-event me-1"></i>Credit Date: <strong>01-04-'+escapeHtml(year)+'</strong>');
+                    return;
+                }
+                const dates=new Set();
+                employees.forEach(function(e) { if (e.creditDate && selectedEmployeeCodes.has(String(e.employeeCode))) dates.add(e.creditDate); });
+                if (dates.size===0) { box.empty(); return; }
+                const text=dates.size<=3 ? Array.from(dates).join(", ") : "Multiple dates";
+                box.html('<i class="bi bi-calendar-check me-1"></i>Leave Credited On: <strong>'+escapeHtml(text)+'</strong>');
+            }
+            function updateSelectAllState() {
+                const visible=$(".employee-checkbox");
+                if (!visible.length) { $("#selectAllEmployees").prop("checked",false).prop("indeterminate",false); return; }
+                const checked=visible.filter(":checked").length;
+                const allLoadedSelected=employees.length>0 && employees.every(e=>selectedEmployeeCodes.has(String(e.employeeCode)));
+                if (!allLoadedSelected && employees.length>0) $("#employeeSearch").prop("disabled",false);
+                $("#selectAllEmployees").prop("checked",allLoadedSelected).prop("indeterminate",!allLoadedSelected && selectedEmployeeCodes.size>0);
+            }
+
+            // Select All applies to every employee in the list, including employees on other pages.
+            $("#selectAllEmployees").on("change",function() {
+                const checked=$(this).is(":checked");
+                $("#employeeSearch").val("").prop("disabled", checked);   // Select All -> search box empty + disabled
+                currentPage=1;
+                employees.forEach(function(e) { const code=String(e.employeeCode); if (checked) selectedEmployeeCodes.add(code); else selectedEmployeeCodes.delete(code); });
+                renderEmployeePage();
+            });
+            $(document).on("change",".employee-checkbox",function() {
+                const code=String($(this).val()); if ($(this).is(":checked")) selectedEmployeeCodes.add(code); else selectedEmployeeCodes.delete(code);
+                updateSelectedCounts(); updateSelectAllState();
+            });
+            function createPagination(totalPages) {
+                let html="<li class='page-item "+(currentPage===1?"disabled":"")+"'><button type='button' class='page-link employee-page-btn' data-page='"+(currentPage-1)+"'>Previous</button></li>";
+                for (let p=1;p<=totalPages;p++) html += "<li class='page-item "+(p===currentPage?"active":"")+"'><button type='button' class='page-link employee-page-btn' data-page='"+p+"'>"+p+"</button></li>";
+                html += "<li class='page-item "+(currentPage===totalPages?"disabled":"")+"'><button type='button' class='page-link employee-page-btn' data-page='"+(currentPage+1)+"'>Next</button></li>";
+                $("#employeePagination").html(html);
+            }
+            $(document).on("click",".employee-page-btn",function() {
+                if ($(this).closest(".page-item").hasClass("disabled")) return;
+                const page=parseInt($(this).attr("data-page")); if (!page || page<1) return; currentPage=page; renderEmployeePage();
+            });
+
+            // Save action URL, antiforgery token and posted parameter names remain unchanged.
+            $("#btnSaveLeaveCredit").on("click",function() {
+                const year=$("#SelectedYear").val(), leaveCode=$("#LeaveCode").val(), numberOfDays=$("#NumberOfDays").val();
+                if (!year) { alert("Please select year."); $("#SelectedYear").focus(); return; }
+                if (!leaveCode) { alert("Please select Leave Type."); $("#LeaveCode").focus(); return; }
+                if (!numberOfDays || parseFloat(numberOfDays)<=0) { alert("Please enter valid Number of Days."); $("#NumberOfDays").focus(); return; }
+                const days=parseFloat(numberOfDays);
+                if (Math.abs((days*2)-Math.round(days*2))>0.000001) { alert("Number of Days must be entered in 0.5 day steps."); $("#NumberOfDays").focus(); return; }
+                if (leaveLimitLoading) { alert("Please wait. Leave Limit is loading."); return; }
+                if (!leaveLimitLoaded || currentLeaveLimit===null) { alert("Leave limit is not configured for selected Leave Type."); $("#LeaveCode").focus(); return; }
+                if (days>currentLeaveLimit) { const msg="Maximum leave limit for "+(currentLeaveName||"selected Leave Type")+" is "+formatLeaveLimit(currentLeaveLimit)+" day(s)."; $("#NumberOfDays").addClass("is-invalid").focus(); showLeaveLimitError(msg); alert(msg); updateSaveButtonState(); return; }
+                if (!validateNumberOfDays()) { $("#NumberOfDays").focus(); return; }
+                if (selectedEmployeeCodes.size===0) { alert("Please select at least one employee."); return; }
+                const formData=new FormData();
+                formData.append("__RequestVerificationToken",$("input[name='__RequestVerificationToken']").val());
+                formData.append("year",year); formData.append("leaveCode",leaveCode); formData.append("numberOfDays",numberOfDays);
+                formData.append("isAllSelected", selectedEmployeeCodes.size===employees.length);
+                selectedEmployeeCodes.forEach(function(code) { formData.append("selectedEmployeeCodes",code); });
+                const button=$("#btnSaveLeaveCredit"); button.prop("disabled",true).html("<span class='spinner-border spinner-border-sm me-2'></span>Saving...");
+                $.ajax({
+                    url:'@Url.Action("Save", "LeaveCredit")', type:"POST", data:formData, processData:false, contentType:false,
+                    success:function(response) {
+                        if (response && response.success===true) {
+                            alert(response.message+"\n\nLeave App ID: "+response.leaveAppId+"\nLogin ID: "+response.loginId+"\nInserted: "+response.insertedCount+"\nSkipped: "+response.skippedCount);
+                            loadEmployees();
+                        } else {
+                            if (response && response.sessionExpired===true) { window.location.href='@Url.Action("Login", "Account")'; return; }
+                            alert(response?.message || "Unable to save Leave Credit.");
+                        }
+                    },
+                    error:function(xhr) { console.log("Save error:",xhr.responseText); alert("Unable to save Leave Credit."); },
+                    complete:function() { button.html("<i class='bi bi-floppy-fill me-2'></i>Save Leave Credit"); updateSaveButtonState(); }
+                });
+            });
+            function escapeHtml(value) { return $("<div>").text(value ?? "").html(); }
+
+            // First open: Year, Leave Type and Number of Days start empty; employee list stays hidden.
+            $("#SelectedYear").val(""); $("#LeaveCode").val(""); $("#NumberOfDays").val("");
+            loadLeaveLimit();
+            updateMaternityLeaveNote();
+            updateSaveButtonState();
+        });
+    </script>
+}

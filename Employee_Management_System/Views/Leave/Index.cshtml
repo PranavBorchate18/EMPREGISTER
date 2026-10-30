@@ -1,0 +1,1018 @@
+﻿@model Employee_Management_System.Models.LeaveApplicationViewModel
+
+@{
+    ViewData["Title"] = "Leave Application";
+}
+
+<div class="container-fluid py-3">
+
+    <!-- =========================================================
+         PAGE HEADER
+    ========================================================== -->
+    <div class="mb-4">
+
+        <h3 class="mb-1">
+            <i class="bi bi-calendar2-check-fill me-2"></i>
+            Leave Application
+        </h3>
+
+        <small class="text-muted">
+            Employee Leave Application
+        </small>
+
+    </div>
+
+
+    <!-- =========================================================
+         SUCCESS MESSAGE
+    ========================================================== -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+
+            <i class="bi bi-check-circle-fill me-2"></i>
+
+            @TempData["Success"]
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
+
+        </div>
+    }
+
+
+    <!-- =========================================================
+         ERROR MESSAGE
+    ========================================================== -->
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
+            @TempData["Error"]
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
+
+        </div>
+    }
+
+
+    <!-- =========================================================
+         FORM
+    ========================================================== -->
+    <form asp-controller="Leave"
+          asp-action="Save"
+          method="post"
+          id="leaveForm">
+
+        @Html.AntiForgeryToken()
+
+
+        <!-- =====================================================
+             1. EMPLOYEE INFORMATION
+        ====================================================== -->
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header bg-light">
+
+                <strong class="text-primary">
+
+                    <i class="bi bi-person-fill me-1"></i>
+
+                    1. Employee Information
+
+                </strong>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="row g-3 align-items-end">
+
+
+                    <!-- EMPLOYEE CODE -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
+                            Employee Code
+                        </label>
+
+                        <div class="input-group">
+
+                            <input asp-for="EmployeeCode"
+                                   id="EmployeeCode"
+                                   type="number"
+                                   class="form-control"
+                                   placeholder="Employee Code" />
+
+                            <button type="button"
+                                    id="btnSearchEmployee"
+                                    class="btn btn-primary">
+
+                                <i class="bi bi-search"></i>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- EMPLOYEE NAME -->
+                    <div class="col-md-6">
+
+                        <label class="form-label fw-bold">
+                            Employee Name
+                        </label>
+
+                        <input asp-for="EmployeeName"
+                               id="EmployeeName"
+                               type="text"
+                               class="form-control"
+                               readonly />
+
+                    </div>
+
+
+                    <!-- SEARCH STATUS -->
+                    <div class="col-md-3">
+
+                        <div id="employeeSearchMessage">
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             2. LEAVE INFORMATION
+        ====================================================== -->
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header bg-light">
+
+                <strong class="text-primary">
+
+                    <i class="bi bi-calendar-event me-1"></i>
+
+                    2. Leave
+
+                </strong>
+
+            </div>
+
+
+            <div class="card-body">
+
+
+                <!-- =================================================
+                     ROW 1
+                ================================================== -->
+                <div class="row g-3 mb-3">
+
+
+                    <!-- FROM DATE -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
+                            From Date
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input asp-for="DemandFromDate"
+                               id="DemandFromDate"
+                               type="date"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <!-- TO DATE -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
+                            To Date
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input asp-for="DemandToDate"
+                               id="DemandToDate"
+                               type="date"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <!-- LEAVE TYPE -->
+                    <div class="col-md-4">
+
+                        <label class="form-label fw-bold">
+                            Leave Type
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <select asp-for="DemandLeaveCode"
+                                asp-items="Model.LeaveTypes"
+                                id="DemandLeaveCode"
+                                class="form-select">
+
+                            <option value="">
+                                -- Select Leave Type --
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- PREVIOUS DAYS -->
+                    <div class="col-md-2">
+
+                        <label class="form-label fw-bold">
+                            Previous Days
+                        </label>
+
+                        <input asp-for="PreviousDays"
+                               type="number"
+                               step="0.5"
+                               min="0"
+                               class="form-control"
+                               placeholder="0" />
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     ROW 2
+                ================================================== -->
+                <div class="row g-3">
+
+
+                    <!-- =================================================
+                         REASON CODE DROPDOWN
+
+                         Source:
+                         dbo.resnmast
+
+                         Display:
+                         1 - POOJA
+                         2 - SICK
+                         3 - MARRIAGE
+                         ...
+
+                         Database:
+                         dbo.leavtrn.reason
+                         ONLY CODE WILL BE SAVED
+                    ================================================== -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
+                            Reason Code
+                        </label>
+
+                        <select asp-for="ReasonCode"
+                                asp-items="Model.ReasonTypes"
+                                id="ReasonCode"
+                                class="form-select">
+
+                            <option value="">
+                                -- Select Reason --
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- REASON REMARK -->
+                    <div class="col-md-4">
+
+                        <label class="form-label fw-bold">
+                            Reason Remark
+                        </label>
+
+                        <input asp-for="ReasonRemark"
+                               type="text"
+                               maxlength="80"
+                               class="form-control"
+                               placeholder="Enter reason remark" />
+
+                    </div>
+
+
+                    <!-- =================================================
+                         CHARGE TO TRANSFER
+                    ================================================== -->
+                    <div class="col-md-5">
+
+                        <label class="form-label fw-bold">
+                            Charge To Transfer
+                        </label>
+
+                        <div class="input-group">
+
+                            <input asp-for="ChargeTo"
+                                   id="ChargeTo"
+                                   type="number"
+                                   class="form-control"
+                                   placeholder="Employee Code" />
+
+                            <button type="button"
+                                    id="btnSearchChargeEmployee"
+                                    class="btn btn-outline-primary">
+
+                                <i class="bi bi-search"></i>
+
+                            </button>
+
+                        </div>
+
+
+                        <!-- CHARGE EMPLOYEE NAME -->
+                        <div class="mt-2">
+
+                            <input type="text"
+                                   id="ChargeToEmployeeName"
+                                   class="form-control"
+                                   placeholder="Employee Name"
+                                   readonly />
+
+                        </div>
+
+                        <div id="chargeEmployeeMessage"
+                             class="mt-1">
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             3. SANCTION INFORMATION
+        ====================================================== -->
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header bg-light">
+
+                <strong class="text-success">
+
+                    <i class="bi bi-check-circle-fill me-1"></i>
+
+                    3. Sanction
+
+                </strong>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="row g-3">
+
+
+                    <!-- SANCTION FROM -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
+                            Sanction From
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <input asp-for="SanctionFromDate"
+                               id="SanctionFromDate"
+                               type="date"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <!-- SANCTION TO -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
+                            Sanction To
+                        </label>
+
+                        <input asp-for="SanctionToDate"
+                               id="SanctionToDate"
+                               type="date"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <!-- SANCTION LEAVE -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
+                            Sanction Leave
+                            <span class="text-danger">*</span>
+                        </label>
+
+                        <select asp-for="SanctionLeaveCode"
+                                asp-items="Model.LeaveTypes"
+                                id="SanctionLeaveCode"
+                                class="form-select">
+
+                            <option value="">
+                                -- Select Leave Type --
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- EFFECT PAY DATE -->
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
+                            Effect Pay Date
+                        </label>
+
+                        <input asp-for="EffectPayDate"
+                               type="date"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <!-- =================================================
+                         SANCTION OFFICER IS NOT DISPLAYED
+
+                         Controller automatically stores:
+                         sact_officer = EmployeeCode
+                    ================================================== -->
+                    <!-- =================================================
+                         C/D CODE IS NOT DISPLAYED
+
+                         Controller automatically stores:
+                         c_d_code = 2
+                    ================================================== -->
+                    <!-- =================================================
+                         OPERATOR IS NOT DISPLAYED
+
+                         Controller automatically stores:
+                         Operator = EmployeeCode
+                    ================================================== -->
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             BUTTONS
+        ====================================================== -->
+        <div class="text-center mb-4">
+
+            <!-- CLEAR -->
+            <button type="reset"
+                    id="btnClear"
+                    class="btn btn-outline-secondary px-4 me-2">
+
+                <i class="bi bi-arrow-clockwise me-1"></i>
+
+                Clear
+
+            </button>
+
+
+            <!-- SAVE -->
+            <button type="submit"
+                    class="btn btn-primary px-4">
+
+                <i class="bi bi-save-fill me-1"></i>
+
+                Save Leave
+
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+@section Scripts
+{
+    <script>
+
+        $(document).ready(function () {
+
+
+            // =====================================================
+            // SEARCH MAIN EMPLOYEE
+            // =====================================================
+            $("#btnSearchEmployee").click(function () {
+
+                searchMainEmployee();
+
+            });
+
+
+            // =====================================================
+            // ENTER KEY - MAIN EMPLOYEE
+            // =====================================================
+            $("#EmployeeCode").keypress(function (event) {
+
+                if (event.which === 13) {
+
+                    event.preventDefault();
+
+                    searchMainEmployee();
+
+                }
+
+            });
+
+
+            // =====================================================
+            // SEARCH CHARGE TO EMPLOYEE
+            // =====================================================
+            $("#btnSearchChargeEmployee").click(function () {
+
+                searchChargeEmployee();
+
+            });
+
+
+            // =====================================================
+            // ENTER KEY - CHARGE EMPLOYEE
+            // =====================================================
+            $("#ChargeTo").keypress(function (event) {
+
+                if (event.which === 13) {
+
+                    event.preventDefault();
+
+                    searchChargeEmployee();
+
+                }
+
+            });
+
+
+            // =====================================================
+            // MAIN EMPLOYEE SEARCH FUNCTION
+            // =====================================================
+            // MATERNITY LEAVE - FEMALE ONLY
+            // =====================================================
+            var currentEmployeeGender = "";
+
+            function isFemaleGender(gender) {
+                var value = String(gender || "").trim().toUpperCase();
+                return value === "F" || value === "FEMALE";
+            }
+
+            function updateMaternityLeaveOptions() {
+                var allowMaternity = isFemaleGender(currentEmployeeGender);
+
+                $("#DemandLeaveCode option, #SanctionLeaveCode option").each(function () {
+                    var option = $(this);
+                    var text = String(option.text() || "").toUpperCase();
+
+                    if (text.indexOf("MATERNITY") >= 0) {
+                        option.prop("disabled", !allowMaternity);
+                        option.prop("hidden", !allowMaternity);
+                    }
+                });
+
+                if (!allowMaternity) {
+                    if ($("#DemandLeaveCode option:selected").text().toUpperCase().indexOf("MATERNITY") >= 0)
+                        $("#DemandLeaveCode").val("");
+
+                    if ($("#SanctionLeaveCode option:selected").text().toUpperCase().indexOf("MATERNITY") >= 0)
+                        $("#SanctionLeaveCode").val("");
+                }
+            }
+
+
+            // =====================================================
+            // MAIN EMPLOYEE SEARCH
+            // =====================================================
+            function searchMainEmployee() {
+
+                var employeeCode =
+                    $("#EmployeeCode").val();
+
+
+                $("#EmployeeName").val("");
+
+                $("#employeeSearchMessage").html("");
+
+
+                if (!employeeCode ||
+                    parseInt(employeeCode) <= 0) {
+
+                    $("#employeeSearchMessage").html(
+                        '<span class="text-danger">' +
+                        'Please enter Employee Code.' +
+                        '</span>'
+                    );
+
+                    return;
+                }
+
+
+                $.ajax({
+
+                    url: '@Url.Action("GetEmployee", "Leave")',
+
+                    type: 'GET',
+
+                    data: {
+                        employeeCode: employeeCode
+                    },
+
+
+                    success: function (response) {
+
+                        if (response.success) {
+
+                            $("#EmployeeName").val(
+                                response.data.employeeName
+                            );
+
+                            currentEmployeeGender = response.data.gender || "";
+                            updateMaternityLeaveOptions();
+
+
+                            $("#employeeSearchMessage").html(
+                                '<span class="text-success">' +
+                                '<i class="bi bi-check-circle-fill me-1"></i>' +
+                                'Employee Found' +
+                                '</span>'
+                            );
+
+                        }
+                        else {
+
+                            $("#EmployeeName").val("");
+
+
+                            $("#employeeSearchMessage").html(
+                                '<span class="text-danger">' +
+                                response.message +
+                                '</span>'
+                            );
+
+                        }
+
+                    },
+
+
+                    error: function () {
+
+                        $("#EmployeeName").val("");
+
+
+                        $("#employeeSearchMessage").html(
+                            '<span class="text-danger">' +
+                            'Unable to retrieve employee information.' +
+                            '</span>'
+                        );
+
+                    }
+
+                });
+
+            }
+
+
+            // =====================================================
+            // CHARGE TO EMPLOYEE SEARCH
+            // =====================================================
+            function searchChargeEmployee() {
+
+                var employeeCode =
+                    $("#ChargeTo").val();
+
+
+                $("#ChargeToEmployeeName").val("");
+
+                $("#chargeEmployeeMessage").html("");
+
+
+                if (!employeeCode ||
+                    parseInt(employeeCode) <= 0) {
+
+                    $("#chargeEmployeeMessage").html(
+                        '<span class="text-danger">' +
+                        'Please enter Employee Code.' +
+                        '</span>'
+                    );
+
+                    return;
+                }
+
+
+                $.ajax({
+
+                    url: '@Url.Action("GetEmployee", "Leave")',
+
+                    type: 'GET',
+
+                    data: {
+                        employeeCode: employeeCode
+                    },
+
+
+                    success: function (response) {
+
+                        if (response.success) {
+
+                            $("#ChargeToEmployeeName").val(
+                                response.data.employeeName
+                            );
+
+
+                            $("#chargeEmployeeMessage").html(
+                                '<span class="text-success">' +
+                                '<i class="bi bi-check-circle-fill me-1"></i>' +
+                                response.data.employeeCode +
+                                ' - ' +
+                                response.data.employeeName +
+                                '</span>'
+                            );
+
+                        }
+                        else {
+
+                            $("#ChargeToEmployeeName").val("");
+
+
+                            $("#chargeEmployeeMessage").html(
+                                '<span class="text-danger">' +
+                                response.message +
+                                '</span>'
+                            );
+
+                        }
+
+                    },
+
+
+                    error: function () {
+
+                        $("#ChargeToEmployeeName").val("");
+
+
+                        $("#chargeEmployeeMessage").html(
+                            '<span class="text-danger">' +
+                            'Unable to retrieve employee information.' +
+                            '</span>'
+                        );
+
+                    }
+
+                });
+
+            }
+
+
+            // =====================================================
+            // COPY DEMAND FROM -> SANCTION FROM
+            // =====================================================
+            $("#DemandFromDate").change(function () {
+
+                if (!$("#SanctionFromDate").val()) {
+
+                    $("#SanctionFromDate").val(
+                        $(this).val()
+                    );
+
+                }
+
+            });
+
+
+            // =====================================================
+            // COPY DEMAND TO -> SANCTION TO
+            // =====================================================
+            $("#DemandToDate").change(function () {
+
+                if (!$("#SanctionToDate").val()) {
+
+                    $("#SanctionToDate").val(
+                        $(this).val()
+                    );
+
+                }
+
+            });
+
+
+            // =====================================================
+            // COPY LEAVE TYPE -> SANCTION LEAVE
+            // =====================================================
+            $("#DemandLeaveCode").change(function () {
+
+                if (!$("#SanctionLeaveCode").val()) {
+
+                    $("#SanctionLeaveCode").val(
+                        $(this).val()
+                    );
+
+                }
+
+            });
+
+
+            // =====================================================
+            // CLEAR BUTTON
+            // =====================================================
+            $("#btnClear").click(function () {
+
+                setTimeout(function () {
+
+                    $("#EmployeeName").val("");
+
+                    $("#ChargeToEmployeeName").val("");
+
+                    $("#employeeSearchMessage").html("");
+
+                    $("#chargeEmployeeMessage").html("");
+
+                }, 10);
+
+            });
+
+
+            // =====================================================
+            // FORM VALIDATION
+            // =====================================================
+            $("#leaveForm").submit(function (event) {
+
+                var employeeCode =
+                    $("#EmployeeCode").val();
+
+                var employeeName =
+                    $("#EmployeeName").val();
+
+                var demandFrom =
+                    $("#DemandFromDate").val();
+
+                var demandTo =
+                    $("#DemandToDate").val();
+
+                var demandLeave =
+                    $("#DemandLeaveCode").val();
+
+                var sanctionFrom =
+                    $("#SanctionFromDate").val();
+
+                var sanctionLeave =
+                    $("#SanctionLeaveCode").val();
+
+
+                // Maternity Leave client-side validation
+                var demandLeaveText =
+                    $("#DemandLeaveCode option:selected").text().toUpperCase();
+
+                var sanctionLeaveText =
+                    $("#SanctionLeaveCode option:selected").text().toUpperCase();
+
+                if ((demandLeaveText.indexOf("MATERNITY") >= 0 ||
+                     sanctionLeaveText.indexOf("MATERNITY") >= 0) &&
+                    !isFemaleGender(currentEmployeeGender)) {
+
+                    event.preventDefault();
+                    alert("Maternity Leave is only applicable for Female Employees.");
+                    return false;
+                }
+
+
+                // Employee
+                if (!employeeCode ||
+                    parseInt(employeeCode) <= 0) {
+
+                    alert(
+                        "Please enter Employee Code."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                if (!employeeName) {
+
+                    alert(
+                        "Please search and select valid Employee."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                // Demand From
+                if (!demandFrom) {
+
+                    alert(
+                        "Please select From Date."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                // Demand To
+                if (!demandTo) {
+
+                    alert(
+                        "Please select To Date."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                if (demandTo < demandFrom) {
+
+                    alert(
+                        "To Date cannot be less than From Date."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                // Leave Type
+                if (!demandLeave) {
+
+                    alert(
+                        "Please select Leave Type."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                // Sanction From
+                if (!sanctionFrom) {
+
+                    alert(
+                        "Please select Sanction From Date."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                // Sanction Leave
+                if (!sanctionLeave) {
+
+                    alert(
+                        "Please select Sanction Leave Type."
+                    );
+
+                    event.preventDefault();
+
+                    return false;
+                }
+
+
+                return true;
+
+            });
+
+        });
+
+    </script>
+}

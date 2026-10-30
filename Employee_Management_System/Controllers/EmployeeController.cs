@@ -143,11 +143,11 @@ namespace Employee_Management_System.Controllers
                                 break;
 
                             case "temporary":
-                                employeeType = 2;
+                                employeeType = 7;
                                 break;
 
                             case "contract":
-                                employeeType = 3;
+                                employeeType = 6;
                                 break;
                         }
                     }
@@ -330,6 +330,8 @@ namespace Employee_Management_System.Controllers
                     );
                 }
 
+                ValidateEmployeeDates(employee);
+
                 if (!ModelState.IsValid)
                 {
                     await LoadDropdown();
@@ -417,8 +419,8 @@ namespace Employee_Management_System.Controllers
 
                     PFBalance =
                         employee.PFBalance.HasValue
-                            ? Convert.ToInt32(
-                                employee.PFBalance.Value)
+                            ? Math.Round(
+                                Convert.ToDouble(employee.PFBalance.Value), 2)
                             : null,
 
                     AadharNo =
@@ -1311,6 +1313,21 @@ namespace Employee_Management_System.Controllers
 
 
                 // =================================================
+                // DATE RULES (Joining Date based)
+                // =================================================
+
+                if (!ValidateEmployeeDates(employee))
+                {
+                    await LoadDropdown();
+
+                    return View(
+                        "Register",
+                        employee
+                    );
+                }
+
+
+                // =================================================
                 // READ FORM
                 // =================================================
 
@@ -1667,8 +1684,8 @@ namespace Employee_Management_System.Controllers
 
                 existingEmployee.PFBalance =
                     employee.PFBalance.HasValue
-                        ? Convert.ToInt32(
-                            employee.PFBalance.Value
+                        ? Math.Round(
+                            Convert.ToDouble(employee.PFBalance.Value), 2
                         )
                         : null;
 
@@ -2081,6 +2098,80 @@ namespace Employee_Management_System.Controllers
 
 
             return null;
+        }
+
+        // =====================================================
+        // DATE RULES (compared with Joining Date)
+        // Permanent / Last Salary / Last Increment : not before Joining Date
+        // Retirement                                : must be after Joining Date
+        // Returns false when any rule is broken (errors added to ModelState)
+        // =====================================================
+        private bool ValidateEmployeeDates(Employee employee)
+        {
+            bool isValid = true;
+
+            // Birth Date: employee must be at least 18 years old
+            if (employee.BirthDate.HasValue)
+            {
+                DateTime today = DateTime.Today;
+                DateTime birth = employee.BirthDate.Value.Date;
+
+                int age = today.Year - birth.Year;
+                if (birth > today.AddYears(-age)) age--;
+
+                if (age < 18)
+                {
+                    ModelState.AddModelError(
+                        nameof(employee.BirthDate),
+                        "Employee must be at least 18 years old.");
+                    isValid = false;
+                }
+            }
+
+            if (!employee.JoiningDate.HasValue)
+            {
+                return isValid;
+            }
+
+            DateTime joining = employee.JoiningDate.Value.Date;
+
+            if (employee.PermanentDate.HasValue &&
+                employee.PermanentDate.Value.Date < joining)
+            {
+                ModelState.AddModelError(
+                    nameof(employee.PermanentDate),
+                    "Permanent Date cannot be before Joining Date.");
+                isValid = false;
+            }
+
+            if (employee.LastSalaryDate.HasValue &&
+                employee.LastSalaryDate.Value.Date < joining)
+            {
+                ModelState.AddModelError(
+                    nameof(employee.LastSalaryDate),
+                    "Last Salary Date cannot be before Joining Date.");
+                isValid = false;
+            }
+
+            if (employee.LastSalaryIncrementDate.HasValue &&
+                employee.LastSalaryIncrementDate.Value.Date < joining)
+            {
+                ModelState.AddModelError(
+                    nameof(employee.LastSalaryIncrementDate),
+                    "Last Salary Increment Date cannot be before Joining Date.");
+                isValid = false;
+            }
+
+            if (employee.RetirementDate.HasValue &&
+                employee.RetirementDate.Value.Date <= joining)
+            {
+                ModelState.AddModelError(
+                    nameof(employee.RetirementDate),
+                    "Retirement Date must be after Joining Date.");
+                isValid = false;
+            }
+
+            return isValid;
         }
     }
 }

@@ -1,0 +1,1445 @@
+﻿@model Employee_Management_System.Models.SalaryRevisionViewModel
+
+@{
+    ViewData["Title"] = "Salary Revision";
+}
+
+<style>
+    /* =====================================================
+           SALARY REVISION - PAGE STYLES (scoped with sr- prefix)
+        ===================================================== */
+    .sr-page {
+        --sr-primary: #1d4ed8;
+        --sr-primary-dark: #1e3a8a;
+        --sr-border: #e3e8f0;
+        --sr-muted: #64748b;
+        --sr-bg: #f6f8fc;
+    }
+
+    .sr-hero {
+        background: linear-gradient(120deg, #1e3a8a 0%, #1d4ed8 55%, #2563eb 100%);
+        color: #fff;
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        box-shadow: 0 8px 24px rgba(29,78,216,.22);
+    }
+
+    .sr-hero-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: rgba(255,255,255,.16);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+    }
+
+    .sr-hero h4 {
+        margin: 0;
+        font-weight: 700;
+        letter-spacing: .2px;
+    }
+
+    .sr-hero p {
+        margin: .15rem 0 0;
+        opacity: .85;
+        font-size: .9rem;
+    }
+
+    .sr-hero-badges span {
+        background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.25);
+        border-radius: 999px;
+        padding: .35rem .85rem;
+        font-size: .82rem;
+        font-weight: 600;
+        margin-left: .4rem;
+    }
+
+    .sr-card {
+        background: #fff;
+        border: 1px solid var(--sr-border);
+        border-radius: 16px;
+        box-shadow: 0 2px 10px rgba(15,23,42,.04);
+        overflow: hidden;
+    }
+
+    .sr-card-head {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--sr-border);
+        background: #fbfcfe;
+    }
+
+    .sr-step {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--sr-primary);
+        color: #fff;
+        font-weight: 700;
+        font-size: .85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .sr-card-head h6 {
+        margin: 0;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .sr-card-head small {
+        color: var(--sr-muted);
+        display: block;
+        font-weight: 400;
+    }
+
+    .sr-card-body {
+        padding: 1.25rem;
+    }
+
+    .sr-label {
+        font-size: .8rem;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin-bottom: .35rem;
+    }
+
+    .sr-page .form-control, .sr-page .input-group-text {
+        border-color: #d5dcea;
+    }
+
+    .sr-page .form-control {
+        padding: .6rem .85rem;
+        border-radius: 10px;
+    }
+
+    .sr-page .input-group > .form-control {
+        border-radius: 0 10px 10px 0;
+    }
+
+    .sr-page .input-group > .input-group-text {
+        border-radius: 10px 0 0 10px;
+        background: #eef2ff;
+        color: var(--sr-primary-dark);
+        font-weight: 700;
+    }
+
+    .sr-page .form-control:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 .2rem rgba(59,130,246,.18);
+    }
+
+    .sr-page .form-control[readonly] {
+        background: #f4f6fb;
+        color: #1e293b;
+        font-weight: 600;
+        cursor: not-allowed;
+    }
+
+    .sr-search-row {
+        background: #f8faff;
+        border: 1px dashed #c7d2fe;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .sr-btn-search {
+        border-radius: 10px;
+        padding: .6rem 1rem;
+        font-weight: 600;
+    }
+
+    #employeeSearchMessage {
+        min-height: 24px;
+        display: flex;
+        align-items: center;
+        font-size: .9rem;
+    }
+
+    /* Revision type segmented choice */
+    .sr-seg {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .75rem;
+    }
+
+    .sr-seg-opt {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .85rem 1rem;
+        border: 2px solid var(--sr-border);
+        border-radius: 12px;
+        cursor: pointer;
+        background: #fff;
+        transition: all .15s ease;
+        margin: 0;
+        user-select: none;
+    }
+
+        .sr-seg-opt:hover {
+            border-color: #b6c3dd;
+            background: #fafcff;
+        }
+
+        .sr-seg-opt .sr-ico {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .sr-seg-opt .sr-t {
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.1;
+        }
+
+        .sr-seg-opt .sr-s {
+            font-size: .78rem;
+            color: var(--sr-muted);
+        }
+
+    .sr-inc .sr-ico {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .sr-dec .sr-ico {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .btn-check:checked + .sr-inc {
+        border-color: #16a34a;
+        background: #f0fdf4;
+        box-shadow: 0 0 0 3px rgba(22,163,74,.12);
+    }
+
+    .btn-check:checked + .sr-dec {
+        border-color: #dc2626;
+        background: #fef2f2;
+        box-shadow: 0 0 0 3px rgba(220,38,38,.12);
+    }
+
+    .btn-check:focus-visible + .sr-seg-opt {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+    }
+
+    .sr-actions {
+        display: flex;
+        gap: .6rem;
+        align-items: center;
+        flex-wrap: wrap;
+        border-top: 1px solid var(--sr-border);
+        padding-top: 1rem;
+        margin-top: .5rem;
+    }
+
+        .sr-actions .btn {
+            border-radius: 10px;
+            padding: .6rem 1.4rem;
+            font-weight: 600;
+        }
+
+        .sr-actions .sr-hint {
+            color: var(--sr-muted);
+            font-size: .82rem;
+            margin-left: auto;
+        }
+
+    /* Success card */
+    .sr-success {
+        border: 1px solid #bbf7d0;
+        border-left: 5px solid #16a34a;
+        background: #f0fdf4;
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+    }
+
+        .sr-success h6 {
+            color: #166534;
+            font-weight: 700;
+            margin-bottom: .8rem;
+        }
+
+        .sr-success .sr-kv small {
+            display: block;
+            color: #4d7c5b;
+            font-size: .74rem;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            font-weight: 700;
+        }
+
+        .sr-success .sr-kv strong {
+            color: #14532d;
+        }
+
+    @@media (max-width: 575.98px) {
+        .sr-seg {
+            grid-template-columns: 1fr;
+        }
+
+        .sr-hero-badges {
+            display: none;
+        }
+
+        .sr-actions .sr-hint {
+            margin-left: 0;
+            width: 100%;
+        }
+    }
+</style>
+
+
+<div class="container-fluid mt-3 mb-5 sr-page">
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+    <div class="sr-hero mb-4">
+
+        <div class="d-flex align-items-center gap-3">
+
+            <div class="sr-hero-icon">
+                <i class="bi bi-arrow-left-right"></i>
+            </div>
+
+            <div>
+                <h4>Salary Revision</h4>
+                <p>Record a basic salary increment or decrement for an employee</p>
+            </div>
+
+        </div>
+
+        <div class="sr-hero-badges">
+            <span><i class="bi bi-arrow-up-circle me-1"></i>Increment</span>
+            <span><i class="bi bi-arrow-down-circle me-1"></i>Decrement</span>
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         ERROR
+    ================================================== -->
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm"
+             style="border-left:5px solid #dc2626 !important; border-radius:14px;"
+             role="alert">
+
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
+            @TempData["Error"]
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
+
+        </div>
+    }
+
+
+    <!-- =================================================
+         SUCCESS
+    ================================================== -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="sr-success alert alert-dismissible fade show mb-4" role="alert">
+
+            <h6>
+                <i class="bi bi-check-circle-fill me-2"></i>
+                @TempData["Success"]
+            </h6>
+
+            <div class="row g-3">
+
+                <div class="col-6 col-md-2 sr-kv">
+                    <small>Employee Code</small>
+                    <strong>@TempData["EmployeeCode"]</strong>
+                </div>
+
+                <div class="col-6 col-md-3 sr-kv">
+                    <small>Employee Name</small>
+                    <strong>@TempData["EmployeeName"]</strong>
+                </div>
+
+                <div class="col-6 col-md-2 sr-kv">
+                    <small>Old Basic</small>
+                    <strong>₹ @TempData["PreviousBasic"]</strong>
+                </div>
+
+                <div class="col-6 col-md-2 sr-kv">
+                    <small>Revision</small>
+                    <strong>₹ @TempData["RevisionAmount"]</strong>
+                </div>
+
+                <div class="col-6 col-md-2 sr-kv">
+                    <small>New Basic</small>
+                    <strong>₹ @TempData["NewBasic"]</strong>
+                </div>
+
+                <div class="col-6 col-md-1 sr-kv">
+                    <small>SR No</small>
+                    <strong>@TempData["SrNo"]</strong>
+                </div>
+
+            </div>
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
+
+        </div>
+    }
+
+
+    <!-- =================================================
+         FORM
+    ================================================== -->
+    <form asp-controller="SalaryRevision"
+          asp-action="Save"
+          method="post"
+          id="salaryRevisionForm">
+
+        @Html.AntiForgeryToken()
+
+        <div class="row g-4">
+
+            <!-- =============================================
+                 LEFT SIDE
+            ============================================== -->
+            <div class="col-xl-9 col-lg-10 mx-auto">
+
+                <!-- STEP 1 : EMPLOYEE INFORMATION -->
+                <div class="sr-card mb-4">
+
+                    <div class="sr-card-head">
+                        <div class="sr-step">1</div>
+                        <div>
+                            <h6>Employee Information</h6>
+                            <small>Search the employee by code to load current salary details</small>
+                        </div>
+                    </div>
+
+                    <div class="sr-card-body">
+
+                        <!-- EMPLOYEE CODE SEARCH -->
+                        <div class="sr-search-row">
+
+                            <div class="row g-2 align-items-end">
+
+                                <div class="col-md-5">
+
+                                    <div class="sr-label">
+                                        Employee Code
+                                        <span class="text-danger">*</span>
+                                    </div>
+
+                                    <input asp-for="EmployeeCode"
+                                           id="EmployeeCode"
+                                           type="number"
+                                           min="1"
+                                           class="form-control"
+                                           placeholder="Enter Employee Code"
+                                           autocomplete="off" />
+
+                                </div>
+
+                                <div class="col-md-3">
+
+                                    <button type="button"
+                                            id="btnSearchEmployee"
+                                            class="btn btn-primary w-100 sr-btn-search">
+                                        <i class="bi bi-search me-1"></i>
+                                        Search
+                                    </button>
+
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div id="employeeSearchMessage"></div>
+                                </div>
+
+                            </div>
+
+                            <span asp-validation-for="EmployeeCode"
+                                  class="text-danger small">
+                            </span>
+
+                        </div>
+
+                        <!-- EMPLOYEE DETAILS -->
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+
+                                <div class="sr-label">Employee Name</div>
+
+                                <input asp-for="EmployeeName"
+                                       id="EmployeeName"
+                                       class="form-control"
+                                       placeholder="—"
+                                       readonly />
+
+                            </div>
+
+                            <div class="col-md-4">
+
+                                <div class="sr-label">Current Basic</div>
+
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="CurrentBasic"
+                                           id="CurrentBasic"
+                                           type="number"
+                                           step="0.01"
+                                           class="form-control"
+                                           readonly />
+                                </div>
+
+                            </div>
+
+                            <div class="col-md-4">
+
+                                <div class="sr-label">Last Increment Date</div>
+
+                                <input asp-for="LastIncrementDate"
+                                       id="LastIncrementDate"
+                                       type="date"
+                                       class="form-control"
+                                       readonly />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- STEP 2 : SALARY REVISION -->
+                <div class="sr-card">
+
+                    <div class="sr-card-head">
+                        <div class="sr-step">2</div>
+                        <div>
+                            <h6>Salary Revision Details</h6>
+                            <small>Choose the revision type, amount and effective period</small>
+                        </div>
+                    </div>
+
+                    <div class="sr-card-body">
+
+                        <!-- REVISION TYPE -->
+                        <div class="mb-4">
+
+                            <div class="sr-label">
+                                Revision Type
+                                <span class="text-danger">*</span>
+                            </div>
+
+                            <div class="sr-seg">
+
+                                <div>
+                                    <input asp-for="RevisionType"
+                                           class="btn-check revision-type"
+                                           type="radio"
+                                           id="RevisionIncrement"
+                                           value="Increment" />
+
+                                    <label class="sr-seg-opt sr-inc w-100"
+                                           for="RevisionIncrement">
+                                        <span class="sr-ico"><i class="bi bi-arrow-up-circle-fill"></i></span>
+                                        <span>
+                                            <span class="sr-t d-block">Increment</span>
+                                            <span class="sr-s">Add to current basic</span>
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <div>
+                                    <input asp-for="RevisionType"
+                                           class="btn-check revision-type"
+                                           type="radio"
+                                           id="RevisionDecrement"
+                                           value="Decrement" />
+
+                                    <label class="sr-seg-opt sr-dec w-100"
+                                           for="RevisionDecrement">
+                                        <span class="sr-ico"><i class="bi bi-arrow-down-circle-fill"></i></span>
+                                        <span>
+                                            <span class="sr-t d-block">Decrement</span>
+                                            <span class="sr-s">Reduce from current basic</span>
+                                        </span>
+                                    </label>
+                                </div>
+
+                            </div>
+
+                            <span asp-validation-for="RevisionType"
+                                  class="text-danger small">
+                            </span>
+
+                        </div>
+
+                        <!-- AMOUNT -->
+                        <div class="row g-3 mb-3">
+
+                            <div class="col-md-6">
+
+                                <div class="sr-label">
+                                    Revision Amount
+                                    <span class="text-danger">*</span>
+                                </div>
+
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="RevisionAmount"
+                                           id="RevisionAmount"
+                                           type="number"
+                                           min="0.01"
+                                           step="0.01"
+                                           class="form-control"
+                                           placeholder="Enter Revision Amount" />
+                                </div>
+
+                                <span asp-validation-for="RevisionAmount"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                            <div class="col-md-6">
+
+                                <div class="sr-label">New Basic</div>
+
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="NewBasic"
+                                           id="NewBasic"
+                                           type="number"
+                                           step="0.01"
+                                           class="form-control fw-bold"
+                                           readonly />
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <!-- DATES -->
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+
+                                <div class="sr-label">
+                                    Effective From Date
+                                    <span class="text-danger">*</span>
+                                </div>
+
+                                <input asp-for="FromDate"
+                                       id="FromDate"
+                                       type="date"
+                                       class="form-control" />
+
+                                <span asp-validation-for="FromDate"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                            <div class="col-md-6">
+
+                                <div class="sr-label">
+                                    Effective To Date
+                                    <span class="text-danger">*</span>
+                                </div>
+
+                                <input asp-for="ToDate"
+                                       id="ToDate"
+                                       type="date"
+                                       class="form-control" />
+
+                                <span asp-validation-for="ToDate"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                        <!-- BUTTONS -->
+                        <div class="sr-actions mt-4">
+
+                            <button type="submit"
+                                    id="btnSaveRevision"
+                                    class="btn btn-success"
+                                    disabled>
+                                <i class="bi bi-save-fill me-1"></i>
+                                Save Revision
+                            </button>
+
+                            <button type="button"
+                                    id="btnClear"
+                                    class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise me-1"></i>
+                                Clear
+                            </button>
+
+                            <span class="sr-hint">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Fields marked * are required
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function ()
+            {
+
+                // =================================================
+                // ELEMENTS
+                // =================================================
+
+                const employeeCode =
+                    document.getElementById(
+                        "EmployeeCode"
+                    );
+
+
+                const employeeName =
+                    document.getElementById(
+                        "EmployeeName"
+                    );
+
+
+                const currentBasic =
+                    document.getElementById(
+                        "CurrentBasic"
+                    );
+
+
+                const lastIncrementDate =
+                    document.getElementById(
+                        "LastIncrementDate"
+                    );
+
+
+                const revisionAmount =
+                    document.getElementById(
+                        "RevisionAmount"
+                    );
+
+
+                const newBasic =
+                    document.getElementById(
+                        "NewBasic"
+                    );
+
+
+                const fromDate =
+                    document.getElementById(
+                        "FromDate"
+                    );
+
+
+                const toDate =
+                    document.getElementById(
+                        "ToDate"
+                    );
+
+
+                const searchButton =
+                    document.getElementById(
+                        "btnSearchEmployee"
+                    );
+
+
+                const saveButton =
+                    document.getElementById(
+                        "btnSaveRevision"
+                    );
+
+
+                const clearButton =
+                    document.getElementById(
+                        "btnClear"
+                    );
+
+
+                const searchMessage =
+                    document.getElementById(
+                        "employeeSearchMessage"
+                    );
+
+
+                // =================================================
+                // SEARCH BUTTON
+                // =================================================
+
+                searchButton.addEventListener(
+                    "click",
+                    searchEmployee
+                );
+
+
+                // =================================================
+                // ENTER KEY SEARCH
+                // =================================================
+
+                employeeCode.addEventListener(
+                    "keydown",
+                    function (event)
+                    {
+                        if (event.key === "Enter")
+                        {
+                            event.preventDefault();
+
+                            searchEmployee();
+                        }
+                    }
+                );
+
+
+                // =================================================
+                // EMPLOYEE CODE CHANGE
+                // =================================================
+
+                employeeCode.addEventListener(
+                    "input",
+                    function ()
+                    {
+                        clearEmployeeDetails(false);
+                    }
+                );
+
+
+                // =================================================
+                // SEARCH EMPLOYEE
+                // =================================================
+
+                async function searchEmployee()
+                {
+                    const code =
+                        employeeCode.value.trim();
+
+
+                    if (
+                        !code
+                        ||
+                        parseInt(code) <= 0
+                    )
+                    {
+                        clearEmployeeDetails(false);
+
+
+                        showError(
+                            "Please enter valid Employee Code."
+                        );
+
+
+                        return;
+                    }
+
+
+                    searchButton.disabled =
+                        true;
+
+
+                    searchButton.innerHTML =
+                        '<span class="spinner-border spinner-border-sm me-1"></span>'
+                        +
+                        'Searching...';
+
+
+                    searchMessage.innerHTML =
+                        "";
+
+
+                    try
+                    {
+                        const url =
+                            '@Url.Action("GetEmployee", "SalaryRevision")'
+                            +
+                            '?employeeCode='
+                            +
+                            encodeURIComponent(code);
+
+
+                        const response =
+                            await fetch(url);
+
+
+                        const result =
+                            await response.json();
+
+
+                        if (
+                            !response.ok
+                            ||
+                            !result.success
+                        )
+                        {
+                            clearEmployeeDetails(false);
+
+
+                            showError(
+                                result.message
+                                ||
+                                "Employee not found."
+                            );
+
+
+                            return;
+                        }
+
+
+                        // =========================================
+                        // SET VALUES
+                        // =========================================
+
+                        employeeName.value =
+                            result.data.employeeName
+                            ??
+                            "";
+
+
+                        currentBasic.value =
+                            parseFloat(
+                                result.data.currentBasic
+                                ??
+                                0
+                            ).toFixed(2);
+
+
+                        lastIncrementDate.value =
+                            result.data.lastIncrementDate
+                            ??
+                            "";
+
+
+                        searchMessage.innerHTML =
+                            '<span class="text-success fw-bold">'
+                            +
+                            '<i class="bi bi-check-circle-fill me-1"></i>'
+                            +
+                            'Employee found'
+                            +
+                            '</span>';
+
+
+                        saveButton.disabled =
+                            false;
+
+
+                        calculateNewBasic();
+                    }
+                    catch (error)
+                    {
+                        console.error(error);
+
+
+                        clearEmployeeDetails(false);
+
+
+                        showError(
+                            "Unable to retrieve employee information."
+                        );
+                    }
+                    finally
+                    {
+                        searchButton.disabled =
+                            false;
+
+
+                        searchButton.innerHTML =
+                            '<i class="bi bi-search me-1"></i>'
+                            +
+                            'Search';
+                    }
+                }
+
+
+                // =================================================
+                // CALCULATE NEW BASIC
+                // =================================================
+
+                function calculateNewBasic()
+                {
+                    const current =
+                        parseFloat(
+                            currentBasic.value
+                        )
+                        ||
+                        0;
+
+
+                    const amount =
+                        parseFloat(
+                            revisionAmount.value
+                        )
+                        ||
+                        0;
+
+
+                    const selectedType =
+                        document.querySelector(
+                            'input[name="RevisionType"]:checked'
+                        );
+
+
+                    let calculated =
+                        current;
+
+
+                    let revisionType =
+                        "";
+
+
+                    if (selectedType)
+                    {
+                        revisionType =
+                            selectedType.value;
+
+
+                        if (
+                            revisionType
+                            ===
+                            "Increment"
+                        )
+                        {
+                            calculated =
+                                current
+                                +
+                                amount;
+                        }
+                        else if (
+                            revisionType
+                            ===
+                            "Decrement"
+                        )
+                        {
+                            calculated =
+                                current
+                                -
+                                amount;
+                        }
+                    }
+
+
+                    if (calculated < 0)
+                    {
+                        calculated = 0;
+                    }
+
+
+                    newBasic.value =
+                        calculated.toFixed(2);
+
+
+
+
+
+
+
+
+
+
+
+
+
+                }
+
+
+                // =================================================
+                // AMOUNT CHANGE
+                // =================================================
+
+                revisionAmount.addEventListener(
+                    "input",
+                    calculateNewBasic
+                );
+
+
+                // =================================================
+                // REVISION TYPE CHANGE
+                // =================================================
+
+                document
+                    .querySelectorAll(
+                        ".revision-type"
+                    )
+                    .forEach(
+                        function (radio)
+                        {
+                            radio.addEventListener(
+                                "change",
+                                calculateNewBasic
+                            );
+                        }
+                    );
+
+
+                // =================================================
+                // FORM SUBMIT
+                // =================================================
+
+                document
+                    .getElementById(
+                        "salaryRevisionForm"
+                    )
+                    .addEventListener(
+                        "submit",
+                        function (event)
+                        {
+
+                            // EMPLOYEE CHECK
+
+                            if (
+                                !employeeCode.value
+                                ||
+                                !employeeName.value
+                            )
+                            {
+                                event.preventDefault();
+
+
+                                alert(
+                                    "Please search Employee Code first."
+                                );
+
+
+                                return;
+                            }
+
+
+                            // REVISION TYPE
+
+                            const selectedType =
+                                document.querySelector(
+                                    'input[name="RevisionType"]:checked'
+                                );
+
+
+                            if (!selectedType)
+                            {
+                                event.preventDefault();
+
+
+                                alert(
+                                    "Please select Increment or Decrement."
+                                );
+
+
+                                return;
+                            }
+
+
+                            // AMOUNT
+
+                            const amount =
+                                parseFloat(
+                                    revisionAmount.value
+                                )
+                                ||
+                                0;
+
+
+                            const current =
+                                parseFloat(
+                                    currentBasic.value
+                                )
+                                ||
+                                0;
+
+
+                            if (amount <= 0)
+                            {
+                                event.preventDefault();
+
+
+                                alert(
+                                    "Revision Amount must be greater than zero."
+                                );
+
+
+                                revisionAmount.focus();
+
+
+                                return;
+                            }
+
+
+                            // DECREMENT CHECK
+
+                            if (
+                                selectedType.value
+                                ===
+                                "Decrement"
+                                &&
+                                amount > current
+                            )
+                            {
+                                event.preventDefault();
+
+
+                                alert(
+                                    "Decrement Amount cannot be greater than Current Basic."
+                                );
+
+
+                                revisionAmount.focus();
+
+
+                                return;
+                            }
+
+
+                            // FROM DATE
+
+                            if (!fromDate.value)
+                            {
+                                event.preventDefault();
+
+
+                                alert(
+                                    "Please select Effective From Date."
+                                );
+
+
+                                fromDate.focus();
+
+
+                                return;
+                            }
+
+
+                            // TO DATE
+
+                            if (!toDate.value)
+                            {
+                                event.preventDefault();
+
+
+                                alert(
+                                    "Please select Effective To Date."
+                                );
+
+
+                                toDate.focus();
+
+
+                                return;
+                            }
+
+
+                            // DATE VALIDATION
+
+                            if (
+                                new Date(toDate.value)
+                                <
+                                new Date(fromDate.value)
+                            )
+                            {
+                                event.preventDefault();
+
+
+                                alert(
+                                    "Effective To Date cannot be before Effective From Date."
+                                );
+
+
+                                return;
+                            }
+
+
+                            // CONFIRM
+
+                            const confirmMessage =
+                                "Save Salary Revision?"
+                                +
+                                "\n\nEmployee Code: "
+                                +
+                                employeeCode.value
+                                +
+                                "\nEmployee Name: "
+                                +
+                                employeeName.value
+                                +
+                                "\nCurrent Basic: ₹ "
+                                +
+                                current.toFixed(2)
+                                +
+                                "\nRevision Type: "
+                                +
+                                selectedType.value
+                                +
+                                "\nRevision Amount: ₹ "
+                                +
+                                amount.toFixed(2)
+                                +
+                                "\nNew Basic: ₹ "
+                                +
+                                newBasic.value
+                                +
+                                "\nEffective From: "
+                                +
+                                fromDate.value
+                                +
+                                "\nEffective To: "
+                                +
+                                toDate.value;
+
+
+                            if (
+                                !confirm(
+                                    confirmMessage
+                                )
+                            )
+                            {
+                                event.preventDefault();
+                            }
+                        }
+                    );
+
+
+                // =================================================
+                // CLEAR
+                // =================================================
+
+                clearButton.addEventListener(
+                    "click",
+                    function ()
+                    {
+                        window.location.href =
+                            '@Url.Action("Index", "SalaryRevision")';
+                    }
+                );
+
+
+                // =================================================
+                // CLEAR EMPLOYEE DETAILS
+                // =================================================
+
+                function clearEmployeeDetails(
+                    clearCode = false
+                )
+                {
+                    if (clearCode)
+                    {
+                        employeeCode.value =
+                            "";
+                    }
+
+
+                    employeeName.value =
+                        "";
+
+
+                    currentBasic.value =
+                        "";
+
+
+                    lastIncrementDate.value =
+                        "";
+
+
+                    newBasic.value =
+                        "";
+
+
+                    searchMessage.innerHTML =
+                        "";
+
+
+                    saveButton.disabled =
+                        true;
+
+
+
+
+
+
+
+
+
+
+
+
+                }
+
+
+                // =================================================
+                // ERROR
+                // =================================================
+
+                function showError(message)
+                {
+                    searchMessage.innerHTML =
+                        '<span class="text-danger fw-bold">'
+                        +
+                        '<i class="bi bi-exclamation-circle-fill me-1"></i>'
+                        +
+                        message
+                        +
+                        '</span>';
+
+
+                    saveButton.disabled =
+                        true;
+                }
+
+
+                // INITIAL
+                calculateNewBasic();
+            }
+        );
+
+    </script>
+}

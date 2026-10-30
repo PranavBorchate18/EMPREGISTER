@@ -129,7 +129,7 @@ namespace Employee_Management_System.Models
         public double? IncrementBasic { get; set; }
 
         [Column("pf_balance")]
-        public int? PFBalance { get; set; }
+        public double? PFBalance { get; set; }
 
         [Column("pf_opbal")]
         public double? PFOpeningBalance { get; set; }
