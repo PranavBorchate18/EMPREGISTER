@@ -2,8 +2,10 @@
 using Employee_Management_System.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ClosedXML.Excel;
 using System.Data;
 using System.Data.Common;
+using System.IO;
 
 namespace Employee_Management_System.Controllers
 {
@@ -731,6 +733,257 @@ ORDER BY p.code;";
                     await connection.CloseAsync();
             }
         }
+
+
+        // ============================================================
+        // READ ONLY: Export Salary Report to Excel
+        // Uses the same saved payroll data and filters as Print.
+        // No INSERT / UPDATE / DELETE.
+        // ============================================================
+        [HttpGet]
+        public async Task<IActionResult> ExportExcel(
+            int fromYear,
+            int fromMonth,
+            int toYear,
+            int toMonth,
+            int branchCode,
+            int employeeType = 0,
+            List<string>? hiddenAllowanceNames = null,
+            List<string>? hiddenDeductionNames = null)
+        {
+            if (!IsLoggedIn())
+                return RedirectToAction("Login", "Account");
+
+            // Reuse Print() to get exactly the same report data.
+            var result = await Print(
+                fromYear,
+                fromMonth,
+                toYear,
+                toMonth,
+                branchCode,
+                employeeType,
+                hiddenAllowanceNames,
+                hiddenDeductionNames);
+
+            if (result is not ViewResult viewResult)
+                return result;
+
+            var employees =
+                viewResult.Model as List<SalaryReportEmployeeRowViewModel>
+                ?? new List<SalaryReportEmployeeRowViewModel>();
+
+            var allowanceNames =
+                viewResult.ViewData["AllowanceNames"] as List<string>
+                ?? new List<string>();
+
+            var deductionNames =
+                viewResult.ViewData["DeductionNames"] as List<string>
+                ?? new List<string>();
+
+            string branchName =
+                Convert.ToString(viewResult.ViewData["BranchName"]) ?? "";
+
+            string fromMonthName =
+                Convert.ToString(viewResult.ViewData["FromMonthName"]) ?? "";
+
+            string toMonthName =
+                Convert.ToString(viewResult.ViewData["ToMonthName"]) ?? "";
+
+            using var workbook = new XLWorkbook();
+
+            var worksheet = workbook.Worksheets.Add("Salary Report");
+
+            int totalColumns = 10 + allowanceNames.Count + deductionNames.Count;
+            int currentRow = 1;
+
+            // REPORT TITLE
+            worksheet.Cell(currentRow, 1).Value = "SALARY REPORT";
+            worksheet.Range(currentRow, 1, currentRow, totalColumns).Merge();
+
+            var titleRange =
+                worksheet.Range(currentRow, 1, currentRow, totalColumns);
+
+            titleRange.Style.Font.Bold = true;
+            titleRange.Style.Font.FontSize = 16;
+            titleRange.Style.Alignment.Horizontal =
+                XLAlignmentHorizontalValues.Center;
+
+            currentRow += 2;
+
+            worksheet.Cell(currentRow, 1).Value = "Branch";
+            worksheet.Cell(currentRow, 2).Value =
+                $"{branchCode} - {branchName}";
+            currentRow++;
+
+            worksheet.Cell(currentRow, 1).Value = "Period";
+            worksheet.Cell(currentRow, 2).Value =
+                $"{fromMonthName} {fromYear} To {toMonthName} {toYear}";
+            currentRow++;
+
+            worksheet.Cell(currentRow, 1).Value = "Employee Type";
+            worksheet.Cell(currentRow, 2).Value = employeeType switch
+            {
+                0 => "All",
+                1 => "Type 1 to 5",
+                6 => "Type 6",
+                7 => "Type 7",
+                _ => employeeType.ToString()
+            };
+
+            currentRow += 2;
+
+            // COLUMN HEADINGS
+            int headerRow = currentRow;
+            int column = 1;
+
+            worksheet.Cell(headerRow, column++).Value = "Sr. No.";
+            worksheet.Cell(headerRow, column++).Value = "Emp Code";
+            worksheet.Cell(headerRow, column++).Value = "Employee Name";
+            worksheet.Cell(headerRow, column++).Value = "Grade Code";
+            worksheet.Cell(headerRow, column++).Value = "Grade Name";
+            worksheet.Cell(headerRow, column++).Value = "Basic";
+
+            foreach (var name in allowanceNames)
+                worksheet.Cell(headerRow, column++).Value = name;
+
+            worksheet.Cell(headerRow, column++).Value = "Total Allowance";
+            worksheet.Cell(headerRow, column++).Value = "Gross Salary";
+
+            foreach (var name in deductionNames)
+                worksheet.Cell(headerRow, column++).Value = name;
+
+            worksheet.Cell(headerRow, column++).Value = "Total Deduction";
+            worksheet.Cell(headerRow, column++).Value = "Net Salary";
+
+            var headerRange =
+                worksheet.Range(headerRow, 1, headerRow, totalColumns);
+
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+            headerRange.Style.Alignment.Horizontal =
+                XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Alignment.Vertical =
+                XLAlignmentVerticalValues.Center;
+            headerRange.Style.Alignment.WrapText = true;
+            headerRange.Style.Border.BottomBorder =
+                XLBorderStyleValues.Thin;
+
+            currentRow++;
+
+            // EMPLOYEE DATA
+            int serialNumber = 1;
+            int firstDataRow = currentRow;
+
+            foreach (var employee in employees)
+            {
+                column = 1;
+
+                worksheet.Cell(currentRow, column++).Value = serialNumber++;
+                worksheet.Cell(currentRow, column++).Value = employee.EmployeeCode;
+                worksheet.Cell(currentRow, column++).Value = employee.EmployeeName;
+
+                if (employee.GradeCode.HasValue)
+                    worksheet.Cell(currentRow, column).Value =
+                        employee.GradeCode.Value;
+
+                column++;
+
+                worksheet.Cell(currentRow, column++).Value = employee.GradeName;
+                worksheet.Cell(currentRow, column++).Value = employee.BasicSalary;
+
+                foreach (var name in allowanceNames)
+                {
+                    worksheet.Cell(currentRow, column++).Value =
+                        DictionaryAmount(employee.Allowances, name);
+                }
+
+                worksheet.Cell(currentRow, column++).Value =
+                    employee.TotalAllowance;
+
+                worksheet.Cell(currentRow, column++).Value =
+                    employee.GrossSalary;
+
+                foreach (var name in deductionNames)
+                {
+                    worksheet.Cell(currentRow, column++).Value =
+                        DictionaryAmount(employee.Deductions, name);
+                }
+
+                worksheet.Cell(currentRow, column++).Value =
+                    employee.TotalDeduction;
+
+                worksheet.Cell(currentRow, column++).Value =
+                    employee.NetSalary;
+
+                currentRow++;
+            }
+
+            // BRANCH TOTAL
+            int totalRow = currentRow;
+            column = 1;
+
+            worksheet.Cell(totalRow, column++).Value = "";
+            worksheet.Cell(totalRow, column++).Value = "";
+            worksheet.Cell(totalRow, column++).Value = "BRANCH TOTAL";
+            worksheet.Cell(totalRow, column++).Value = "";
+            worksheet.Cell(totalRow, column++).Value = "";
+
+            for (int sumColumn = 6; sumColumn <= totalColumns; sumColumn++)
+            {
+                if (employees.Count > 0)
+                {
+                    string firstCell =
+                        worksheet.Cell(firstDataRow, sumColumn).Address.ToString();
+
+                    string lastCell =
+                        worksheet.Cell(totalRow - 1, sumColumn).Address.ToString();
+
+                    worksheet.Cell(totalRow, sumColumn).FormulaA1 =
+                        $"SUM({firstCell}:{lastCell})";
+                }
+                else
+                {
+                    worksheet.Cell(totalRow, sumColumn).Value = 0;
+                }
+            }
+
+            var totalRange =
+                worksheet.Range(totalRow, 1, totalRow, totalColumns);
+
+            totalRange.Style.Font.Bold = true;
+            totalRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+            totalRange.Style.Border.TopBorder = XLBorderStyleValues.Thin;
+
+            // AMOUNT FORMATTING
+            worksheet.Range(
+                headerRow + 1, 6,
+                totalRow, totalColumns)
+                .Style.NumberFormat.Format = "#,##0.00";
+
+            // PROFESSIONAL FORMATTING
+            worksheet.Columns().AdjustToContents();
+
+            worksheet.Column(3).Width = 25;
+            worksheet.SheetView.FreezeRows(headerRow);
+
+            worksheet.RangeUsed().Style.Alignment.Vertical =
+                XLAlignmentVerticalValues.Center;
+
+            // DOWNLOAD EXCEL
+            using var stream = new MemoryStream();
+
+            workbook.SaveAs(stream);
+            stream.Position = 0;
+
+            string fileName =
+                $"SalaryReport_{branchCode}_{fromYear}{fromMonth:00}_{toYear}{toMonth:00}.xlsx";
+
+            return File(
+                stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                fileName);
+        }
+
 
         // ============================================================
         // Approved WITHOUT PAY LEAVE for one exact Employee + Month.
@@ -1660,6 +1913,7 @@ WHERE TRY_CONVERT(INT, [year]) = @Year
                         message = "या महिन्यासाठी dbo.paytrn मध्ये कोणतेही payroll records सापडले नाहीत."
                     });
                 }
+
 
                 return Json(new
                 {

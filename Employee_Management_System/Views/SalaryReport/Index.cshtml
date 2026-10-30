@@ -109,9 +109,9 @@
     }
 
     /* Single View history:
-                                                                                                                   Sr. / Employee Code / Employee Name = blank
-                                                                                                                   Grade = Month / Year
-                                                                                                                   remaining values stay under their matching columns */
+                                                                                                                       Sr. / Employee Code / Employee Name = blank
+                                                                                                                       Grade = Month / Year
+                                                                                                                       remaining values stay under their matching columns */
     .history-table .history-blank {
         background: #f8f9fa !important;
     }
@@ -252,12 +252,33 @@
             font-size: 14px;
         }
 
+    .branch-excel-btn {
+        min-width: 82px;
+        height: 38px;
+        padding: 6px 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        align-self: center;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        border-radius: 6px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+    }
+
+        .branch-excel-btn i {
+            font-size: 14px;
+        }
+
     @@media (max-width: 900px) {
         .branch-row-wrap {
             flex-direction: column;
         }
 
-        .branch-print-btn {
+        .branch-print-btn,
+        .branch-excel-btn {
             width: 100%;
             height: 38px;
         }
@@ -648,6 +669,12 @@
                                     data-code="@b.BranchCode"
                                     data-name="@b.BranchName">
                                 <i class="bi bi-printer"></i> Print
+                            </button>
+                            <button type="button"
+                                    class="btn btn-success branch-excel-btn"
+                                    data-code="@b.BranchCode"
+                                    data-name="@b.BranchName">
+                                <i class="bi bi-file-earmark-excel"></i> Excel
                             </button>
                         </div>
                     </div>
@@ -1088,6 +1115,43 @@
             deductionCodes.forEach(c=>url+='&selectedDeductionCodes='+encodeURIComponent(c));
 
             window.open(url,'_blank');
+        });
+
+        $('.branch-excel-btn').click(function(e){
+            e.preventDefault();
+            e.stopPropagation();
+
+            let fm=+$('#FromMonth').val(),
+                fy=+$('#FromYear').val(),
+                tm=+$('#ToMonth').val(),
+                ty=+$('#ToYear').val(),
+                bc=+$(this).data('code');
+
+            if(new Date(fy,fm-1,1)>new Date(ty,tm-1,1)){
+                alert('From Month cannot be after To Month.');
+                return;
+            }
+
+            let url='@Url.Action("ExportExcel", "SalaryReport")'
+                +'?fromYear='+fy
+                +'&fromMonth='+fm
+                +'&toYear='+ty
+                +'&toMonth='+tm
+                +'&branchCode='+bc
+                +'&employeeType='+encodeURIComponent($('#EmployeeType').val());
+
+            // Send only the columns hidden for THIS branch, same as Print.
+            const hiddenAllowanceNames =
+                hiddenComponentNames(bc, 'allowance', allowances);
+            const hiddenDeductionNames =
+                hiddenComponentNames(bc, 'deduction', deductions);
+
+            hiddenAllowanceNames.forEach(name =>
+                url += '&hiddenAllowanceNames=' + encodeURIComponent(name));
+            hiddenDeductionNames.forEach(name =>
+                url += '&hiddenDeductionNames=' + encodeURIComponent(name));
+
+            window.location.href = url;
         });
 
         $('.branch-print-btn').click(function(e){
