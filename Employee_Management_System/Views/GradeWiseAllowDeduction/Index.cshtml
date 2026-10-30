@@ -233,8 +233,8 @@
                                                             <div class="card-header bg-primary text-white">
 
                                                                 <div class="d-flex justify-content-between
-                                                                                                                                                                                                                                                                                                                            align-items-center
-                                                                                                                                                                                                                                                                                                                            flex-wrap gap-2">
+                                                                                                                                                                                                                                                                                                                                        align-items-center
+                                                                                                                                                                                                                                                                                                                                        flex-wrap gap-2">
 
                                                                     <h6 class="mb-0">
 
@@ -277,11 +277,11 @@
                                                                     <div class="table-responsive">
 
                                                                         <table class="table
-                                                                                                                                                                                                                                                                                                                                                                                                                      table-bordered
-                                                                                                                                                                                                                                                                                                                                                                                                                      table-striped
-                                                                                                                                                                                                                                                                                                                                                                                                                      table-hover
-                                                                                                                                                                                                                                                                                                                                                                                                                      align-middle
-                                                                                                                                                                                                                                                                                                                                                                                                                      mb-0">
+                                                                                                                                                                                                                                                                                                                                                                                                                                      table-bordered
+                                                                                                                                                                                                                                                                                                                                                                                                                                      table-striped
+                                                                                                                                                                                                                                                                                                                                                                                                                                      table-hover
+                                                                                                                                                                                                                                                                                                                                                                                                                                      align-middle
+                                                                                                                                                                                                                                                                                                                                                                                                                                      mb-0">
 
                                                                             <thead class="table-primary">
 
@@ -675,8 +675,8 @@
                                                             <div class="card-header bg-danger text-white">
 
                                                                 <div class="d-flex justify-content-between
-                                                                                                                                                                                                                                                                                                                align-items-center
-                                                                                                                                                                                                                                                                                                                flex-wrap gap-2">
+                                                                                                                                                                                                                                                                                                                            align-items-center
+                                                                                                                                                                                                                                                                                                                            flex-wrap gap-2">
 
                                                                     <h6 class="mb-0">
 
@@ -717,11 +717,11 @@
                                                                     <div class="table-responsive">
 
                                                                         <table class="table
-                                                                                                                                                                                                                                                                                                                                                                                                      table-bordered
-                                                                                                                                                                                                                                                                                                                                                                                                      table-striped
-                                                                                                                                                                                                                                                                                                                                                                                                      table-hover
-                                                                                                                                                                                                                                                                                                                                                                                                      align-middle
-                                                                                                                                                                                                                                                                                                                                                                                                      mb-0">
+                                                                                                                                                                                                                                                                                                                                                                                                                      table-bordered
+                                                                                                                                                                                                                                                                                                                                                                                                                      table-striped
+                                                                                                                                                                                                                                                                                                                                                                                                                      table-hover
+                                                                                                                                                                                                                                                                                                                                                                                                                      align-middle
+                                                                                                                                                                                                                                                                                                                                                                                                                      mb-0">
 
                                                                             <thead class="table-danger">
 
@@ -1932,7 +1932,7 @@
                                                            placeholder="Example: (BASIC+FDA1+FDA2+VDA)*15/100"
                                                            disabled />
                                                     <div class="form-text">
-                                                        Allowed: BASIC, FDA1, FDA2, VDA, DA, HRA, numbers and + - * / ( ) — no spaces
+                                                        Type B = BASIC, F = FDA (then 1 or 2), D = DA, H = HRA, V = VDA, numbers and + - * / ( ) — no spaces. Other letters are not accepted.
                                                     </div>
                                                 </div>
                                             </div>
@@ -2284,71 +2284,149 @@
                     );
 
                                     // ============================================================
-                    // SPECIAL FORMULA STRICT INPUT
-                    // Admin can type only:
-                    // B -> BASIC, D -> DA, H -> HRA
-                    // numbers 0-9 and + - * / ( ) -- NO SPACES
+                    // SPECIAL FORMULA STRICT INPUT (Allowance)
+                    //   B -> BASIC
+                    //   F -> FDA  (then type 1 or 2  ->  FDA1 / FDA2)
+                    //   D -> DA
+                    //   H -> HRA
+                    //   V -> VDA
+                    // Also allowed: numbers, decimal point and + - * / ( )
+                    // Nothing else is accepted (other letters, spaces, symbols).
                     // ============================================================
                     const specialFormulaInput = document.getElementById("UpdateFormula");
 
                     if (specialFormulaInput) {
 
-                        function expandFormulaToken(character) {
-                            const upper = String(character || "").toUpperCase();
-                            if (upper === "B") return "BASIC";
-                            if (upper === "D") return "DA";
-                            if (upper === "H") return "HRA";
-                            if (upper === "F") return "FDA1";
-                            if (upper === "V") return "VDA";
-                            return "";
-                        }
+                        const FORMULA_KEYS = { B: "BASIC", F: "FDA", D: "DA", H: "HRA", V: "VDA" };
 
-                        function sanitizeFormulaValue(value) {
-                            const tokens = String(value || "")
-                                .toUpperCase()
-                                .match(/FDA1|FDA2|BASIC|VDA|HRA|DA|[0-9]+(?:\.[0-9]+)?|[+\-*/()]/g);
+                        const FORMULA_TOKENS = /FDA[12]?|BASIC|VDA|HRA|DA|\d+(?:\.\d+)?|\.\d+|[+\-*\/()]/g;
+
+                        const sanitizeFormulaValue = (value) => {
+                            const tokens = String(value || "").toUpperCase().match(FORMULA_TOKENS);
                             return tokens ? tokens.join("") : "";
-                        }
+                        };
+
+                        const replaceRange = (input, start, end, text) => {
+                            input.value = input.value.substring(0, start) + text + input.value.substring(end);
+                            const caret = start + text.length;
+                            input.setSelectionRange(caret, caret);
+                            input.dispatchEvent(new Event("input", { bubbles: true }));
+                        };
+
+                        // FDA alone is incomplete: it must be FDA1 or FDA2.
+                        const checkFormulaValidity = (input) => {
+                            const rest = input.value.toUpperCase()
+                                .replace(/FDA[12]|BASIC|VDA|HRA|DA|\d+(?:\.\d+)?|\.\d+|[+\-*\/()]/g, "");
+                            input.setCustomValidity(
+                                rest.length ? "Invalid formula. After F (FDA) type 1 or 2 (FDA1 / FDA2)." : ""
+                            );
+                        };
 
                         specialFormulaInput.addEventListener("beforeinput", function (event) {
-                            // Allow complete variable names to be typed/pasted (FDA1, FDA2, VDA).
-                            if (!event.inputType || !event.inputType.startsWith("insert")) return;
-                            if (event.inputType === "insertFromPaste") return;
-                            if (event.data && !/^[A-Za-z0-9.+\-*/()]+$/.test(event.data))
+
+                            const input = event.target;
+                            const type = event.inputType || "";
+                            const start = input.selectionStart ?? input.value.length;
+                            const end = input.selectionEnd ?? start;
+
+                            // Paste is handled by the paste event; drag-drop is not allowed
+                            if (type === "insertFromPaste") return;
+
+                            if (type === "insertFromDrop") {
                                 event.preventDefault();
+                                return;
+                            }
+
+                            // Backspace / Delete remove a whole word (BASIC, HRA, VDA, DA, FDA) at once
+                            if ((type === "deleteContentBackward" || type === "deleteContentForward") && start === end) {
+
+                                if (type === "deleteContentBackward") {
+
+                                    const before = input.value.substring(0, start).toUpperCase();
+                                    const m = /FDA[12]$/.test(before) ? null : before.match(/(BASIC|VDA|HRA|FDA|DA)$/);
+
+                                    if (m && m[0].length > 1) {
+                                        event.preventDefault();
+                                        replaceRange(input, start - m[0].length, start, "");
+                                    }
+                                }
+                                else {
+
+                                    const after = input.value.substring(start).toUpperCase();
+                                    const m = after.match(/^(FDA[12]?|BASIC|VDA|HRA|DA)/);
+
+                                    if (m && m[0].length > 1) {
+                                        event.preventDefault();
+                                        replaceRange(input, start, start + m[0].length, "");
+                                    }
+                                }
+
+                                return;
+                            }
+
+                            // Typing
+                            if (type.startsWith("insert") && event.data) {
+
+                                event.preventDefault();
+
+                                let pending = input.value.substring(0, start).toUpperCase();
+                                let output = "";
+
+                                for (const ch of String(event.data).toUpperCase()) {
+
+                                    // Waiting after FDA : only 1 or 2 allowed
+                                    if (/FDA$/.test(pending)) {
+                                        if (ch === "1" || ch === "2") {
+                                            output += ch;
+                                            pending += ch;
+                                        }
+                                        continue;
+                                    }
+
+                                    if (FORMULA_KEYS[ch]) {
+                                        output += FORMULA_KEYS[ch];
+                                        pending += FORMULA_KEYS[ch];
+                                    }
+                                    else if (/^[0-9.+\-*\/()]$/.test(ch)) {
+                                        output += ch;
+                                        pending += ch;
+                                    }
+                                    // anything else (other letters, space, symbols) is ignored
+                                }
+
+                                if (output) replaceRange(input, start, end, output);
+                            }
                         });
 
                         specialFormulaInput.addEventListener("paste", function (event) {
+
                             event.preventDefault();
 
                             const input = event.target;
-                            const pastedText =
-                                (event.clipboardData || window.clipboardData)
-                                    .getData("text") || "";
-
+                            const pastedText = (event.clipboardData || window.clipboardData).getData("text") || "";
                             const cleanText = sanitizeFormulaValue(pastedText);
                             const start = input.selectionStart ?? input.value.length;
                             const end = input.selectionEnd ?? start;
 
-                            input.value =
-                                input.value.substring(0, start) +
-                                cleanText +
-                                input.value.substring(end);
-
-                            const newCaret = start + cleanText.length;
-                            input.setSelectionRange(newCaret, newCaret);
+                            replaceRange(input, start, end, cleanText);
                         });
 
-                        // Final safety check for drag/drop, browser autofill or other input.
+                        specialFormulaInput.addEventListener("input", function () {
+                            checkFormulaValidity(this);
+                        });
+
+                        // Final safety check for autofill or any other input
                         specialFormulaInput.addEventListener("blur", function () {
+
                             const cleanValue = sanitizeFormulaValue(this.value);
+
                             if (this.value !== cleanValue) {
                                 this.value = cleanValue;
-                                this.setSelectionRange(cleanValue.length, cleanValue.length);
                             }
+
+                            checkFormulaValidity(this);
                         });
                     }
-
                 </script>
             }
 

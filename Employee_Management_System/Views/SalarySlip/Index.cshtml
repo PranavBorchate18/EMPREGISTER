@@ -119,6 +119,10 @@
         padding-top: 7px;
     }
 
+    .salary-totals {
+        margin-top: 0; /* same spacing as before: total line sits right under the last earning row */
+    }
+
     .net-section {
         margin-top: 14px;
         font-size: 14px;
@@ -376,11 +380,6 @@
                             <span class="salary-amount">@item.Amount.ToString("N2")</span>
                         </div>
                     }
-
-                    <div class="salary-line salary-total">
-                        <span>Total Earnings</span>
-                        <span class="salary-amount">@Model.GrossSalary.ToString("N2")</span>
-                    </div>
                 </div>
 
                 <div>
@@ -403,11 +402,21 @@
                             <span class="salary-amount">0.00</span>
                         </div>
                     }
+                </div>
 
-                    <div class="salary-line salary-total">
-                        <span>Total Deductions</span>
-                        <span class="salary-amount">@Model.TotalDeduction.ToString("N2")</span>
-                    </div>
+            </div>
+
+            @* Totals in one row so Total Earnings and Total Deductions are on the same line *@
+            <div class="salary-body salary-totals">
+
+                <div class="salary-line salary-total">
+                    <span>Total Earnings</span>
+                    <span class="salary-amount">@Model.GrossSalary.ToString("N2")</span>
+                </div>
+
+                <div class="salary-line salary-total">
+                    <span>Total Deductions</span>
+                    <span class="salary-amount">@Model.TotalDeduction.ToString("N2")</span>
                 </div>
 
             </div>

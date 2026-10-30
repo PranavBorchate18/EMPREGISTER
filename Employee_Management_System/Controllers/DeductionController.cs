@@ -1,4 +1,5 @@
-﻿using Employee_Management_System.Data;
+﻿
+using Employee_Management_System.Data;
 using Employee_Management_System.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,14 +10,10 @@ namespace Employee_Management_System.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-
-        public DeductionController(
-            ApplicationDbContext context)
+        public DeductionController(ApplicationDbContext context)
         {
             _context = context;
         }
-
-
 
         // ==========================================
         // LIST
@@ -25,16 +22,21 @@ namespace Employee_Management_System.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var deductions =
-                await _context.DeductionMasters
-                    .AsNoTracking()
-                    .OrderBy(x => x.Code)
-                    .ToListAsync();
+            // Generate next Deduction Code for Add form
+            int lastCode = await _context.DeductionMasters
+                .AsNoTracking()
+                .Select(x => (int?)x.Code)
+                .MaxAsync() ?? 0;
+
+            ViewBag.NextDeductionCode = checked(lastCode + 1);
+
+            var deductions = await _context.DeductionMasters
+                .AsNoTracking()
+                .OrderBy(x => x.Code)
+                .ToListAsync();
 
             return View(deductions);
         }
-
-
 
         // ==========================================
         // CREATE
@@ -42,157 +44,106 @@ namespace Employee_Management_System.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(
-            DeductionMaster model)
+        public async Task<IActionResult> Create(DeductionMaster model)
         {
             try
             {
-                if (model.Code <= 0)
-                {
-                    TempData["Error"] =
-                        "Deduction Code is required.";
-
-                    return RedirectToAction(
-                        nameof(Index)
-                    );
-                }
-
-
                 if (string.IsNullOrWhiteSpace(model.Name))
                 {
-                    TempData["Error"] =
-                        "Deduction Name is required.";
-
-                    return RedirectToAction(
-                        nameof(Index)
-                    );
+                    TempData["Error"] = "Deduction Name is required.";
+                    return RedirectToAction(nameof(Index));
                 }
 
-
-                bool exists =
-                    await _context.DeductionMasters
-                        .AnyAsync(
-                            x => x.Code == model.Code
-                        );
-
-
-                if (exists)
+                if (string.IsNullOrWhiteSpace(model.Comp))
                 {
-                    TempData["Error"] =
-                        $"Deduction Code {model.Code} already exists.";
-
-                    return RedirectToAction(
-                        nameof(Index)
-                    );
+                    TempData["Error"] = "Comp is required.";
+                    return RedirectToAction(nameof(Index));
                 }
 
+                if (string.IsNullOrWhiteSpace(model.Flag))
+                {
+                    TempData["Error"] = "Flag is required.";
+                    return RedirectToAction(nameof(Index));
+                }
 
-                model.Name =
-                    model.Name?.Trim();
+                // ==========================================
+                // AUTOMATIC DEDUCTION CODE GENERATION
+                // Always generate Code on server.
+                // Do not trust Code submitted by browser.
+                // ==========================================
 
+                int lastCode = await _context.DeductionMasters
+                    .AsNoTracking()
+                    .Select(x => (int?)x.Code)
+                    .MaxAsync() ?? 0;
 
-                model.ShortName =
-                    model.ShortName?.Trim();
+                model.Code = checked(lastCode + 1);
 
+                // ==========================================
+                // NORMALIZE DATA
+                // ==========================================
 
-                model.Comp =
-                    NormalizeYN(
-                        model.Comp
-                    );
+                model.Name = model.Name.Trim();
+                model.ShortName = model.ShortName?.Trim();
 
+                model.Comp = NormalizeYN(model.Comp);
+                model.Flag = NormalizeYN(model.Flag);
 
-                model.Flag =
-                    NormalizeYN(
-                        model.Flag
-                    );
-
-
-                // ======================================
-                // ACTIVE FLAG
-                // ======================================
-
-                model.Active =
-                    NormalizeYN(
-                        model.Active
-                    );
-
-
-                // Default Active = N
+                // ACTIVE FLAG: Default N
+                model.Active = NormalizeYN(model.Active);
 
                 if (string.IsNullOrWhiteSpace(model.Active))
                 {
                     model.Active = "N";
                 }
 
-
-                // ======================================
                 // APPLY MONTH
-                // ======================================
+                model.ApplyMonth = NormalizeApplyMonths(model.ApplyMonth);
 
-                model.ApplyMonth =
-                    NormalizeApplyMonths(
-                        model.ApplyMonth
-                    );
-
-
-                _context.DeductionMasters.Add(
-                    model
-                );
-
+                _context.DeductionMasters.Add(model);
 
                 await _context.SaveChangesAsync();
 
-
                 TempData["Success"] =
-                    "Deduction added successfully.";
+                    $"Deduction added successfully. Code: {model.Code}";
 
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateException)
+            {
+                TempData["Error"] =
+                    "Unable to save deduction. Please refresh the page and try again.";
 
-                return RedirectToAction(
-                    nameof(Index)
-                );
+                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 TempData["Error"] =
-                    "Unable to save deduction. " +
-                    ex.Message;
+                    "Unable to save deduction. " + ex.Message;
 
-
-                return RedirectToAction(
-                    nameof(Index)
-                );
+                return RedirectToAction(nameof(Index));
             }
         }
-
-
 
         // ==========================================
         // GET SINGLE RECORD
         // ==========================================
 
         [HttpGet]
-        public async Task<IActionResult> GetDeduction(
-            int code)
+        public async Task<IActionResult> GetDeduction(int code)
         {
-            var item =
-                await _context.DeductionMasters
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(
-                        x => x.Code == code
-                    );
-
+            var item = await _context.DeductionMasters
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Code == code);
 
             if (item == null)
             {
                 return Json(new
                 {
                     success = false,
-
-                    message =
-                        "Deduction not found."
+                    message = "Deduction not found."
                 });
             }
-
 
             return Json(new
             {
@@ -200,41 +151,19 @@ namespace Employee_Management_System.Controllers
 
                 data = new
                 {
-                    code =
-                        item.Code,
-
-                    name =
-                        item.Name,
-
-                    comp =
-                        item.Comp,
-
-                    shortName =
-                        item.ShortName,
-
-                    glc =
-                        item.GLC,
-
-                    flag =
-                        item.Flag,
-
-                    hoCutting =
-                        item.HOCutting,
-
-                    printInIncomeTaxReport =
-                        item.PrintInIncomeTaxReport,
-
-                    active =
-                        item.Active,
-
-                    // NEW
-                    applyMonth =
-                        item.ApplyMonth
+                    code = item.Code,
+                    name = item.Name,
+                    comp = item.Comp,
+                    shortName = item.ShortName,
+                    glc = item.GLC,
+                    flag = item.Flag,
+                    hoCutting = item.HOCutting,
+                    printInIncomeTaxReport = item.PrintInIncomeTaxReport,
+                    active = item.Active,
+                    applyMonth = item.ApplyMonth
                 }
             });
         }
-
-
 
         // ==========================================
         // UPDATE
@@ -242,123 +171,80 @@ namespace Employee_Management_System.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Update(
-            DeductionMaster model)
+        public async Task<IActionResult> Update(DeductionMaster model)
         {
             try
             {
-                var existing =
-                    await _context.DeductionMasters
-                        .FirstOrDefaultAsync(
-                            x => x.Code == model.Code
-                        );
-
+                var existing = await _context.DeductionMasters
+                    .FirstOrDefaultAsync(x => x.Code == model.Code);
 
                 if (existing == null)
                 {
-                    TempData["Error"] =
-                        "Deduction not found.";
-
-                    return RedirectToAction(
-                        nameof(Index)
-                    );
+                    TempData["Error"] = "Deduction not found.";
+                    return RedirectToAction(nameof(Index));
                 }
-
 
                 if (string.IsNullOrWhiteSpace(model.Name))
                 {
-                    TempData["Error"] =
-                        "Deduction Name is required.";
-
-                    return RedirectToAction(
-                        nameof(Index)
-                    );
+                    TempData["Error"] = "Deduction Name is required.";
+                    return RedirectToAction(nameof(Index));
                 }
 
+                if (string.IsNullOrWhiteSpace(model.Comp))
+                {
+                    TempData["Error"] = "Comp is required.";
+                    return RedirectToAction(nameof(Index));
+                }
 
-                existing.Name =
-                    model.Name?.Trim();
+                if (string.IsNullOrWhiteSpace(model.Flag))
+                {
+                    TempData["Error"] = "Flag is required.";
+                    return RedirectToAction(nameof(Index));
+                }
 
+                // ==========================================
+                // UPDATE EXISTING RECORD
+                // Code will NOT be changed.
+                // ==========================================
 
-                existing.ShortName =
-                    model.ShortName?.Trim();
+                existing.Name = model.Name.Trim();
+                existing.ShortName = model.ShortName?.Trim();
+                existing.GLC = model.GLC;
 
+                existing.Comp = NormalizeYN(model.Comp);
+                existing.Flag = NormalizeYN(model.Flag);
 
-                existing.GLC =
-                    model.GLC;
-
-
-                existing.Comp =
-                    NormalizeYN(
-                        model.Comp
-                    );
-
-
-                existing.Flag =
-                    NormalizeYN(
-                        model.Flag
-                    );
-
-
-                existing.HOCutting =
-                    model.HOCutting;
-
-
+                existing.HOCutting = model.HOCutting;
                 existing.PrintInIncomeTaxReport =
                     model.PrintInIncomeTaxReport;
 
-
-                // ======================================
                 // ACTIVE FLAG
-                // ======================================
-
-                existing.Active =
-                    NormalizeYN(
-                        model.Active
-                    );
-
+                existing.Active = NormalizeYN(model.Active);
 
                 if (string.IsNullOrWhiteSpace(existing.Active))
                 {
                     existing.Active = "N";
                 }
 
-
-                // ======================================
                 // APPLY MONTH
-                // ======================================
-
                 existing.ApplyMonth =
-                    NormalizeApplyMonths(
-                        model.ApplyMonth
-                    );
-
+                    NormalizeApplyMonths(model.ApplyMonth);
 
                 await _context.SaveChangesAsync();
-
 
                 TempData["Success"] =
                     "Deduction updated successfully.";
 
-
-                return RedirectToAction(
-                    nameof(Index)
-                );
+                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 TempData["Error"] =
-                    "Unable to update deduction. " +
-                    ex.Message;
+                    "Unable to update deduction. " + ex.Message;
 
-
-                return RedirectToAction(
-                    nameof(Index)
-                );
+                return RedirectToAction(nameof(Index));
             }
         }
-
-
 
         // ==========================================
         // DELETE
@@ -366,160 +252,97 @@ namespace Employee_Management_System.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(
-            int code)
+        public async Task<IActionResult> Delete(int code)
         {
             try
             {
-                var existing =
-                    await _context.DeductionMasters
-                        .FirstOrDefaultAsync(
-                            x => x.Code == code
-                        );
-
+                var existing = await _context.DeductionMasters
+                    .FirstOrDefaultAsync(x => x.Code == code);
 
                 if (existing == null)
                 {
-                    TempData["Error"] =
-                        "Deduction not found.";
-
-                    return RedirectToAction(
-                        nameof(Index)
-                    );
+                    TempData["Error"] = "Deduction not found.";
+                    return RedirectToAction(nameof(Index));
                 }
 
-
-                _context.DeductionMasters.Remove(
-                    existing
-                );
-
+                _context.DeductionMasters.Remove(existing);
 
                 await _context.SaveChangesAsync();
-
 
                 TempData["Success"] =
                     "Deduction deleted successfully.";
 
-
-                return RedirectToAction(
-                    nameof(Index)
-                );
+                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 TempData["Error"] =
-                    "Unable to delete deduction. " +
-                    ex.Message;
+                    "Unable to delete deduction. " + ex.Message;
 
-
-                return RedirectToAction(
-                    nameof(Index)
-                );
+                return RedirectToAction(nameof(Index));
             }
         }
-
-
 
         // ==========================================
         // Y / N NORMALIZER
         // ==========================================
 
-        private static string? NormalizeYN(
-            string? value)
+        private static string? NormalizeYN(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
             {
                 return null;
             }
 
+            value = value.Trim().ToUpperInvariant();
 
-            value =
-                value.Trim()
-                     .ToUpper();
-
-
-            if (
-                value == "Y" ||
-                value == "YES"
-            )
+            if (value == "Y" || value == "YES")
             {
                 return "Y";
             }
 
-
-            if (
-                value == "N" ||
-                value == "NO"
-            )
+            if (value == "N" || value == "NO")
             {
                 return "N";
             }
 
-
             return null;
         }
-
-
 
         // ==========================================
         // APPLY MONTH NORMALIZER
         //
-        // Input:
-        // 7,1,4,12
-        //
-        // Database:
-        // 1,4,7,12
-        //
-        // Only 1 - 12 allowed
+        // Input:    7,1,4,12
+        // Database: 1,4,7,12
+        // Only months 1 - 12 are allowed.
         // ==========================================
 
-        private static string? NormalizeApplyMonths(
-            string? value)
+        private static string? NormalizeApplyMonths(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
             {
                 return null;
             }
 
-
-            var months =
-                value
-                    .Split(
-                        ',',
-                        StringSplitOptions.RemoveEmptyEntries
-                    )
-                    .Select(x => x.Trim())
-                    .Select(x =>
-                    {
-                        int.TryParse(
-                            x,
-                            out int month
-                        );
-
-                        return month;
-                    })
-                    .Where(
-                        month =>
-                            month >= 1 &&
-                            month <= 12
-                    )
-                    .Distinct()
-                    .OrderBy(
-                        month => month
-                    )
-                    .ToList();
-
+            var months = value
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Select(x =>
+                {
+                    int.TryParse(x, out int month);
+                    return month;
+                })
+                .Where(month => month >= 1 && month <= 12)
+                .Distinct()
+                .OrderBy(month => month)
+                .ToList();
 
             if (months.Count == 0)
             {
                 return null;
             }
 
-
-            return string.Join(
-                ",",
-                months
-            );
+            return string.Join(",", months);
         }
     }
 }

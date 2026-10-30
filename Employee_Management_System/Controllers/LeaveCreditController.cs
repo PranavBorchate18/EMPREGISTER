@@ -20,7 +20,7 @@ namespace Employee_Management_System.Controllers
             if (!IsLoggedIn()) return RedirectToAction("Login", "Account");
             return View(new LeaveCreditViewModel
             {
-                SelectedYear = DateTime.Now.Year,
+                SelectedYear = null,
                 LeaveTypes = await LoadLeaveTypes(),
                 Branches = await LoadBranches()
             });
@@ -106,7 +106,7 @@ GROUP BY b.code,b.name ORDER BY TRY_CONVERT(INT,b.code);";
         {
             if (!IsLoggedIn()) return Json(new { success = false, sessionExpired = true, message = "Login session expired." });
             if (year <= 0 || leaveCode <= 0) return Json(new { success = false, message = "Invalid Year or Leave Type." });
-            DateTime fromDate = new(year, 1, 1), toDate = new(year, 12, 31);
+            var (fromDate, toDate) = GetCreditPeriod(year);
             var result = new List<object>();
             DbConnection connection = _context.Database.GetDbConnection();
             bool shouldClose = connection.State != ConnectionState.Open;
@@ -140,7 +140,7 @@ GROUP BY b.code ORDER BY TRY_CONVERT(INT,b.code);";
             if (branchCode <= 0) return Json(new { success = false, message = "Invalid Branch Code." });
             if (year <= 0) return Json(new { success = false, message = "Please select Year." });
             if (leaveCode <= 0) return Json(new { success = false, message = "Please select Leave Type." });
-            DateTime fromDate = new(year, 1, 1), toDate = new(year, 12, 31);
+            var (fromDate, toDate) = GetCreditPeriod(year);
             var employees = new List<object>();
             DbConnection connection = _context.Database.GetDbConnection();
             bool shouldClose = connection.State != ConnectionState.Open;
@@ -192,7 +192,7 @@ ORDER BY p.code;";
             if (!IsLoggedIn()) return Json(new { success = false, sessionExpired = true, message = "Login session expired." });
             if (year <= 0) return Json(new { success = false, message = "Please select Year." });
             if (leaveCode <= 0) return Json(new { success = false, message = "Please select Leave Type." });
-            DateTime fromDate = new(year, 1, 1), toDate = new(year, 12, 31);
+            var (fromDate, toDate) = GetCreditPeriod(year);
             var employees = new List<object>();
             DbConnection connection = _context.Database.GetDbConnection();
             bool shouldClose = connection.State != ConnectionState.Open;
@@ -205,6 +205,14 @@ SELECT p.code AS EmployeeCode,
        ISNULL(p.name,'') AS EmployeeName,
        p.join_date AS JoiningDate,
        TRY_CONVERT(INT,p.brnc_code) AS BranchCode,
+       (SELECT TOP 1 ISNULL(l.effect_pay_date, l.sact_from_date) FROM dbo.leavtrn l
+          WHERE l.empl=p.code AND l.sact_from_date=@FromDate AND l.sact_to_date=@ToDate
+            AND l.sact_code=@LeaveCode AND l.dmnd_code=@LeaveCode AND l.c_d_code=1
+            AND UPPER(LTRIM(RTRIM(ISNULL(l.Status,''))))='A') AS CreditDate,
+       (SELECT TOP 1 l.Num_of_days FROM dbo.leavtrn l
+          WHERE l.empl=p.code AND l.sact_from_date=@FromDate AND l.sact_to_date=@ToDate
+            AND l.sact_code=@LeaveCode AND l.dmnd_code=@LeaveCode AND l.c_d_code=1
+            AND UPPER(LTRIM(RTRIM(ISNULL(l.Status,''))))='A') AS CreditDays,
        CASE WHEN EXISTS (
           SELECT 1 FROM dbo.leavtrn l
           WHERE l.empl=p.code AND l.sact_from_date=@FromDate AND l.sact_to_date=@ToDate
@@ -224,12 +232,20 @@ ORDER BY TRY_CONVERT(INT,p.brnc_code), p.code;";
                     string? joiningDate = joiningDateValue == DBNull.Value
                         ? null
                         : Convert.ToDateTime(joiningDateValue).ToString("yyyy-MM-dd");
+                    object? creditDateValue = reader["CreditDate"];
+                    string? creditDate = creditDateValue == DBNull.Value
+                        ? null
+                        : Convert.ToDateTime(creditDateValue).ToString("dd-MM-yyyy");
+                    object? creditDaysValue = reader["CreditDays"];
+                    double? creditDays = creditDaysValue == DBNull.Value ? null : Convert.ToDouble(creditDaysValue);
                     employees.Add(new
                     {
                         employeeCode = Convert.ToInt32(reader["EmployeeCode"]),
                         employeeName = Convert.ToString(reader["EmployeeName"])?.Trim() ?? "",
                         joiningDate,
                         branchCode = Convert.ToInt32(reader["BranchCode"]),
+                        creditDate,
+                        numberOfDays = creditDays,
                         isSelected = Convert.ToInt32(reader["IsSelected"]) == 1
                     });
                 }
@@ -241,7 +257,7 @@ ORDER BY TRY_CONVERT(INT,p.brnc_code), p.code;";
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Save(int year, short leaveCode, double numberOfDays, List<int> selectedEmployeeCodes)
+        public async Task<IActionResult> Save(int year, short leaveCode, double numberOfDays, List<int> selectedEmployeeCodes, bool isAllSelected)
         {
             string? loginId = HttpContext.Session.GetString("LoginId");
             if (string.IsNullOrWhiteSpace(loginId)) return Json(new { success = false, sessionExpired = true, message = "Login session expired. Please login again." });
@@ -275,7 +291,7 @@ ORDER BY TRY_CONVERT(INT,p.brnc_code), p.code;";
             if (selectedEmployeeCodes == null || selectedEmployeeCodes.Count == 0) return Json(new { success = false, message = "Please select at least one employee." });
             selectedEmployeeCodes = selectedEmployeeCodes.Distinct().ToList();
 
-            DateTime fromDate = new(year, 1, 1), toDate = new(year, 12, 31);
+            var (fromDate, toDate) = GetCreditPeriod(year);
             DbConnection connection = _context.Database.GetDbConnection();
             bool shouldClose = connection.State != ConnectionState.Open;
             DbTransaction? transaction = null;
@@ -320,10 +336,11 @@ ORDER BY TRY_CONVERT(INT,p.brnc_code), p.code;";
 INSERT INTO dbo.leavtrn
 (sact_from_date,empl,c_d_code,sact_to_date,sact_code,dmnd_from_date,dmnd_to_date,dmnd_code,prv_days,sact_officer,reason,reason_Remark,cherge_to,effect_pay_date,Leave_App_ID,Operator,Status,Num_of_days)
 VALUES
-(@FromDate,@EmployeeCode,1,@ToDate,@LeaveCode,@FromDate,@ToDate,@LeaveCode,NULL,@SactOfficer,NULL,NULL,NULL,NULL,@LeaveAppId,@Operator,'A',@NumberOfDays);";
+(@FromDate,@EmployeeCode,1,@ToDate,@LeaveCode,@FromDate,@ToDate,@LeaveCode,NULL,@SactOfficer,NULL,NULL,NULL,@EffectPayDate,@LeaveAppId,@Operator,'A',@NumberOfDays);";
                         AddParameter(insertCommand, "@FromDate", fromDate); AddParameter(insertCommand, "@ToDate", toDate);
                         AddParameter(insertCommand, "@EmployeeCode", employeeCode); AddParameter(insertCommand, "@LeaveCode", leaveCode);
                         AddParameter(insertCommand, "@SactOfficer", loginUserCode); AddParameter(insertCommand, "@Operator", loginId);
+                        AddParameter(insertCommand, "@EffectPayDate", isAllSelected ? null : DateTime.Today);
                         AddParameter(insertCommand, "@LeaveAppId", leaveAppId); AddParameter(insertCommand, "@NumberOfDays", numberOfDays);
                         await insertCommand.ExecuteNonQueryAsync(); insertedCount++;
                     }
@@ -342,6 +359,10 @@ VALUES
                 if (shouldClose && connection.State == ConnectionState.Open) await connection.CloseAsync();
             }
         }
+
+        // Credit period: 1 April of selected year to 31 March of next year.
+        private static (DateTime from, DateTime to) GetCreditPeriod(int year)
+            => (new DateTime(year, 4, 1), new DateTime(year + 1, 3, 31));
 
         private bool IsLoggedIn() => !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("LoginId"));
 

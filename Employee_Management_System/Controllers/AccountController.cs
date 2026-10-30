@@ -47,16 +47,11 @@ namespace Employee_Management_System.Controllers
                 !string.IsNullOrWhiteSpace(token) &&
                 _activeSessions.IsCurrent(loginId, token);
 
-            // A second tab of the same browser. Do NOT show the popup yet:
-            // the person must first enter Login ID and press Login.
-            // The "Already Logged In" popup is then shown by the POST action.
             if (tabEntry && valid)
             {
-                // If no tab owns this session, there is nobody to take
-                // over from, so let this tab in directly.
                 if (_activeSessions.GetActiveTab(loginId!, token!) == null)
                 {
-                    return RedirectToAction("Register", "Employee");
+                    return RedirectToAction("Index", "Home");
                 }
 
                 ViewBag.TabEntry = true;
@@ -67,7 +62,6 @@ namespace Employee_Management_System.Controllers
                 return View(new LoginViewModel());
             }
 
-            // The old tab has lost ownership.
             if (tabLost)
             {
                 ViewBag.TabLost = true;
@@ -80,7 +74,7 @@ namespace Employee_Management_System.Controllers
 
             if (valid)
             {
-                return RedirectToAction("Register", "Employee");
+                return RedirectToAction("Index", "Home");
             }
 
             HttpContext.Session.Clear();
@@ -111,20 +105,26 @@ namespace Employee_Management_System.Controllers
                             x.Value!.Errors.Select(e =>
                                 x.Key + ": " + e.ErrorMessage))));
 
-                ModelState.AddModelError(
-                    "",
-                    "Login form validation failed. Please check the messages below.");
-
                 return View(model);
             }
 
             string loginId = model.LoginId?.Trim() ?? "";
+            string password = model.Password?.Trim() ?? "";
 
             if (string.IsNullOrWhiteSpace(loginId))
             {
                 ModelState.AddModelError(
                     nameof(model.LoginId),
                     "Please enter Login ID.");
+
+                return View(model);
+            }
+
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                ModelState.AddModelError(
+                    nameof(model.Password),
+                    "Please enter Password.");
 
                 return View(model);
             }
@@ -157,23 +157,35 @@ namespace Employee_Management_System.Controllers
                 string authority;
                 string access;
 
+                // Login ID = UserMast.ini
+                // Password = UserMast.code
                 using (DbCommand command = connection.CreateCommand())
                 {
                     command.CommandText = @"
-SELECT TOP 1 ini, name, mname, authority, access
+SELECT TOP 1
+    code,
+    ini,
+    name,
+    mname,
+    authority,
+    access
 FROM dbo.UserMast
-WHERE LTRIM(RTRIM(ini)) = @LoginId;";
+WHERE LTRIM(RTRIM(ini)) = @LoginId
+AND CONVERT(NVARCHAR(50), code) = @Password;";
 
                     AddParameter(command, "@LoginId", loginId);
+                    AddParameter(command, "@Password", password);
 
                     using DbDataReader reader =
                         await command.ExecuteReaderAsync();
 
                     if (!await reader.ReadAsync())
                     {
-                        ModelState.AddModelError(
-                            nameof(model.LoginId),
-                            "Invalid Login ID.");
+                        ViewBag.LoginError = true;
+
+                        _logger.LogWarning(
+                            "Invalid login attempt for Login ID {LoginId}.",
+                            loginId);
 
                         return View(model);
                     }
@@ -204,8 +216,8 @@ WHERE LTRIM(RTRIM(ini)) = @LoginId;";
 
                 var previous = _activeSessions.Get(dbLoginId);
 
-                // Another active login exists. Only allow an intentional
-                // takeover when the expected session token matches.
+                // Another active login exists.
+                // Allow takeover only when expected token matches.
                 if (previous != null &&
                     (!forceLogin ||
                      string.IsNullOrWhiteSpace(expectedSessionToken) ||
@@ -235,6 +247,7 @@ WHERE LTRIM(RTRIM(ini)) = @LoginId;";
                     LoginTimeUtc = DateTime.UtcNow
                 };
 
+                // Update Working Date
                 using (DbCommand command = connection.CreateCommand())
                 {
                     command.CommandText = @"
@@ -281,8 +294,7 @@ SET [date] = @WorkingDate;";
                     return View(model);
                 }
 
-                // If this browser was logged in as a different account,
-                // end that account's server session too.
+                // Remove previous account session from this browser
                 string? oldLoginId =
                     HttpContext.Session.GetString("LoginId");
 
@@ -296,25 +308,32 @@ SET [date] = @WorkingDate;";
                         dbLoginId,
                         StringComparison.OrdinalIgnoreCase))
                 {
-                    _activeSessions.RemoveIfCurrent(oldLoginId, oldToken);
+                    _activeSessions.RemoveIfCurrent(
+                        oldLoginId,
+                        oldToken);
                 }
 
                 HttpContext.Session.Clear();
 
                 HttpContext.Session.SetString(
-                    "LoginId", dbLoginId);
+                    "LoginId",
+                    dbLoginId);
 
                 HttpContext.Session.SetString(
-                    "UserName", userName);
+                    "UserName",
+                    userName);
 
                 HttpContext.Session.SetString(
-                    "MarathiName", marathiName);
+                    "MarathiName",
+                    marathiName);
 
                 HttpContext.Session.SetString(
-                    "Authority", authority);
+                    "Authority",
+                    authority);
 
                 HttpContext.Session.SetString(
-                    "Access", access);
+                    "Access",
+                    access);
 
                 HttpContext.Session.SetString(
                     "WorkingDate",
@@ -328,9 +347,7 @@ SET [date] = @WorkingDate;";
                     "Login accepted for account {LoginId}.",
                     dbLoginId);
 
-                return RedirectToAction(
-                    "Register",
-                    "Employee");
+                return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)
             {
@@ -358,6 +375,7 @@ SET [date] = @WorkingDate;";
             DateTime workingDate)
         {
             ViewBag.ExistingSession = previous;
+
             ViewBag.WorkingDate =
                 workingDate.ToString("yyyy-MM-dd");
 
@@ -505,8 +523,8 @@ SET [date] = @WorkingDate;";
             }
 
             string redirectUrl =
-                Url.Action("Register", "Employee")
-                ?? "/Employee/Register";
+                Url.Action("Index", "Home")
+                ?? "/Home/Index";
 
             _logger.LogInformation(
                 "Tab ownership transferred for {LoginId}. Old tab: {OldTabId}; new tab: {NewTabId}",
@@ -550,12 +568,9 @@ SET [date] = @WorkingDate;";
             if (ip == null)
                 return "Unavailable";
 
-            // ::ffff:192.168.1.5  ->  192.168.1.5
             if (ip.IsIPv4MappedToIPv6)
                 ip = ip.MapToIPv4();
 
-            // ::1 / 127.0.0.1 means the browser is on the same computer
-            // as the server (typical during development).
             if (System.Net.IPAddress.IsLoopback(ip))
                 return "127.0.0.1 (this computer)";
 
