@@ -30,26 +30,50 @@ namespace Employee_Management_System.Controllers
             _logger = logger;
         }
 
+        private string GetOrganisationLoginKey(string loginId)
+        {
+            int organisationCode =
+                HttpContext.Session.GetInt32("OrganisationCode") ?? 0;
+
+            return $"{organisationCode}:{loginId}";
+        }
+
+        private bool IsOrganisationSelected()
+        {
+            return HttpContext.Session.GetInt32("OrganisationCode").HasValue &&
+                   !string.IsNullOrWhiteSpace(
+                       HttpContext.Session.GetString("OrganisationName"));
+        }
+
         // GET: /Account/Login
         [HttpGet]
         public IActionResult Login(
             bool tabEntry = false,
             bool tabLost = false)
         {
+            if (!IsOrganisationSelected())
+            {
+                return RedirectToAction("Index", "Organisation");
+            }
+
             string? loginId =
                 HttpContext.Session.GetString("LoginId");
 
             string? token =
                 HttpContext.Session.GetString("ActiveSessionToken");
 
+            string sessionKey = string.IsNullOrWhiteSpace(loginId)
+                ? ""
+                : GetOrganisationLoginKey(loginId);
+
             bool valid =
                 !string.IsNullOrWhiteSpace(loginId) &&
                 !string.IsNullOrWhiteSpace(token) &&
-                _activeSessions.IsCurrent(loginId, token);
+                _activeSessions.IsCurrent(sessionKey, token);
 
             if (tabEntry && valid)
             {
-                if (_activeSessions.GetActiveTab(loginId!, token!) == null)
+                if (_activeSessions.GetActiveTab(sessionKey, token!) == null)
                 {
                     return RedirectToAction("Index", "Home");
                 }
@@ -77,7 +101,9 @@ namespace Employee_Management_System.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            HttpContext.Session.Clear();
+            // Remove login information only.
+            // Keep selected Organisation information.
+            ClearLoginSession();
 
             return View(new LoginViewModel());
         }
@@ -91,6 +117,11 @@ namespace Employee_Management_System.Controllers
             bool forceLogin = false,
             string? expectedSessionToken = null)
         {
+            if (!IsOrganisationSelected())
+            {
+                return RedirectToAction("Index", "Organisation");
+            }
+
             ViewBag.WorkingDate =
                 workingDate?.ToString("yyyy-MM-dd")
                 ?? DateTime.Today.ToString("yyyy-MM-dd");
@@ -138,6 +169,12 @@ namespace Employee_Management_System.Controllers
                 return View(model);
             }
 
+            int organisationCode =
+                HttpContext.Session.GetInt32("OrganisationCode")!.Value;
+
+            string organisationLoginKey =
+                GetOrganisationLoginKey(loginId);
+
             DbConnection connection =
                 _context.Database.GetDbConnection();
 
@@ -182,11 +219,6 @@ AND CONVERT(NVARCHAR(50), code) = @Password;";
                     if (!await reader.ReadAsync())
                     {
                         ViewBag.LoginError = true;
-
-                        _logger.LogWarning(
-                            "Invalid login attempt for Login ID {LoginId}.",
-                            loginId);
-
                         return View(model);
                     }
 
@@ -214,10 +246,13 @@ AND CONVERT(NVARCHAR(50), code) = @Password;";
                             : Convert.ToString(reader["access"])?.Trim() ?? "";
                 }
 
-                var previous = _activeSessions.Get(dbLoginId);
+                string dbOrganisationLoginKey =
+                    GetOrganisationLoginKey(dbLoginId);
 
-                // Another active login exists.
-                // Allow takeover only when expected token matches.
+                var previous =
+                    _activeSessions.Get(dbOrganisationLoginKey);
+
+                // Another active login exists in the same organisation.
                 if (previous != null &&
                     (!forceLogin ||
                      string.IsNullOrWhiteSpace(expectedSessionToken) ||
@@ -236,7 +271,7 @@ AND CONVERT(NVARCHAR(50), code) = @Password;";
 
                 var next = new ActiveLoginSession
                 {
-                    LoginId = dbLoginId,
+                    LoginId = dbOrganisationLoginKey,
                     SessionToken = Guid.NewGuid().ToString("N"),
                     BrowserName = DetectBrowser(
                         Request.Headers.UserAgent.ToString()),
@@ -294,7 +329,7 @@ SET [date] = @WorkingDate;";
                     return View(model);
                 }
 
-                // Remove previous account session from this browser
+                // Remove previous account session from this browser.
                 string? oldLoginId =
                     HttpContext.Session.GetString("LoginId");
 
@@ -302,18 +337,38 @@ SET [date] = @WorkingDate;";
                     HttpContext.Session.GetString("ActiveSessionToken");
 
                 if (!string.IsNullOrWhiteSpace(oldLoginId) &&
-                    !string.IsNullOrWhiteSpace(oldToken) &&
-                    !string.Equals(
-                        oldLoginId,
-                        dbLoginId,
-                        StringComparison.OrdinalIgnoreCase))
+                    !string.IsNullOrWhiteSpace(oldToken))
                 {
-                    _activeSessions.RemoveIfCurrent(
-                        oldLoginId,
-                        oldToken);
+                    string oldSessionKey =
+                        GetOrganisationLoginKey(oldLoginId);
+
+                    if (!string.Equals(
+                        oldSessionKey,
+                        dbOrganisationLoginKey,
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        _activeSessions.RemoveIfCurrent(
+                            oldSessionKey,
+                            oldToken);
+                    }
                 }
 
+                // Preserve selected Organisation information.
+                string? selectedOrganisationName =
+                    HttpContext.Session.GetString("OrganisationName");
+
                 HttpContext.Session.Clear();
+
+                HttpContext.Session.SetInt32(
+                    "OrganisationCode",
+                    organisationCode);
+
+                if (!string.IsNullOrWhiteSpace(selectedOrganisationName))
+                {
+                    HttpContext.Session.SetString(
+                        "OrganisationName",
+                        selectedOrganisationName);
+                }
 
                 HttpContext.Session.SetString(
                     "LoginId",
@@ -344,7 +399,8 @@ SET [date] = @WorkingDate;";
                     next.SessionToken);
 
                 _logger.LogInformation(
-                    "Login accepted for account {LoginId}.",
+                    "Login accepted for Organisation {OrganisationCode}, account {LoginId}.",
+                    organisationCode,
                     dbLoginId);
 
                 return RedirectToAction("Index", "Home");
@@ -369,18 +425,25 @@ SET [date] = @WorkingDate;";
             }
         }
 
+        private void ClearLoginSession()
+        {
+            HttpContext.Session.Remove("LoginId");
+            HttpContext.Session.Remove("UserName");
+            HttpContext.Session.Remove("MarathiName");
+            HttpContext.Session.Remove("Authority");
+            HttpContext.Session.Remove("Access");
+            HttpContext.Session.Remove("WorkingDate");
+            HttpContext.Session.Remove("ActiveSessionToken");
+        }
+
         private void ShowExistingSession(
             ActiveLoginSession previous,
             LoginViewModel model,
             DateTime workingDate)
         {
             ViewBag.ExistingSession = previous;
-
-            ViewBag.WorkingDate =
-                workingDate.ToString("yyyy-MM-dd");
-
-            ViewBag.ExpectedSessionToken =
-                previous.SessionToken;
+            ViewBag.WorkingDate = workingDate.ToString("yyyy-MM-dd");
+            ViewBag.ExpectedSessionToken = previous.SessionToken;
         }
 
         // POST: /Account/ClaimTab
@@ -388,8 +451,7 @@ SET [date] = @WorkingDate;";
         [ValidateAntiForgeryToken]
         public IActionResult ClaimTab([FromForm] string? tabId)
         {
-            if (string.IsNullOrWhiteSpace(tabId) ||
-                tabId.Length > 100)
+            if (string.IsNullOrWhiteSpace(tabId) || tabId.Length > 100)
             {
                 return BadRequest(new
                 {
@@ -398,21 +460,24 @@ SET [date] = @WorkingDate;";
                 });
             }
 
-            string? loginId =
-                HttpContext.Session.GetString("LoginId");
-
-            string? token =
-                HttpContext.Session.GetString("ActiveSessionToken");
+            string? loginId = HttpContext.Session.GetString("LoginId");
+            string? token = HttpContext.Session.GetString("ActiveSessionToken");
 
             if (string.IsNullOrWhiteSpace(loginId) ||
-                string.IsNullOrWhiteSpace(token) ||
-                !_activeSessions.IsCurrent(loginId, token))
+                string.IsNullOrWhiteSpace(token))
+            {
+                return Unauthorized(new { active = false });
+            }
+
+            string sessionKey = GetOrganisationLoginKey(loginId);
+
+            if (!_activeSessions.IsCurrent(sessionKey, token))
             {
                 return Unauthorized(new { active = false });
             }
 
             bool active = _activeSessions.TryClaimTab(
-                loginId,
+                sessionKey,
                 token,
                 tabId);
 
@@ -426,39 +491,37 @@ SET [date] = @WorkingDate;";
             [FromForm] string? tabId,
             [FromForm] string? page)
         {
-            if (string.IsNullOrWhiteSpace(tabId) ||
-                tabId.Length > 100)
+            if (string.IsNullOrWhiteSpace(tabId) || tabId.Length > 100)
             {
                 return BadRequest(new { active = false });
             }
 
-            string? loginId =
-                HttpContext.Session.GetString("LoginId");
-
-            string? token =
-                HttpContext.Session.GetString("ActiveSessionToken");
+            string? loginId = HttpContext.Session.GetString("LoginId");
+            string? token = HttpContext.Session.GetString("ActiveSessionToken");
 
             if (string.IsNullOrWhiteSpace(loginId) ||
-                string.IsNullOrWhiteSpace(token) ||
-                !_activeSessions.IsCurrent(loginId, token))
+                string.IsNullOrWhiteSpace(token))
+            {
+                return Unauthorized(new { active = false });
+            }
+
+            string sessionKey = GetOrganisationLoginKey(loginId);
+
+            if (!_activeSessions.IsCurrent(sessionKey, token))
             {
                 return Unauthorized(new { active = false });
             }
 
             bool active = _activeSessions.CheckTab(
-                loginId,
+                sessionKey,
                 token,
                 tabId,
                 page);
 
             bool unclaimed =
-                _activeSessions.GetActiveTab(loginId, token) == null;
+                _activeSessions.GetActiveTab(sessionKey, token) == null;
 
-            return Json(new
-            {
-                active,
-                unclaimed
-            });
+            return Json(new { active, unclaimed });
         }
 
         // POST: /Account/TransferTab
@@ -484,15 +547,22 @@ SET [date] = @WorkingDate;";
                 });
             }
 
-            string? loginId =
-                HttpContext.Session.GetString("LoginId");
-
-            string? token =
-                HttpContext.Session.GetString("ActiveSessionToken");
+            string? loginId = HttpContext.Session.GetString("LoginId");
+            string? token = HttpContext.Session.GetString("ActiveSessionToken");
 
             if (string.IsNullOrWhiteSpace(loginId) ||
-                string.IsNullOrWhiteSpace(token) ||
-                !_activeSessions.IsCurrent(loginId, token))
+                string.IsNullOrWhiteSpace(token))
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    message = "Login session is no longer valid."
+                });
+            }
+
+            string sessionKey = GetOrganisationLoginKey(loginId);
+
+            if (!_activeSessions.IsCurrent(sessionKey, token))
             {
                 return Unauthorized(new
                 {
@@ -502,18 +572,13 @@ SET [date] = @WorkingDate;";
             }
 
             bool success = _activeSessions.TransferTab(
-                loginId,
+                sessionKey,
                 token,
                 expectedOldTabId,
                 tabId);
 
             if (!success)
             {
-                _logger.LogWarning(
-                    "Tab transfer failed for {LoginId}. Expected old tab: {OldTabId}",
-                    loginId,
-                    expectedOldTabId);
-
                 return Conflict(new
                 {
                     success = false,
@@ -523,14 +588,7 @@ SET [date] = @WorkingDate;";
             }
 
             string redirectUrl =
-                Url.Action("Index", "Home")
-                ?? "/Home/Index";
-
-            _logger.LogInformation(
-                "Tab ownership transferred for {LoginId}. Old tab: {OldTabId}; new tab: {NewTabId}",
-                loginId,
-                expectedOldTabId,
-                tabId);
+                Url.Action("Index", "Home") ?? "/Home/Index";
 
             return Json(new
             {
@@ -544,23 +602,22 @@ SET [date] = @WorkingDate;";
         [ValidateAntiForgeryToken]
         public IActionResult Logout()
         {
-            string? loginId =
-                HttpContext.Session.GetString("LoginId");
-
-            string? token =
-                HttpContext.Session.GetString("ActiveSessionToken");
+            string? loginId = HttpContext.Session.GetString("LoginId");
+            string? token = HttpContext.Session.GetString("ActiveSessionToken");
 
             if (!string.IsNullOrWhiteSpace(loginId) &&
                 !string.IsNullOrWhiteSpace(token))
             {
+                string sessionKey = GetOrganisationLoginKey(loginId);
+
                 _activeSessions.RemoveIfCurrent(
-                    loginId,
+                    sessionKey,
                     token);
             }
 
             HttpContext.Session.Clear();
 
-            return RedirectToAction("Login", "Account");
+            return RedirectToAction("Index", "Organisation");
         }
 
         private static string FormatIp(System.Net.IPAddress? ip)
