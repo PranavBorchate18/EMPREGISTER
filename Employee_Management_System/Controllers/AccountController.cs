@@ -1,5 +1,4 @@
-﻿
-using Employee_Management_System.Data;
+﻿using Employee_Management_System.Data;
 using Employee_Management_System.Models;
 using Employee_Management_System.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -40,9 +39,9 @@ namespace Employee_Management_System.Controllers
 
         private bool IsOrganisationSelected()
         {
-            return HttpContext.Session.GetInt32("OrganisationCode").HasValue &&
-                   !string.IsNullOrWhiteSpace(
-                       HttpContext.Session.GetString("OrganisationName"));
+            // Only the Organisation Code is mandatory. A blank Organisation Name
+            // must not send the user back to the Organisation Selection page.
+            return HttpContext.Session.GetInt32("OrganisationCode").HasValue;
         }
 
         // GET: /Account/Login

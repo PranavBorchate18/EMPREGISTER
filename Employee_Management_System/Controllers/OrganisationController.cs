@@ -1,5 +1,4 @@
-﻿
-using Employee_Management_System.Data;
+﻿using Employee_Management_System.Data;
 using Employee_Management_System.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +12,9 @@ namespace Employee_Management_System.Controllers
         private readonly ILogger<OrganisationController> _logger;
         private readonly IConfiguration _configuration;
         private readonly ActiveSessionService _activeSessions;
+
+        // TEMPORARY DIAGNOSTIC (Development only) - see Status() below.
+        private static string _lastPost = "No POST received since the app started.";
 
         public OrganisationController(
             OrganisationDbContext context,
@@ -32,9 +34,7 @@ namespace Employee_Management_System.Controllers
             _logger.LogInformation(
                 "Organisation Selection GET called.");
 
-            if (HttpContext.Session.GetInt32("OrganisationCode").HasValue &&
-                !string.IsNullOrWhiteSpace(
-                    HttpContext.Session.GetString("OrganisationName")))
+            if (HttpContext.Session.GetInt32("OrganisationCode").HasValue)
             {
                 _logger.LogInformation(
                     "Organisation already selected. Redirecting to Login.");
@@ -52,6 +52,8 @@ namespace Employee_Management_System.Controllers
             _logger.LogInformation(
                 "Organisation Selection POST called. Code: {Code}",
                 code);
+
+            _lastPost = $"{DateTime.Now:HH:mm:ss} POST received, code={code}";
 
             if (code <= 0)
             {
@@ -76,14 +78,14 @@ namespace Employee_Management_System.Controllers
                     _logger.LogWarning(
                         "Invalid Organisation Code: {Code}", code);
 
+                    _lastPost += " -> code NOT found in OrganisationMaster";
                     ViewBag.Error = "Invalid Organisation Code.";
                     return View();
                 }
 
                 // STEP 2: Select Database
-                string databaseName = code == 1
-                    ? "PayData_STM"
-                    : $"PayData_{code}";
+                string databaseName =
+                    OrganisationDatabaseHelper.GetDatabaseName(code);
 
                 _logger.LogInformation(
                     "Selected Database: {DatabaseName}", databaseName);
@@ -98,15 +100,14 @@ namespace Employee_Management_System.Controllers
                         "DefaultConnection is not configured in appsettings.json.");
                 }
 
-                var connectionBuilder =
-                    new SqlConnectionStringBuilder(baseConnectionString)
-                    {
-                        InitialCatalog = databaseName
-                    };
+                string organisationConnectionString =
+                    OrganisationDatabaseHelper.BuildConnectionString(
+                        baseConnectionString,
+                        databaseName);
 
                 // STEP 4: Verify Database Connection
                 await using (var connection =
-                    new SqlConnection(connectionBuilder.ConnectionString))
+                    new SqlConnection(organisationConnectionString))
                 {
                     await connection.OpenAsync();
 
@@ -155,12 +156,16 @@ namespace Employee_Management_System.Controllers
                     "OrganisationName",
                     organisation.OrganisationName);
 
+                // Make sure the session is stored before the redirect.
+                await HttpContext.Session.CommitAsync();
+
                 _logger.LogInformation(
-                    "Organisation selected successfully. Code: {Code}, Name: {Name}",
+                    "Organisation selected successfully. Code: {Code}, Name: {Name}. Redirecting to Login.",
                     organisation.Code,
                     organisation.OrganisationName);
 
                 // STEP 8: Redirect to Login
+                _lastPost += " -> SUCCESS, session saved, redirecting to /Account/Login";
                 return RedirectToAction("Login", "Account");
             }
             catch (SqlException ex)
@@ -170,8 +175,12 @@ namespace Employee_Management_System.Controllers
                     "SQL error while selecting Organisation Code: {Code}",
                     code);
 
-                ViewBag.Error =
-                    "Database connection failed. Please check the selected Organisation Database.";
+                _lastPost += $" -> SQL error {ex.Number}: {ex.Message}";
+
+                // 4060 = database does not exist / cannot be opened by this login.
+                ViewBag.Error = ex.Number == 4060
+                    ? "The database for this organisation does not exist or is not accessible."
+                    : "Database connection failed. Please contact the administrator.";
 
                 return View();
             }
@@ -182,11 +191,40 @@ namespace Employee_Management_System.Controllers
                     "Error while selecting Organisation Code: {Code}",
                     code);
 
+                _lastPost += $" -> {ex.GetType().Name}: {ex.Message}";
+
+                // Details stay in the server log; never show them to the browser.
                 ViewBag.Error =
-                    "Unable to continue. Error: " + ex.Message;
+                    "Unable to continue. Please contact the administrator.";
 
                 return View();
             }
+        }
+
+        // TEMPORARY DIAGNOSTIC: open /Organisation/Status in the same browser after
+        // pressing Continue. Works only when ASPNETCORE_ENVIRONMENT = Development.
+        // Delete this action once the problem is solved.
+        [HttpGet]
+        public IActionResult Status()
+        {
+            var env = HttpContext.RequestServices
+                .GetRequiredService<IWebHostEnvironment>();
+
+            if (!env.IsDevelopment())
+                return NotFound();
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Last POST to Organisation/Index : " + _lastPost);
+            sb.AppendLine("Session available               : " + HttpContext.Session.IsAvailable);
+            sb.AppendLine("Session Id                      : " + HttpContext.Session.Id);
+            sb.AppendLine("Session cookie sent by browser  : " +
+                Request.Cookies.ContainsKey(".EmployeeManagement.Session"));
+            sb.AppendLine("OrganisationCode in session     : " +
+                (HttpContext.Session.GetInt32("OrganisationCode")?.ToString() ?? "(none)"));
+            sb.AppendLine("OrganisationName in session     : " +
+                (HttpContext.Session.GetString("OrganisationName") ?? "(none)"));
+
+            return Content(sb.ToString(), "text/plain");
         }
 
         [HttpPost]

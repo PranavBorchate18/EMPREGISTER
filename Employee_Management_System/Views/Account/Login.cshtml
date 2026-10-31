@@ -185,6 +185,13 @@
 
                 <h2>Employee Management System</h2>
 
+                @if (!string.IsNullOrWhiteSpace(Context.Session.GetString("OrganisationName")))
+                {
+                    <p class="mb-1 fw-semibold">
+                        <i class="bi bi-building me-1"></i>@Context.Session.GetString("OrganisationName")
+                    </p>
+                }
+
                 <p>Login to continue</p>
 
             </div>

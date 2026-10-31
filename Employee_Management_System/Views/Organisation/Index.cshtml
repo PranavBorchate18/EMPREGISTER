@@ -98,7 +98,9 @@
             </div>
         }
 
-        <form action="@Url.Action("Index", "Organisation")"
+        @* Fixed path: Url.Action("Index","Organisation") returns "/" because it is the
+           default route, and the session guard in Program.cs blocked POST to "/". *@
+        <form action="@Url.Content("~/Organisation/Index")"
               method="post">
 
             @Html.AntiForgeryToken()

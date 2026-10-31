@@ -1,0 +1,119 @@
+﻿@using Employee_Management_System.Models
+@using Employee_Management_System.Services
+@{
+    ViewData["Title"] = "Organisation Management";
+
+    var organisations =
+        ViewBag.Organisations as List<OrganisationMaster>
+        ?? new List<OrganisationMaster>();
+
+    var result = ViewBag.Result as ProvisioningResult;
+}
+
+<div class="container-fluid py-3">
+
+    <h4 class="fw-bold mb-3">
+        <i class="bi bi-buildings me-2"></i>Organisation Management
+    </h4>
+
+    @if (result != null)
+    {
+        <div class="alert @(result.Success ? "alert-success" : "alert-danger")" role="alert">
+            @result.Message
+        </div>
+
+        @if (result.Log.Count > 0)
+        {
+            <details class="mb-3">
+                <summary class="small text-muted">Creation log</summary>
+                <ul class="small mb-0">
+                    @foreach (var line in result.Log)
+                    {
+                        <li>@line</li>
+                    }
+                </ul>
+            </details>
+        }
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header fw-semibold">Create New Organisation</div>
+                <div class="card-body">
+
+                    <form asp-controller="OrganisationManagement"
+                          asp-action="Create"
+                          method="post"
+                          id="createOrganisationForm">
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label for="code" class="form-label fw-semibold">Organisation Code</label>
+                            <input type="number" id="code" name="code" class="form-control"
+                                   min="2" step="1" required
+                                   value="@(ViewBag.EnteredCode != null && result?.Success != true ? ViewBag.EnteredCode : "")" />
+                            <div class="form-text">
+                                Database name is generated automatically: <code>PayData_{Code}</code>.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="organisationName" class="form-label fw-semibold">Organisation Name</label>
+                            <input type="text" id="organisationName" name="organisationName"
+                                   class="form-control" maxlength="200" required
+                                   value="@(result?.Success != true ? ViewBag.EnteredName : "")" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="btnCreate">
+                            <i class="bi bi-plus-circle me-1"></i>Create Organisation
+                        </button>
+
+                        <div class="form-text mt-2">
+                            Copying the database structure can take a minute. Please do not close the page.
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header fw-semibold">Existing Organisations</div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:110px">Code</th>
+                                <th>Organisation Name</th>
+                                <th>Database</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var o in organisations)
+                            {
+                                <tr>
+                                    <td>@o.Code</td>
+                                    <td>@o.OrganisationName</td>
+                                    <td><code>@OrganisationDatabaseHelper.GetDatabaseName(o.Code)</code></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById("createOrganisationForm")
+            .addEventListener("submit", function () {
+                var b = document.getElementById("btnCreate");
+                b.disabled = true;
+                b.innerHTML = "Creating... please wait";
+            });
+    </script>
+}

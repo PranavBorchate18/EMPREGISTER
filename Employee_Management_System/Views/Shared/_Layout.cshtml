@@ -1,4 +1,5 @@
 ﻿@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject Microsoft.Extensions.Configuration.IConfiguration LayoutConfiguration
 
 <!DOCTYPE html>
 <html lang="en">
@@ -28,6 +29,8 @@
         var currentLoginId = Context.Session.GetString("LoginId");
         var currentUserName = Context.Session.GetString("UserName");
         var currentAuthority = Context.Session.GetString("Authority");
+        var currentOrganisationName = Context.Session.GetString("OrganisationName");
+        var currentOrganisationCode = Context.Session.GetInt32("OrganisationCode");
 
         if (string.IsNullOrWhiteSpace(currentUserName))
         {
@@ -295,7 +298,29 @@
 
     <!-- Top bar -->
     <header class="topbar">
-        <div class="dropdown ms-auto">
+        @if (!string.IsNullOrWhiteSpace(currentOrganisationName))
+        {
+            <div class="ms-auto d-flex align-items-center gap-2 me-3">
+                <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle fs-6 fw-semibold">
+                    <i class="bi bi-building me-1"></i>@currentOrganisationName
+                    <span class="text-muted small">(@currentOrganisationCode)</span>
+                </span>
+
+                <form asp-controller="Organisation"
+                      asp-action="ChangeOrganisation"
+                      method="post"
+                      class="m-0">
+                    @Html.AntiForgeryToken()
+                    <button type="submit"
+                            class="btn btn-outline-secondary btn-sm"
+                            title="Logout and select another organisation">
+                        <i class="bi bi-arrow-left-right me-1"></i>Change Organisation
+                    </button>
+                </form>
+            </div>
+        }
+
+        <div class="dropdown @(string.IsNullOrWhiteSpace(currentOrganisationName) ? "ms-auto" : "")">
             <button class="btn btn-link text-dark text-decoration-none dropdown-toggle d-flex align-items-center gap-2"
                     type="button"
                     id="userDropdown"
@@ -333,6 +358,22 @@
                 </li>
 
                 <li><hr class="dropdown-divider" /></li>
+
+                @if (currentOrganisationCode ==
+                                (LayoutConfiguration.GetValue<int?>("OrganisationProvisioning:MasterOrganisationCode") ?? 1) &&
+                                (LayoutConfiguration.GetSection("OrganisationProvisioning:AllowedAuthorities")
+                                .Get<string[]>() ?? new[] { "ADMIN" })
+                                .Any(a => string.Equals(a?.Trim(), currentAuthority?.Trim(), StringComparison.OrdinalIgnoreCase)))
+                {
+                    <li>
+                        <a class="dropdown-item"
+                           asp-controller="OrganisationManagement"
+                           asp-action="Index">
+                            <i class="bi bi-buildings me-2"></i>
+                            Manage Organisations
+                        </a>
+                    </li>
+                }
 
                 <li>
                     <form asp-controller="Account"

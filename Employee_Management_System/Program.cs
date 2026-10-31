@@ -1,4 +1,3 @@
-
 using Employee_Management_System.Data;
 using Employee_Management_System.Services;
 using Microsoft.EntityFrameworkCore;
@@ -40,17 +39,12 @@ builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =
             "Please select an organisation before accessing the application database.");
     }
 
-    string databaseName = organisationCode.Value == 1
-        ? "PayData_STM"
-        : $"PayData_{organisationCode.Value}";
-
-    var connectionBuilder =
-        new SqlConnectionStringBuilder(mainConnectionString)
-        {
-            InitialCatalog = databaseName
-        };
-
-    options.UseSqlServer(connectionBuilder.ConnectionString);
+    // Database name is generated on the server from the validated
+    // Organisation Code stored in Session (never taken from the browser).
+    options.UseSqlServer(
+        OrganisationDatabaseHelper.BuildConnectionString(
+            mainConnectionString!,
+            organisationCode.Value));
 });
 
 // Session
@@ -66,6 +60,9 @@ builder.Services.AddSession(options =>
 
 // Active Session Service
 builder.Services.AddSingleton<ActiveSessionService>();
+
+// Organisation creation (new database provisioning)
+builder.Services.AddScoped<OrganisationProvisioningService>();
 
 var app = builder.Build();
 
@@ -94,8 +91,11 @@ app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
 
-    // Organisation Selection Page
-    if (path.StartsWithSegments(
+    // Organisation Selection Page.
+    // The site root "/" also maps to Organisation/Index (default route), so it
+    // must be allowed without a selected organisation as well.
+    if (path.Value == "/" ||
+        path.StartsWithSegments(
         "/Organisation",
         StringComparison.OrdinalIgnoreCase))
     {
@@ -118,6 +118,15 @@ app.Use(async (context, next) =>
 
     if (!organisationCode.HasValue)
     {
+        // Diagnostic: shows in Visual Studio Output why the user was sent back.
+        context.RequestServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("OrganisationGuard")
+            .LogWarning(
+                "No OrganisationCode in session for {Path}. Session cookie received by server: {HasCookie}",
+                path,
+                context.Request.Cookies.ContainsKey(".EmployeeManagement.Session"));
+
         context.Response.Redirect("/Organisation/Index");
         return;
     }
