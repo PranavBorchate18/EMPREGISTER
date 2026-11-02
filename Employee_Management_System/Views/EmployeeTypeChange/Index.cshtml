@@ -1,0 +1,260 @@
+﻿@model Employee_Management_System.Models.EmployeeTypeChangeViewModel
+
+@{
+    ViewData["Title"] = "Change Employee Type";
+}
+
+<div class="container-fluid py-3">
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-primary text-white py-3">
+            <h4 class="mb-0">
+                <i class="bi bi-arrow-left-right me-2"></i>
+                Change Employee Type
+            </h4>
+            <small>Employee Type Update Management</small>
+        </div>
+
+        <div class="card-body">
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success">
+                    @TempData["Success"]
+                </div>
+            }
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">
+                    @TempData["Error"]
+                </div>
+            }
+
+            <form asp-controller="EmployeeTypeChange"
+                  asp-action="Save"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3">
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">
+                            Employee Code / Name
+                        </label>
+
+                        <select asp-for="EmpCode"
+                                class="form-select"
+                                id="EmpCode"
+                                required>
+
+                            <option value="">-- Select Employee --</option>
+
+                            @foreach (var emp in Model.Employees)
+                            {
+                                <option value="@emp.EmpCode"
+                                        data-type="@emp.CurrentType">
+                                    @emp.EmpCode - @emp.EmployeeName
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">
+                            Previous Type
+                        </label>
+
+                        <input id="PreviousTypeDisplay"
+                               class="form-control"
+                               readonly
+                               placeholder="Auto" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label asp-for="Change_Type"
+                               class="form-label fw-semibold">
+                            Change Type
+                        </label>
+
+                        <select asp-for="Change_Type"
+                                class="form-select"
+                                required>
+
+                            <option value="">-- Select Type --</option>
+
+                            @for (int i = 1; i <= 7; i++)
+                            {
+                                <option value="@i">Type @i</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label asp-for="Effect_Date"
+                               class="form-label fw-semibold">
+                            Effect Date
+                        </label>
+
+                        <input asp-for="Effect_Date"
+                               type="date"
+                               class="form-control"
+                               required />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            Operator Login Code
+                        </label>
+
+                        <input class="form-control"
+                               value="@Model.Operator"
+                               readonly />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label asp-for="Supervisor"
+                               class="form-label fw-semibold">
+                            Supervisor Login Code
+                        </label>
+
+                        <input asp-for="Supervisor"
+                               class="form-control"
+                               placeholder="Enter Supervisor Login Code"
+                               maxlength="50"
+                               required />
+                    </div>
+
+                    <div class="col-md-6 d-flex align-items-end justify-content-end">
+
+                        <button type="reset"
+                                class="btn btn-outline-secondary me-2">
+                            Clear
+                        </button>
+
+                        <button type="submit"
+                                class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i>
+                            Save Employee Type
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+
+    <!-- HISTORY -->
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-header bg-light py-3 d-flex justify-content-between">
+
+            <h5 class="mb-0">
+                Employee Type Change History
+            </h5>
+
+            <span class="badge bg-primary">
+                @Model.Records.Count Records
+            </span>
+
+        </div>
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-hover table-striped mb-0">
+
+                    <thead class="table-dark">
+
+                        <tr>
+                            <th>Sr. No.</th>
+                            <th>Effect Date</th>
+                            <th>Emp Code</th>
+                            <th>Employee Name</th>
+                            <th>Previous Type</th>
+                            <th>Change Type</th>
+                            <th>Operator</th>
+                            <th>Supervisor</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model.Records.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8"
+                                    class="text-center text-muted py-4">
+                                    No Records Found
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in Model.Records)
+                            {
+                                <tr>
+                                    <td>@item.SrNum</td>
+
+                                    <td>
+                                        @item.Effect_Date?.ToString("dd-MM-yyyy")
+                                    </td>
+
+                                    <td>@item.EmpCode</td>
+
+                                    <td>@item.EmployeeName</td>
+
+                                    <td>@item.Previous_Type</td>
+
+                                    <td>
+                                        <span class="badge bg-primary">
+                                            @item.Change_Type
+                                        </span>
+                                    </td>
+
+                                    <td>@item.Operator</td>
+
+                                    <td>@item.Supervisor</td>
+                                </tr>
+                            }
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+
+@section Scripts {
+
+    <script>
+
+        document.getElementById("EmpCode")
+            ?.addEventListener("change", function () {
+
+                const selected =
+                    this.options[this.selectedIndex];
+
+                document.getElementById("PreviousTypeDisplay").value =
+                    selected?.dataset?.type || "";
+
+            });
+
+    </script>
+
+}
