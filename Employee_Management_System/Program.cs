@@ -30,10 +30,11 @@ builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =
         .GetRequiredService<IHttpContextAccessor>()
         .HttpContext;
 
-    var organisationCode =
-        httpContext?.Session.GetInt32("OrganisationCode");
+    var organisationDatabase =
+        httpContext?.Session.GetString("OrganisationDatabase");
 
-    if (!organisationCode.HasValue)
+    if (string.IsNullOrWhiteSpace(organisationDatabase) ||
+        !OrganisationDatabaseHelper.IsValidDatabaseName(organisationDatabase))
     {
         throw new InvalidOperationException(
             "Please select an organisation before accessing the application database.");
@@ -44,7 +45,7 @@ builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =
     options.UseSqlServer(
         OrganisationDatabaseHelper.BuildConnectionString(
             mainConnectionString!,
-            organisationCode.Value));
+            organisationDatabase));
 });
 
 // Session
@@ -114,9 +115,9 @@ app.Use(async (context, next) =>
 
     // Organisation Selection Required
     var organisationCode =
-        context.Session.GetInt32("OrganisationCode");
+        context.Session.GetString("OrganisationCode");
 
-    if (!organisationCode.HasValue)
+    if (string.IsNullOrWhiteSpace(organisationCode))
     {
         // Diagnostic: shows in Visual Studio Output why the user was sent back.
         context.RequestServices
@@ -155,7 +156,7 @@ app.Use(async (context, next) =>
 
     string sessionKey =
         !string.IsNullOrWhiteSpace(loginId)
-            ? $"{organisationCode.Value}:{loginId}"
+            ? $"{organisationCode}:{loginId}"
             : "";
 
     if (string.IsNullOrWhiteSpace(loginId) ||

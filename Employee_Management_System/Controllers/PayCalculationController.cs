@@ -1846,7 +1846,10 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
             UpdateAllowanceTotals(e);
             foreach (var rule in allowanceRules.Where(x => !string.IsNullOrWhiteSpace(x.Formula)))
             {
-                double value = employeeAllowances.TryGetValue(rule.Code, out var individual)
+                // A formula rule must not be switched off by an auto-created payfoot row
+                // holding 0 (Employee Pay Setup copies the grade's empty Fix/Percent as 0).
+                // Only a real employee-specific amount (> 0) overrides the grade formula.
+                double value = employeeAllowances.TryGetValue(rule.Code, out var individual) && individual > 0
                     ? individual : EvaluateAllowanceFormula(rule.Formula, e.BasicSalary,
                     e.Fda1 + e.Fda2 + e.Vda, e.Hra, e.Fda1, e.Fda2, e.Vda);
                 SetComponent(e.Allowances, value, rule.Name);
@@ -1879,7 +1882,10 @@ ORDER BY TRY_CONVERT(INT,pf.allw_dedu);";
                     ? Calculate(e.BasicSalary, rule.Fixed, rule.Percent)
                     : EvaluateAllowanceFormula(rule.Formula, e.BasicSalary,
                         e.Fda1 + e.Fda2 + e.Vda, e.Hra, e.Fda1, e.Fda2, e.Vda);
-                if (employeeDeductions.TryGetValue(rule.Code, out var individual)) value = individual;
+                // Same rule for deductions: a 0 payfoot row must not cancel a grade formula (e.g. PF).
+                if (employeeDeductions.TryGetValue(rule.Code, out var individual) &&
+                    (string.IsNullOrWhiteSpace(rule.Formula) || individual > 0))
+                    value = individual;
                 SetComponent(e.Deductions, value, rule.Name);
             }
             e.ProvidentFund = FindComponentAmount(e.Deductions, "Provident Fund", "PF");

@@ -1,5 +1,4 @@
-﻿
-using Employee_Management_System.Models;
+﻿using Employee_Management_System.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Employee_Management_System.Data
@@ -31,7 +30,14 @@ namespace Employee_Management_System.Data
 
                 entity.Property(x => x.Code)
                     .HasColumnName("Code")
+                    .HasMaxLength(20)
+                    .IsRequired()
                     .ValueGeneratedNever();
+
+                entity.Property(x => x.DatabaseName)
+                    .HasColumnName("DatabaseName")
+                    .HasMaxLength(128)
+                    .IsRequired();
 
                 entity.Property(x => x.OrganisationName)
                     .HasColumnName("OrganisationName")

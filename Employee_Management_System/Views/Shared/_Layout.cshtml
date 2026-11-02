@@ -30,7 +30,7 @@
         var currentUserName = Context.Session.GetString("UserName");
         var currentAuthority = Context.Session.GetString("Authority");
         var currentOrganisationName = Context.Session.GetString("OrganisationName");
-        var currentOrganisationCode = Context.Session.GetInt32("OrganisationCode");
+        var currentOrganisationCode = Context.Session.GetString("OrganisationCode");
 
         if (string.IsNullOrWhiteSpace(currentUserName))
         {
@@ -359,8 +359,9 @@
 
                 <li><hr class="dropdown-divider" /></li>
 
-                @if (currentOrganisationCode ==
-                                (LayoutConfiguration.GetValue<int?>("OrganisationProvisioning:MasterOrganisationCode") ?? 1) &&
+                @if (string.Equals(currentOrganisationCode,
+                                (LayoutConfiguration.GetValue<string>("OrganisationProvisioning:MasterOrganisationCode") ?? "ABC001"),
+                                StringComparison.OrdinalIgnoreCase) &&
                                 (LayoutConfiguration.GetSection("OrganisationProvisioning:AllowedAuthorities")
                                 .Get<string[]>() ?? new[] { "ADMIN" })
                                 .Any(a => string.Equals(a?.Trim(), currentAuthority?.Trim(), StringComparison.OrdinalIgnoreCase)))

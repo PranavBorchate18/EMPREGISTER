@@ -31,8 +31,8 @@ namespace Employee_Management_System.Controllers
 
         private string GetOrganisationLoginKey(string loginId)
         {
-            int organisationCode =
-                HttpContext.Session.GetInt32("OrganisationCode") ?? 0;
+            string organisationCode =
+                HttpContext.Session.GetString("OrganisationCode") ?? "";
 
             return $"{organisationCode}:{loginId}";
         }
@@ -41,7 +41,7 @@ namespace Employee_Management_System.Controllers
         {
             // Only the Organisation Code is mandatory. A blank Organisation Name
             // must not send the user back to the Organisation Selection page.
-            return HttpContext.Session.GetInt32("OrganisationCode").HasValue;
+            return HttpContext.Session.GetString("OrganisationCode") != null;
         }
 
         // GET: /Account/Login
@@ -168,8 +168,11 @@ namespace Employee_Management_System.Controllers
                 return View(model);
             }
 
-            int organisationCode =
-                HttpContext.Session.GetInt32("OrganisationCode")!.Value;
+            string organisationCode =
+                HttpContext.Session.GetString("OrganisationCode")!;
+
+            string organisationDatabase =
+                HttpContext.Session.GetString("OrganisationDatabase") ?? "";
 
             string organisationLoginKey =
                 GetOrganisationLoginKey(loginId);
@@ -358,9 +361,13 @@ SET [date] = @WorkingDate;";
 
                 HttpContext.Session.Clear();
 
-                HttpContext.Session.SetInt32(
+                HttpContext.Session.SetString(
                     "OrganisationCode",
                     organisationCode);
+
+                HttpContext.Session.SetString(
+                    "OrganisationDatabase",
+                    organisationDatabase);
 
                 if (!string.IsNullOrWhiteSpace(selectedOrganisationName))
                 {

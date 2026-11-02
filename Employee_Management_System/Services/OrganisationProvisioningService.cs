@@ -15,7 +15,7 @@ namespace Employee_Management_System.Services
     public sealed class OrganisationProvisioningOptions
     {
         /// <summary>Organisation whose logins may open the Organisation Management page.</summary>
-        public int MasterOrganisationCode { get; set; } = 1;
+        public string MasterOrganisationCode { get; set; } = "ABC001";
 
         /// <summary>UserMast.authority values allowed to create organisations (case-insensitive).</summary>
         public string[] AllowedAuthorities { get; set; } = new[] { "ADMIN" };
@@ -75,15 +75,16 @@ namespace Employee_Management_System.Services
         }
 
         public async Task<ProvisioningResult> CreateOrganisationAsync(
-            int code,
+            string? code,
             string? name,
             CancellationToken ct = default)
         {
             var result = new ProvisioningResult();
             name = (name ?? "").Trim();
+            code = OrganisationDatabaseHelper.NormalizeCode(code);
 
-            if (code <= 0)
-                return Fail(result, "Organisation Code must be greater than zero.");
+            if (!OrganisationDatabaseHelper.IsValidCode(code))
+                return Fail(result, "Organisation Code must be 1-20 letters/digits (no spaces or symbols).");
 
             if (name.Length == 0 || name.Length > 200)
                 return Fail(result, "Organisation Name is required (maximum 200 characters).");
@@ -101,7 +102,7 @@ namespace Employee_Management_System.Services
                     _configuration.GetConnectionString("DefaultConnection") ?? "";
 
                 string sourceDb = OrganisationDatabaseHelper.MasterDatabaseName;
-                string targetDb = OrganisationDatabaseHelper.GetDatabaseName(code);
+                string targetDb = OrganisationDatabaseHelper.GenerateDatabaseName(code);
 
                 string masterCs = OrganisationDatabaseHelper.BuildConnectionString(baseCs, "master");
                 string sourceCs = OrganisationDatabaseHelper.BuildConnectionString(baseCs, sourceDb);
@@ -172,7 +173,8 @@ namespace Employee_Management_System.Services
                 _organisations.OrganisationMasters.Add(new OrganisationMaster
                 {
                     Code = code,
-                    OrganisationName = name
+                    OrganisationName = name,
+                    DatabaseName = targetDb
                 });
                 await _organisations.SaveChangesAsync(ct);
                 result.Log.Add($"Organisation {code} - {name} registered.");

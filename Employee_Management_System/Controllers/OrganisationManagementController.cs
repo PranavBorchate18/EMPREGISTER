@@ -31,12 +31,15 @@ namespace Employee_Management_System.Controllers
 
         private bool IsAuthorised()
         {
-            int? organisationCode = HttpContext.Session.GetInt32("OrganisationCode");
+            string? organisationCode = HttpContext.Session.GetString("OrganisationCode");
             string authority =
                 (HttpContext.Session.GetString("Authority") ?? "").Trim();
 
-            if (!organisationCode.HasValue ||
-                organisationCode.Value != _provisioning.Options.MasterOrganisationCode)
+            if (string.IsNullOrWhiteSpace(organisationCode) ||
+                !string.Equals(
+                    organisationCode,
+                    _provisioning.Options.MasterOrganisationCode,
+                    StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
@@ -57,7 +60,7 @@ namespace Employee_Management_System.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(int code, string? organisationName)
+        public async Task<IActionResult> Create(string? code, string? organisationName)
         {
             if (!IsAuthorised())
             {
@@ -74,7 +77,7 @@ namespace Employee_Management_System.Controllers
                 HttpContext.RequestAborted);
 
             ViewBag.Result = result;
-            ViewBag.EnteredCode = code;
+            ViewBag.EnteredCode = OrganisationDatabaseHelper.NormalizeCode(code);
             ViewBag.EnteredName = organisationName;
 
             await LoadListAsync();

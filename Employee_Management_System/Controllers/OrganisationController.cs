@@ -34,7 +34,7 @@ namespace Employee_Management_System.Controllers
             _logger.LogInformation(
                 "Organisation Selection GET called.");
 
-            if (HttpContext.Session.GetInt32("OrganisationCode").HasValue)
+            if (HttpContext.Session.GetString("OrganisationCode") != null)
             {
                 _logger.LogInformation(
                     "Organisation already selected. Redirecting to Login.");
@@ -47,18 +47,20 @@ namespace Employee_Management_System.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(int code)
+        public async Task<IActionResult> Index(string? code)
         {
             _logger.LogInformation(
                 "Organisation Selection POST called. Code: {Code}",
                 code);
 
+            code = OrganisationDatabaseHelper.NormalizeCode(code);
+
             _lastPost = $"{DateTime.Now:HH:mm:ss} POST received, code={code}";
 
-            if (code <= 0)
+            if (!OrganisationDatabaseHelper.IsValidCode(code))
             {
                 ViewBag.Error =
-                    "Please enter a valid Organisation Code.";
+                    "Please enter a valid Organisation Code (letters and digits only).";
 
                 return View();
             }
@@ -84,8 +86,19 @@ namespace Employee_Management_System.Controllers
                 }
 
                 // STEP 2: Select Database
-                string databaseName =
-                    OrganisationDatabaseHelper.GetDatabaseName(code);
+                // The database name comes from OrganisationMaster.DatabaseName.
+                string databaseName = organisation.DatabaseName?.Trim() ?? "";
+
+                if (!OrganisationDatabaseHelper.IsValidDatabaseName(databaseName))
+                {
+                    _logger.LogError(
+                        "Organisation {Code} has an invalid DatabaseName '{Db}'.",
+                        code, databaseName);
+
+                    ViewBag.Error =
+                        "Database is not configured for this organisation.";
+                    return View();
+                }
 
                 _logger.LogInformation(
                     "Selected Database: {DatabaseName}", databaseName);
@@ -123,15 +136,15 @@ namespace Employee_Management_System.Controllers
                 string? oldToken =
                     HttpContext.Session.GetString("ActiveSessionToken");
 
-                int? oldOrganisationCode =
-                    HttpContext.Session.GetInt32("OrganisationCode");
+                string? oldOrganisationCode =
+                    HttpContext.Session.GetString("OrganisationCode");
 
                 if (!string.IsNullOrWhiteSpace(oldLoginId) &&
                     !string.IsNullOrWhiteSpace(oldToken) &&
-                    oldOrganisationCode.HasValue)
+                    !string.IsNullOrWhiteSpace(oldOrganisationCode))
                 {
                     string oldSessionKey =
-                        $"{oldOrganisationCode.Value}:{oldLoginId}";
+                        $"{oldOrganisationCode}:{oldLoginId}";
 
                     _activeSessions.RemoveIfCurrent(
                         oldSessionKey,
@@ -148,9 +161,13 @@ namespace Employee_Management_System.Controllers
                 HttpContext.Session.Remove("ActiveSessionToken");
 
                 // STEP 7: Save New Organisation Information
-                HttpContext.Session.SetInt32(
+                HttpContext.Session.SetString(
                     "OrganisationCode",
                     organisation.Code);
+
+                HttpContext.Session.SetString(
+                    "OrganisationDatabase",
+                    databaseName);
 
                 HttpContext.Session.SetString(
                     "OrganisationName",
@@ -220,7 +237,7 @@ namespace Employee_Management_System.Controllers
             sb.AppendLine("Session cookie sent by browser  : " +
                 Request.Cookies.ContainsKey(".EmployeeManagement.Session"));
             sb.AppendLine("OrganisationCode in session     : " +
-                (HttpContext.Session.GetInt32("OrganisationCode")?.ToString() ?? "(none)"));
+                (HttpContext.Session.GetString("OrganisationCode") ?? "(none)"));
             sb.AppendLine("OrganisationName in session     : " +
                 (HttpContext.Session.GetString("OrganisationName") ?? "(none)"));
 
@@ -237,15 +254,15 @@ namespace Employee_Management_System.Controllers
             string? token =
                 HttpContext.Session.GetString("ActiveSessionToken");
 
-            int? organisationCode =
-                HttpContext.Session.GetInt32("OrganisationCode");
+            string? organisationCode =
+                HttpContext.Session.GetString("OrganisationCode");
 
             if (!string.IsNullOrWhiteSpace(loginId) &&
                 !string.IsNullOrWhiteSpace(token) &&
-                organisationCode.HasValue)
+                !string.IsNullOrWhiteSpace(organisationCode))
             {
                 string sessionKey =
-                    $"{organisationCode.Value}:{loginId}";
+                    $"{organisationCode}:{loginId}";
 
                 _activeSessions.RemoveIfCurrent(
                     sessionKey,

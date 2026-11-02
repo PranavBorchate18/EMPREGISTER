@@ -111,13 +111,17 @@
                     Organisation Code
                 </label>
 
-                <input type="number"
+                <input type="text"
                        id="code"
                        name="code"
-                       class="form-control"
+                       class="form-control text-uppercase"
                        placeholder="Enter Organisation Code"
-                       min="1"
-                       step="1"
+                       maxlength="20"
+                       pattern="[A-Za-z0-9]{1,20}"
+                       title="Letters and digits only (e.g. ABC001)"
+                       autocomplete="off"
+                       autocapitalize="characters"
+                       spellcheck="false"
                        required
                        autofocus />
 
