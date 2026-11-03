@@ -1,6 +1,8 @@
-﻿using Employee_Management_System.Models;
+﻿
+using Employee_Management_System.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.AspNetCore.Http;
 using System.Data;
 
 namespace Employee_Management_System.Controllers
@@ -33,9 +35,9 @@ namespace Employee_Management_System.Controllers
             await LoadEmployees(model);
             await LoadHistory(model);
 
-            return View(model);
+            // Updated: Conventional View Lookup
+            return View("ChangeEmployeeType", model);
         }
-
 
         // =====================================================
         // POST: SAVE EMPLOYEE TYPE
@@ -61,7 +63,9 @@ namespace Employee_Management_System.Controllers
                 return RedirectToAction(nameof(ChangeEmployeeType));
             }
 
-            if (model.Change_Type <= 0 || model.Change_Type > 7)
+            int[] allowedTypes = { 1, 6, 7, 8, 9, 10 };
+
+            if (!allowedTypes.Contains(model.Change_Type))
             {
                 TempData["Error"] = "Please select a valid Employee Type.";
                 return RedirectToAction(nameof(ChangeEmployeeType));
@@ -82,7 +86,8 @@ namespace Employee_Management_System.Controllers
             string connectionString =
                 _configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException(
-                    "DefaultConnection not found in appsettings.json.");
+                    "DefaultConnection not found in appsettings.json."
+                );
 
             await using var connection =
                 new SqlConnection(connectionString);
@@ -94,35 +99,33 @@ namespace Employee_Management_System.Controllers
 
             try
             {
-                // -------------------------------------------------
                 // 1. VALIDATE SUPERVISOR LOGIN CODE
-                // -------------------------------------------------
 
                 await using (var supervisorCommand =
                     new SqlCommand(@"
                         SELECT COUNT(1)
                         FROM dbo.UserMast
                         WHERE LTRIM(RTRIM(ini)) = @Supervisor;",
-                        connection, (SqlTransaction)transaction))
+                        connection,
+                        (SqlTransaction)transaction))
                 {
                     supervisorCommand.Parameters.Add(
-                        "@Supervisor", SqlDbType.VarChar, 50)
-                        .Value = model.Supervisor.Trim();
+                        "@Supervisor", SqlDbType.VarChar, 50
+                    ).Value = model.Supervisor.Trim();
 
                     int supervisorExists = Convert.ToInt32(
-                        await supervisorCommand.ExecuteScalarAsync());
+                        await supervisorCommand.ExecuteScalarAsync()
+                    );
 
                     if (supervisorExists == 0)
                     {
                         throw new Exception(
-                            "Invalid Supervisor Login Code.");
+                            "Invalid Supervisor Login Code."
+                        );
                     }
                 }
 
-
-                // -------------------------------------------------
                 // 2. GET PREVIOUS TYPE FROM PAYMAST
-                // -------------------------------------------------
 
                 int previousType;
 
@@ -131,11 +134,12 @@ namespace Employee_Management_System.Controllers
                         SELECT TRY_CONVERT(INT, [type])
                         FROM dbo.paymast WITH (UPDLOCK, HOLDLOCK)
                         WHERE code = @EmpCode;",
-                        connection, (SqlTransaction)transaction))
+                        connection,
+                        (SqlTransaction)transaction))
                 {
                     employeeCommand.Parameters.Add(
-                        "@EmpCode", SqlDbType.Int)
-                        .Value = model.EmpCode;
+                        "@EmpCode", SqlDbType.Int
+                    ).Value = model.EmpCode;
 
                     object? result =
                         await employeeCommand.ExecuteScalarAsync();
@@ -143,27 +147,23 @@ namespace Employee_Management_System.Controllers
                     if (result == null || result == DBNull.Value)
                     {
                         throw new Exception(
-                            "Employee Code not found or Previous Type is invalid.");
+                            "Employee Code not found or Previous Type is invalid."
+                        );
                     }
 
                     previousType = Convert.ToInt32(result);
                 }
 
-
-                // -------------------------------------------------
                 // 3. CHECK PREVIOUS AND NEW TYPE
-                // -------------------------------------------------
 
                 if (previousType == model.Change_Type)
                 {
                     throw new Exception(
-                        "Previous Type and New Type cannot be the same.");
+                        "Previous Type and New Type cannot be the same."
+                    );
                 }
 
-
-                // -------------------------------------------------
                 // 4. INSERT INTO EMPLOYEETYPECHANGE
-                // -------------------------------------------------
 
                 const string insertQuery = @"
                     INSERT INTO dbo.EmployeeTypeChange
@@ -186,40 +186,39 @@ namespace Employee_Management_System.Controllers
                     );";
 
                 await using (var insertCommand =
-                    new SqlCommand(insertQuery,
-                        connection, (SqlTransaction)transaction))
+                    new SqlCommand(
+                        insertQuery,
+                        connection,
+                        (SqlTransaction)transaction))
                 {
                     insertCommand.Parameters.Add(
-                        "@EffectDate", SqlDbType.Date)
-                        .Value = model.Effect_Date.Date;
+                        "@EffectDate", SqlDbType.Date
+                    ).Value = model.Effect_Date.Date;
 
                     insertCommand.Parameters.Add(
-                        "@EmpCode", SqlDbType.Int)
-                        .Value = model.EmpCode;
+                        "@EmpCode", SqlDbType.Int
+                    ).Value = model.EmpCode;
 
                     insertCommand.Parameters.Add(
-                        "@PreviousType", SqlDbType.Int)
-                        .Value = previousType;
+                        "@PreviousType", SqlDbType.Int
+                    ).Value = previousType;
 
                     insertCommand.Parameters.Add(
-                        "@ChangeType", SqlDbType.Int)
-                        .Value = model.Change_Type;
+                        "@ChangeType", SqlDbType.Int
+                    ).Value = model.Change_Type;
 
                     insertCommand.Parameters.Add(
-                        "@Operator", SqlDbType.VarChar, 50)
-                        .Value = operatorCode;
+                        "@Operator", SqlDbType.VarChar, 50
+                    ).Value = operatorCode;
 
                     insertCommand.Parameters.Add(
-                        "@Supervisor", SqlDbType.VarChar, 50)
-                        .Value = model.Supervisor.Trim();
+                        "@Supervisor", SqlDbType.VarChar, 50
+                    ).Value = model.Supervisor.Trim();
 
                     await insertCommand.ExecuteNonQueryAsync();
                 }
 
-
-                // -------------------------------------------------
                 // 5. UPDATE PAYMAST TYPE
-                // -------------------------------------------------
 
                 const string updateQuery = @"
                     UPDATE dbo.paymast
@@ -227,16 +226,18 @@ namespace Employee_Management_System.Controllers
                     WHERE code = @EmpCode;";
 
                 await using (var updateCommand =
-                    new SqlCommand(updateQuery,
-                        connection, (SqlTransaction)transaction))
+                    new SqlCommand(
+                        updateQuery,
+                        connection,
+                        (SqlTransaction)transaction))
                 {
                     updateCommand.Parameters.Add(
-                        "@ChangeType", SqlDbType.Int)
-                        .Value = model.Change_Type;
+                        "@ChangeType", SqlDbType.Int
+                    ).Value = model.Change_Type;
 
                     updateCommand.Parameters.Add(
-                        "@EmpCode", SqlDbType.Int)
-                        .Value = model.EmpCode;
+                        "@EmpCode", SqlDbType.Int
+                    ).Value = model.EmpCode;
 
                     int affectedRows =
                         await updateCommand.ExecuteNonQueryAsync();
@@ -244,14 +245,12 @@ namespace Employee_Management_System.Controllers
                     if (affectedRows != 1)
                     {
                         throw new Exception(
-                            "Employee Type Update Failed.");
+                            "Employee Type Update Failed."
+                        );
                     }
                 }
 
-
-                // -------------------------------------------------
                 // 6. COMMIT TRANSACTION
-                // -------------------------------------------------
 
                 await transaction.CommitAsync();
 
@@ -260,14 +259,20 @@ namespace Employee_Management_System.Controllers
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                try
+                {
+                    await transaction.RollbackAsync();
+                }
+                catch
+                {
+                    // Preserve the original error.
+                }
 
                 TempData["Error"] = ex.Message;
             }
 
             return RedirectToAction(nameof(ChangeEmployeeType));
         }
-
 
         // =====================================================
         // LOAD EMPLOYEE DROPDOWN
@@ -277,7 +282,10 @@ namespace Employee_Management_System.Controllers
             EmployeeTypeChangeViewModel model)
         {
             string connectionString =
-                _configuration.GetConnectionString("DefaultConnection")!;
+                _configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException(
+                    "DefaultConnection not found in appsettings.json."
+                );
 
             const string query = @"
                 SELECT
@@ -312,10 +320,10 @@ namespace Employee_Management_System.Controllers
                             reader["CurrentType"] == DBNull.Value
                                 ? null
                                 : Convert.ToInt32(reader["CurrentType"])
-                    });
+                    }
+                );
             }
         }
-
 
         // =====================================================
         // LOAD EMPLOYEE TYPE CHANGE HISTORY
@@ -325,7 +333,10 @@ namespace Employee_Management_System.Controllers
             EmployeeTypeChangeViewModel model)
         {
             string connectionString =
-                _configuration.GetConnectionString("DefaultConnection")!;
+                _configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException(
+                    "DefaultConnection not found in appsettings.json."
+                );
 
             const string query = @"
                 SELECT TOP 500
@@ -358,7 +369,8 @@ namespace Employee_Management_System.Controllers
                 model.Records.Add(
                     new EmployeeTypeChangeRow
                     {
-                        SrNum = Convert.ToInt32(reader["SrNum"]),
+                        SrNum =
+                            Convert.ToInt32(reader["SrNum"]),
 
                         Effect_Date =
                             Convert.ToDateTime(reader["Effect_Date"]),
@@ -380,10 +392,10 @@ namespace Employee_Management_System.Controllers
 
                         EmployeeName =
                             Convert.ToString(reader["EmployeeName"]) ?? ""
-                    });
+                    }
+                );
             }
         }
-
 
         // =====================================================
         // LOGIN CHECK
@@ -392,7 +404,8 @@ namespace Employee_Management_System.Controllers
         private bool IsLoggedIn()
         {
             return !string.IsNullOrWhiteSpace(
-                HttpContext.Session.GetString("LoginId"));
+                HttpContext.Session.GetString("LoginId")
+            );
         }
     }
 }

@@ -128,6 +128,7 @@ SET [from1] = @ProfessionalTax;";
 FROM dbo.brncmast b
 LEFT JOIN dbo.PayMast p
   ON TRY_CONVERT(INT,p.brnc_code)=TRY_CONVERT(INT,b.code)
+ AND ISNULL(TRY_CONVERT(INT,p.[type]), 0) NOT IN (8, 9, 10)
 GROUP BY b.code,b.name
 ORDER BY TRY_CONVERT(INT,b.code);";
                 using var reader = await command.ExecuteReaderAsync();
@@ -226,6 +227,7 @@ LEFT JOIN dbo.paytrn t
  AND TRY_CONVERT(INT,t.[year])=@Year
  AND TRY_CONVERT(INT,t.[month])=@Month
 WHERE TRY_CONVERT(INT,p.brnc_code)=@BranchCode
+  AND ISNULL(TRY_CONVERT(INT,p.[type]), 0) NOT IN (8, 9, 10)
 ORDER BY p.code;";
                     AddParameter(command, "@BranchCode", branchCode);
                     AddParameter(command, "@Year", year);
@@ -587,6 +589,7 @@ FROM dbo.PayMast p
 LEFT JOIN dbo.gradmast g
   ON TRY_CONVERT(INT,g.code)=TRY_CONVERT(INT,p.grad_Code)
 WHERE TRY_CONVERT(INT,p.brnc_code) IN (SELECT TRY_CONVERT(INT,value) FROM STRING_SPLIT(@Branches,','))
+  AND ISNULL(TRY_CONVERT(INT,p.[type]), 0) NOT IN (8, 9, 10)
 ORDER BY p.code;";
                     AddParameter(employeeCommand, "@Branches", selectedBranches);
 

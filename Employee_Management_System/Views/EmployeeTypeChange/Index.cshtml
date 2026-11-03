@@ -1,4 +1,4 @@
-﻿@model Employee_Management_System.Models.EmployeeTypeChangeViewModel
+﻿@* @model Employee_Management_System.Models.EmployeeTypeChangeViewModel
 
 @{
     ViewData["Title"] = "Change Employee Type";
@@ -32,13 +32,15 @@
                 </div>
             }
 
-            <form asp-controller="EmployeeTypeChange"
+            <form asp-controller="EmployeeType"
                   asp-action="Save"
                   method="post">
 
                 @Html.AntiForgeryToken()
 
                 <div class="row g-3">
+
+                    <!-- EMPLOYEE -->
 
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">
@@ -59,8 +61,11 @@
                                     @emp.EmpCode - @emp.EmployeeName
                                 </option>
                             }
+
                         </select>
                     </div>
+
+                    <!-- PREVIOUS TYPE -->
 
                     <div class="col-md-2">
                         <label class="form-label fw-semibold">
@@ -73,6 +78,8 @@
                                placeholder="Auto" />
                     </div>
 
+                    <!-- CHANGE TYPE -->
+
                     <div class="col-md-3">
                         <label asp-for="Change_Type"
                                class="form-label fw-semibold">
@@ -84,13 +91,17 @@
                                 required>
 
                             <option value="">-- Select Type --</option>
+                            <option value="1">Permanent</option>
+                            <option value="6">Contract</option>
+                            <option value="7">Temporary</option>
+                            <option value="8">Retirement</option>
+                            <option value="9">Suspend</option>
+                            <option value="10">Resign</option>
 
-                            @for (int i = 1; i <= 7; i++)
-                            {
-                                <option value="@i">Type @i</option>
-                            }
                         </select>
                     </div>
+
+                    <!-- EFFECT DATE -->
 
                     <div class="col-md-3">
                         <label asp-for="Effect_Date"
@@ -104,6 +115,8 @@
                                required />
                     </div>
 
+                    <!-- OPERATOR -->
+
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">
                             Operator Login Code
@@ -113,6 +126,8 @@
                                value="@Model.Operator"
                                readonly />
                     </div>
+
+                    <!-- SUPERVISOR -->
 
                     <div class="col-md-3">
                         <label asp-for="Supervisor"
@@ -126,6 +141,8 @@
                                maxlength="50"
                                required />
                     </div>
+
+                    <!-- BUTTONS -->
 
                     <div class="col-md-6 d-flex align-items-end justify-content-end">
 
@@ -150,7 +167,7 @@
     </div>
 
 
-    <!-- HISTORY -->
+    <!-- EMPLOYEE TYPE CHANGE HISTORY -->
 
     <div class="card shadow-sm border-0">
 
@@ -173,7 +190,6 @@
                 <table class="table table-bordered table-hover table-striped mb-0">
 
                     <thead class="table-dark">
-
                         <tr>
                             <th>Sr. No.</th>
                             <th>Effect Date</th>
@@ -184,7 +200,6 @@
                             <th>Operator</th>
                             <th>Supervisor</th>
                         </tr>
-
                     </thead>
 
                     <tbody>
@@ -206,18 +221,33 @@
                                     <td>@item.SrNum</td>
 
                                     <td>
-                                        @item.Effect_Date?.ToString("dd-MM-yyyy")
+                                        @item.Effect_Date.ToString("dd-MM-yyyy")
                                     </td>
 
                                     <td>@item.EmpCode</td>
 
                                     <td>@item.EmployeeName</td>
 
-                                    <td>@item.Previous_Type</td>
+                                    <td>
+                                        @GetEmployeeTypeName(item.Previous_Type)
+                                    </td>
 
                                     <td>
-                                        <span class="badge bg-primary">
-                                            @item.Change_Type
+                                        @{
+                                            string badgeClass = item.Change_Type switch
+                                            {
+                                                1 => "bg-primary",
+                                                6 => "bg-info text-dark",
+                                                7 => "bg-warning text-dark",
+                                                8 => "bg-success",
+                                                9 => "bg-danger",
+                                                10 => "bg-secondary",
+                                                _ => "bg-dark"
+                                            };
+                                        }
+
+                                        <span class="badge @badgeClass">
+                                            @GetEmployeeTypeName(item.Change_Type)
                                         </span>
                                     </td>
 
@@ -239,22 +269,95 @@
 
 </div>
 
+@functions {
+    public string GetEmployeeTypeName(int? typeCode)
+    {
+        return typeCode switch
+        {
+            1 => "Permanent",
+            6 => "Contract",
+            7 => "Temporary",
+            8 => "Retirement",
+            9 => "Suspend",
+            10 => "Resign",
+            null => "",
+            _ => typeCode.ToString() ?? ""
+        };
+    }
+}
 
 @section Scripts {
 
     <script>
 
+        // Employee Type Code to Name
+
+        function getEmployeeTypeName(typeCode) {
+
+            const typeNames = {
+                "1": "Permanent",
+                "6": "Contract",
+                "7": "Temporary",
+                "8": "Retirement",
+                "9": "Suspend",
+                "10": "Resign"
+            };
+
+            return typeNames[typeCode] || "";
+        }
+
+        // Previous Type Auto Display
+
+        function updatePreviousType() {
+
+            const employeeDropdown =
+                document.getElementById("EmpCode");
+
+            const previousType =
+                document.getElementById("PreviousTypeDisplay");
+
+            if (!employeeDropdown || !previousType) {
+                return;
+            }
+
+            const selectedOption =
+                employeeDropdown.options[employeeDropdown.selectedIndex];
+
+            if (!selectedOption || !selectedOption.value) {
+                previousType.value = "";
+                return;
+            }
+
+            const typeCode =
+                selectedOption.getAttribute("data-type");
+
+            previousType.value =
+                getEmployeeTypeName(typeCode);
+        }
+
+        // Employee Selection Change
+
         document.getElementById("EmpCode")
-            ?.addEventListener("change", function () {
+            .addEventListener("change", updatePreviousType);
 
-                const selected =
-                    this.options[this.selectedIndex];
+        // Clear Button Handling
 
-                document.getElementById("PreviousTypeDisplay").value =
-                    selected?.dataset?.type || "";
+        document.querySelector("form").addEventListener("reset", function () {
 
-            });
+            setTimeout(function () {
+
+                document.getElementById("PreviousTypeDisplay").value = "";
+
+            }, 0);
+
+        });
+
+        // Page Load
+
+        document.addEventListener("DOMContentLoaded", function () {
+            updatePreviousType();
+        });
 
     </script>
 
-}
+} *@

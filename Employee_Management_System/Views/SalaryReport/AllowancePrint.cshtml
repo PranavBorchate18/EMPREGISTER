@@ -4,7 +4,7 @@
     Layout = null;
 
     var names = ViewBag.ComponentNames as List<string> ?? new List<string>();
-    bool showBasic = ViewBag.ShowBasic is bool value && value;
+    bool showBasic = ViewBag.ShowBasic is bool showBasicFlag && showBasicFlag;
 }
 
 <!DOCTYPE html>
@@ -34,8 +34,8 @@
         }
 
         /* =========================================
-                   ALL TABLE HEADINGS + DATA CENTER
-                   ========================================= */
+                           ALL TABLE HEADINGS + DATA CENTER
+                           ========================================= */
         th,
         td {
             border: 1px solid #999;
@@ -303,7 +303,7 @@
                 @foreach (var n in names)
                 {
 
-                    double total =  
+                    double total =
                     Model.Sum(e =>
                     e.Allowances.TryGetValue(
                     n,

@@ -1,4 +1,5 @@
-﻿using Employee_Management_System.Data;
+﻿
+using Employee_Management_System.Data;
 using Employee_Management_System.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -31,6 +32,7 @@ namespace Employee_Management_System.Controllers
         // =========================================================
         // REGISTER - POST
         // NEW EMPLOYEE SAVE TO PAYMAST
+        // ALLOWED TYPES: 1, 6, 7
         // =========================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -116,6 +118,10 @@ namespace Employee_Management_System.Controllers
 
                 // =================================================
                 // EMPLOYEE TYPE
+                // REGISTRATION ALLOWS ONLY 1, 6, 7
+                // PERMANENT = 1
+                // CONTRACT  = 6
+                // TEMPORARY = 7
                 // =================================================
                 int? employeeType = null;
 
@@ -132,22 +138,41 @@ namespace Employee_Management_System.Controllers
                 {
                     if (int.TryParse(employeeTypeText, out int parsedType))
                     {
-                        employeeType = parsedType;
+                        if (parsedType == 1 ||
+                            parsedType == 6 ||
+                            parsedType == 7)
+                        {
+                            employeeType = parsedType;
+                        }
+                        else
+                        {
+                            ModelState.AddModelError(
+                                "",
+                                "Only Permanent, Contract and Temporary employee types are allowed."
+                            );
+                        }
                     }
                     else
                     {
-                        switch (employeeTypeText.Trim().ToLower())
+                        switch (employeeTypeText.Trim().ToLowerInvariant())
                         {
                             case "permanent":
                                 employeeType = 1;
+                                break;
+
+                            case "contract":
+                                employeeType = 6;
                                 break;
 
                             case "temporary":
                                 employeeType = 7;
                                 break;
 
-                            case "contract":
-                                employeeType = 6;
+                            default:
+                                ModelState.AddModelError(
+                                    "",
+                                    "Invalid Employee Type selected."
+                                );
                                 break;
                         }
                     }
@@ -800,6 +825,7 @@ namespace Employee_Management_System.Controllers
                 );
             }
         }
+
         // =========================================================
         // SEARCH EXISTING EMPLOYEES FROM PAYMAST
         // =========================================================
@@ -819,7 +845,6 @@ namespace Employee_Management_System.Controllers
                 searchText =
                     (searchText ?? "")
                         .Trim();
-
 
                 // =================================================
                 // INITIAL LOAD - LATEST 20
@@ -845,7 +870,6 @@ namespace Employee_Management_System.Controllers
                             .Take(20)
                             .ToListAsync();
 
-
                     return Json(new
                     {
                         success = true,
@@ -853,7 +877,6 @@ namespace Employee_Management_System.Controllers
                         data = latestEmployees
                     });
                 }
-
 
                 // =================================================
                 // SEARCH BY EMPLOYEE CODE
@@ -871,7 +894,6 @@ namespace Employee_Management_System.Controllers
                                 "Please enter a valid Employee Code."
                         });
                     }
-
 
                     var employees =
                         await _context.PayMasts
@@ -894,14 +916,12 @@ namespace Employee_Management_System.Controllers
                             .Take(50)
                             .ToListAsync();
 
-
                     return Json(new
                     {
                         success = true,
                         data = employees
                     });
                 }
-
 
                 // =================================================
                 // SEARCH BY EMPLOYEE NAME
@@ -937,14 +957,12 @@ namespace Employee_Management_System.Controllers
                             .Take(50)
                             .ToListAsync();
 
-
                     return Json(new
                     {
                         success = true,
                         data = employees
                     });
                 }
-
 
                 return Json(new
                 {
@@ -968,7 +986,6 @@ namespace Employee_Management_System.Controllers
             }
         }
 
-
         // =========================================================
         // GET EXISTING EMPLOYEE FROM PAYMAST
         // =========================================================
@@ -988,7 +1005,6 @@ namespace Employee_Management_System.Controllers
                                 employeeCode
                         );
 
-
                 if (payMast == null)
                 {
                     return Json(new
@@ -998,7 +1014,6 @@ namespace Employee_Management_System.Controllers
                             "Employee was not found in PayMast."
                     });
                 }
-
 
                 // =================================================
                 // RELIGION NAME
@@ -1022,7 +1037,6 @@ namespace Employee_Management_System.Controllers
                         ?? "";
                 }
 
-
                 // =================================================
                 // CASTE NAME
                 // =================================================
@@ -1034,7 +1048,6 @@ namespace Employee_Management_System.Controllers
                         Convert.ToDecimal(
                             payMast.CasteId.Value
                         );
-
 
                     casteName =
                         await _context.Castes
@@ -1050,7 +1063,6 @@ namespace Employee_Management_System.Controllers
                             .FirstOrDefaultAsync()
                         ?? "";
                 }
-
 
                 return Json(new
                 {
@@ -1209,11 +1221,13 @@ namespace Employee_Management_System.Controllers
                 );
             }
         }
+
         // =========================================================
         // UPDATE EXISTING EMPLOYEE
         // TARGET = PAYMAST
+        // REGULAR UPDATE ALLOWS ONLY 1, 6, 7
+        // SPECIAL TYPES 8, 9, 10 ARE PRESERVED
         // =========================================================
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateEmployee(
@@ -1226,7 +1240,6 @@ namespace Employee_Management_System.Controllers
                 // =================================================
                 // EMPLOYEE CODE
                 // =================================================
-
                 int employeeCode = 0;
 
                 if (existingEmployeeCode.HasValue)
@@ -1246,7 +1259,6 @@ namespace Employee_Management_System.Controllers
                     );
                 }
 
-
                 if (employeeCode <= 0)
                 {
                     ModelState.AddModelError(
@@ -1262,11 +1274,9 @@ namespace Employee_Management_System.Controllers
                     );
                 }
 
-
                 // =================================================
                 // FIND EXISTING EMPLOYEE
                 // =================================================
-
                 var existingEmployee =
                     await _context.PayMasts
                         .FirstOrDefaultAsync(
@@ -1274,7 +1284,6 @@ namespace Employee_Management_System.Controllers
                                 x.EmployeeCode ==
                                 employeeCode
                         );
-
 
                 if (existingEmployee == null)
                 {
@@ -1290,7 +1299,6 @@ namespace Employee_Management_System.Controllers
                         employee
                     );
                 }
-
 
                 if (
                     string.IsNullOrWhiteSpace(
@@ -1311,11 +1319,9 @@ namespace Employee_Management_System.Controllers
                     );
                 }
 
-
                 // =================================================
                 // DATE RULES (Joining Date based)
                 // =================================================
-
                 if (!ValidateEmployeeDates(employee))
                 {
                     await LoadDropdown();
@@ -1326,88 +1332,100 @@ namespace Employee_Management_System.Controllers
                     );
                 }
 
-
                 // =================================================
                 // READ FORM
                 // =================================================
-
                 var updateForm =
                     await Request.ReadFormAsync();
 
-
                 // =================================================
                 // EMPLOYEE TYPE
+                // REGULAR UPDATE ALLOWS ONLY 1, 6, 7
+                // EXISTING SPECIAL TYPE 8, 9, 10 IS PRESERVED
                 // =================================================
-
                 int? employeeType =
                     existingEmployee.EmployeeType;
 
-                string? employeeTypeText =
-                    GetFirstNonEmpty(
-                        updateForm,
-                        "EmployeeType",
-                        "employeeType",
-                        "Type",
-                        "type",
-                        "HiddenEmployeeType"
-                    );
-
-
-                if (string.IsNullOrWhiteSpace(employeeTypeText))
+                if (employeeType != 8 &&
+                    employeeType != 9 &&
+                    employeeType != 10)
                 {
-                    employeeTypeText =
-                        employee.EmployeeType;
-                }
+                    string? employeeTypeText =
+                        GetFirstNonEmpty(
+                            updateForm,
+                            "EmployeeType",
+                            "employeeType",
+                            "Type",
+                            "type",
+                            "HiddenEmployeeType"
+                        );
 
-
-                if (!string.IsNullOrWhiteSpace(employeeTypeText))
-                {
-                    if (
-                        int.TryParse(
-                            employeeTypeText,
-                            out int typeValue
-                        )
-                    )
+                    if (string.IsNullOrWhiteSpace(employeeTypeText))
                     {
-                        employeeType =
-                            typeValue;
+                        employeeTypeText =
+                            employee.EmployeeType;
                     }
-                    else
+
+                    if (!string.IsNullOrWhiteSpace(employeeTypeText))
                     {
-                        switch (
-                            employeeTypeText
-                                .Trim()
-                                .ToLower()
-                        )
+                        if (int.TryParse(
+                            employeeTypeText,
+                            out int typeValue))
                         {
-                            case "permanent":
+                            if (typeValue == 1 ||
+                                typeValue == 6 ||
+                                typeValue == 7)
+                            {
+                                employeeType = typeValue;
+                            }
+                            else
+                            {
+                                ModelState.AddModelError(
+                                    "",
+                                    "Only Permanent, Contract and Temporary employee types can be selected here."
+                                );
+                            }
+                        }
+                        else
+                        {
+                            switch (employeeTypeText.Trim().ToLowerInvariant())
+                            {
+                                case "permanent":
+                                    employeeType = 1;
+                                    break;
 
-                                employeeType = 1;
+                                case "contract":
+                                    employeeType = 6;
+                                    break;
 
-                                break;
+                                case "temporary":
+                                    employeeType = 7;
+                                    break;
 
-
-                            case "temporary":
-
-                                employeeType = 2;
-
-                                break;
-
-
-                            case "contract":
-
-                                employeeType = 3;
-
-                                break;
+                                default:
+                                    ModelState.AddModelError(
+                                        "",
+                                        "Invalid Employee Type selected."
+                                    );
+                                    break;
+                            }
                         }
                     }
                 }
 
+                if (!ModelState.IsValid)
+                {
+                    await LoadDropdown();
+
+                    return View(
+                        "Register",
+                        employee
+                    );
+                }
 
                 // =================================================
                 // CUSTOMER ID
                 // =================================================
-
                 decimal? customerId =
                     existingEmployee.CustomerId;
 
@@ -1418,13 +1436,11 @@ namespace Employee_Management_System.Controllers
                         "HiddenCustomerId"
                     );
 
-
                 if (string.IsNullOrWhiteSpace(customerText))
                 {
                     customerText =
                         employee.CustomerId;
                 }
-
 
                 if (
                     !string.IsNullOrWhiteSpace(customerText) &&
@@ -1440,11 +1456,9 @@ namespace Employee_Management_System.Controllers
                         customerValue;
                 }
 
-
                 // =================================================
                 // RELIGION
                 // =================================================
-
                 decimal? religionCode =
                     existingEmployee.Religion;
 
@@ -1455,13 +1469,11 @@ namespace Employee_Management_System.Controllers
                         "ReligionId"
                     );
 
-
                 if (string.IsNullOrWhiteSpace(religionText))
                 {
                     religionText =
                         employee.Religion;
                 }
-
 
                 if (
                     !string.IsNullOrWhiteSpace(religionText) &&
@@ -1477,11 +1489,9 @@ namespace Employee_Management_System.Controllers
                         religionValue;
                 }
 
-
                 // =================================================
                 // CASTE
                 // =================================================
-
                 int? casteCode =
                     existingEmployee.CasteId;
 
@@ -1492,13 +1502,11 @@ namespace Employee_Management_System.Controllers
                         "CasteId"
                     );
 
-
                 if (string.IsNullOrWhiteSpace(casteText))
                 {
                     casteText =
                         employee.Caste;
                 }
-
 
                 if (
                     !string.IsNullOrWhiteSpace(casteText) &&
@@ -1514,11 +1522,9 @@ namespace Employee_Management_System.Controllers
                         casteValue;
                 }
 
-
                 // =================================================
                 // GENDER
                 // =================================================
-
                 string? genderCode =
                     existingEmployee.Sex;
 
@@ -1526,7 +1532,6 @@ namespace Employee_Management_System.Controllers
                 {
                     string gender =
                         employee.Gender.Trim();
-
 
                     if (
                         gender.Equals(
@@ -1558,18 +1563,15 @@ namespace Employee_Management_System.Controllers
                     }
                 }
 
-
                 // =================================================
                 // MOTHER TONGUE
                 // =================================================
-
                 string? motherTongue =
                     string.IsNullOrWhiteSpace(
                         employee.MotherTongue
                     )
                         ? null
                         : employee.MotherTongue.Trim();
-
 
                 if (
                     string.Equals(
@@ -1583,7 +1585,6 @@ namespace Employee_Management_System.Controllers
                         null;
                 }
 
-
                 if (
                     motherTongue != null &&
                     motherTongue.Length > 10
@@ -1594,9 +1595,7 @@ namespace Employee_Management_System.Controllers
                         "Mother Tongue can contain maximum 10 characters."
                     );
 
-
                     await LoadDropdown();
-
 
                     return View(
                         "Register",
@@ -1604,12 +1603,10 @@ namespace Employee_Management_System.Controllers
                     );
                 }
 
-
                 // =================================================
                 // UPDATE PAYMAST RECORD
                 // EMPLOYEE CODE DOES NOT CHANGE
                 // =================================================
-
                 existingEmployee.CustomerId =
                     customerId;
 
@@ -1697,11 +1694,9 @@ namespace Employee_Management_System.Controllers
                         ? aadhaar
                         : null;
 
-
                 // =================================================
                 // ADDRESS INFORMATION
                 // =================================================
-
                 existingEmployee.CorrespondenceAddress1 =
                     employee.CorrespondenceAddress1;
 
@@ -1717,22 +1712,18 @@ namespace Employee_Management_System.Controllers
                 existingEmployee.FatherName =
                     employee.FatherName;
 
-
                 // =================================================
                 // RELIGION / CASTE
                 // =================================================
-
                 existingEmployee.Religion =
                     religionCode;
 
                 existingEmployee.CasteId =
                     casteCode;
 
-
                 // =================================================
                 // PERSONAL INFORMATION
                 // =================================================
-
                 existingEmployee.Sex =
                     genderCode;
 
@@ -1760,18 +1751,14 @@ namespace Employee_Management_System.Controllers
                 existingEmployee.ModeOfSign =
                     employee.ModeOfSign;
 
-
                 // =================================================
                 // SAVE UPDATE TO PAYMAST
                 // =================================================
-
                 await _context.SaveChangesAsync();
-
 
                 // =================================================
                 // UPDATE SUCCESS POPUP
                 // =================================================
-
                 TempData["UpdateSuccess"] =
                     "true";
 
@@ -1782,7 +1769,6 @@ namespace Employee_Management_System.Controllers
                 TempData["UpdatedEmployeeCode"] =
                     existingEmployee.EmployeeCode
                         .ToString();
-
 
                 return RedirectToAction(
                     nameof(Register)
@@ -1795,16 +1781,13 @@ namespace Employee_Management_System.Controllers
                     ??
                     ex.Message;
 
-
                 ModelState.AddModelError(
                     "",
                     "Database update error: " +
                     errorMessage
                 );
 
-
                 await LoadDropdown();
-
 
                 return View(
                     "Register",
@@ -1819,9 +1802,7 @@ namespace Employee_Management_System.Controllers
                     ex.Message
                 );
 
-
                 await LoadDropdown();
-
 
                 return View(
                     "Register",
@@ -1830,11 +1811,9 @@ namespace Employee_Management_System.Controllers
             }
         }
 
-
         // =========================================================
         // GET RELIGION NAME
         // =========================================================
-
         [HttpGet]
         public async Task<IActionResult> GetReligionName(
             decimal? code
@@ -1849,7 +1828,6 @@ namespace Employee_Management_System.Controllers
                 });
             }
 
-
             var religion =
                 await _context.Religions
                     .AsNoTracking()
@@ -1859,7 +1837,6 @@ namespace Employee_Management_System.Controllers
                             code.Value
                     );
 
-
             if (religion == null)
             {
                 return Json(new
@@ -1868,7 +1845,6 @@ namespace Employee_Management_System.Controllers
                         false
                 });
             }
-
 
             return Json(new
             {
@@ -1883,11 +1859,9 @@ namespace Employee_Management_System.Controllers
             });
         }
 
-
         // =========================================================
         // GET CASTE NAME
         // =========================================================
-
         [HttpGet]
         public async Task<IActionResult> GetCasteName(
             decimal? code
@@ -1902,7 +1876,6 @@ namespace Employee_Management_System.Controllers
                 });
             }
 
-
             var caste =
                 await _context.Castes
                     .AsNoTracking()
@@ -1912,7 +1885,6 @@ namespace Employee_Management_System.Controllers
                             code.Value
                     );
 
-
             if (caste == null)
             {
                 return Json(new
@@ -1921,7 +1893,6 @@ namespace Employee_Management_System.Controllers
                         false
                 });
             }
-
 
             return Json(new
             {
@@ -1936,11 +1907,9 @@ namespace Employee_Management_System.Controllers
             });
         }
 
-
         // =========================================================
         // SEARCH RELIGION
         // =========================================================
-
         [HttpGet]
         public async Task<IActionResult> SearchReligion(
             string? term
@@ -1949,7 +1918,6 @@ namespace Employee_Management_System.Controllers
             var query =
                 _context.Religions
                     .AsNoTracking();
-
 
             if (!string.IsNullOrWhiteSpace(term))
             {
@@ -1962,7 +1930,6 @@ namespace Employee_Management_System.Controllers
                             )
                     );
             }
-
 
             var result =
                 await query
@@ -1984,15 +1951,12 @@ namespace Employee_Management_System.Controllers
                     .Take(100)
                     .ToListAsync();
 
-
             return Json(result);
         }
-
 
         // =========================================================
         // LOAD DROPDOWNS
         // =========================================================
-
         private async Task LoadDropdown()
         {
             // Grade
@@ -2011,7 +1975,6 @@ namespace Employee_Management_System.Controllers
                     "GradeName"
                 );
 
-
             // Section
             ViewBag.Sections =
                 new SelectList(
@@ -2027,7 +1990,6 @@ namespace Employee_Management_System.Controllers
 
                     "SectionName"
                 );
-
 
             // Branch
             ViewBag.Branches =
@@ -2045,7 +2007,6 @@ namespace Employee_Management_System.Controllers
                     "BranchName"
                 );
 
-
             // Caste
             ViewBag.Castes =
                 await _context.Castes
@@ -2055,7 +2016,6 @@ namespace Employee_Management_System.Controllers
                             x.Code
                     )
                     .ToListAsync();
-
 
             // Religion
             ViewBag.Religions =
@@ -2068,11 +2028,9 @@ namespace Employee_Management_System.Controllers
                     .ToListAsync();
         }
 
-
         // =========================================================
         // GET FIRST NON EMPTY FORM VALUE
         // =========================================================
-
         private static string? GetFirstNonEmpty(
             IFormCollection form,
             params string[] names
@@ -2096,7 +2054,6 @@ namespace Employee_Management_System.Controllers
                 }
             }
 
-
             return null;
         }
 
@@ -2104,7 +2061,6 @@ namespace Employee_Management_System.Controllers
         // DATE RULES (compared with Joining Date)
         // Permanent / Last Salary / Last Increment : not before Joining Date
         // Retirement                                : must be after Joining Date
-        // Returns false when any rule is broken (errors added to ModelState)
         // =====================================================
         private bool ValidateEmployeeDates(Employee employee)
         {
