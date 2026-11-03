@@ -57,6 +57,7 @@ namespace Employee_Management_System.Services
                     ex is not OperationCanceledException)
                 {
                     _logger.LogWarning(
+                        ex,
                         "Invalid protected URL token.");
 
                     context.Response.StatusCode =
@@ -169,7 +170,7 @@ namespace Employee_Management_System.Services
                     "/Home/Error",
                     StringComparison.OrdinalIgnoreCase) ||
 
-                // AJAX endpoints
+                // Account AJAX endpoints
                 path.Equals(
                     "/Account/ClaimTab",
                     StringComparison.OrdinalIgnoreCase) ||
@@ -180,6 +181,19 @@ namespace Employee_Management_System.Services
 
                 path.Equals(
                     "/Account/TransferTab",
+                    StringComparison.OrdinalIgnoreCase) ||
+
+                // House Keeping AJAX endpoints
+                path.Equals(
+                    "/HouseKeeping/GetBranches",
+                    StringComparison.OrdinalIgnoreCase) ||
+
+                path.Equals(
+                    "/HouseKeeping/RemoveBranch",
+                    StringComparison.OrdinalIgnoreCase) ||
+
+                path.Equals(
+                    "/HouseKeeping/RemoveAll",
                     StringComparison.OrdinalIgnoreCase) ||
 
                 // Root

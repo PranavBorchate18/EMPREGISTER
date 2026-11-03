@@ -240,6 +240,17 @@
                 </a>
             </li>
 
+            <!-- House Keeping -->
+            <li class="nav-item">
+                <a class="nav-link @(IsControllerActive("HouseKeeping") ? "active" : "")"
+                   asp-controller="HouseKeeping"
+                   asp-action="Index">
+
+                    <i class="bi bi-trash3 me-2"></i>
+                    <span>House Keeping</span>
+                </a>
+            </li>
+
             <!-- Change Employee Type -->
             <li class="nav-item">
                 <a class="nav-link @(IsControllerActive("EmployeeType") ? "active" : "")"

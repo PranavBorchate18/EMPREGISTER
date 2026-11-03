@@ -1,3 +1,4 @@
+
 using Employee_Management_System.Data;
 using Employee_Management_System.Services;
 using Microsoft.EntityFrameworkCore;
@@ -97,8 +98,8 @@ app.Use(async (context, next) =>
     // must be allowed without a selected organisation as well.
     if (path.Value == "/" ||
         path.StartsWithSegments(
-        "/Organisation",
-        StringComparison.OrdinalIgnoreCase))
+            "/Organisation",
+            StringComparison.OrdinalIgnoreCase))
     {
         await next();
         return;
@@ -132,12 +133,15 @@ app.Use(async (context, next) =>
         return;
     }
 
-    // Login and Logout Pages
+    // Login, Logout and Takeover Pages
     if (path.StartsWithSegments(
             "/Account/Login",
             StringComparison.OrdinalIgnoreCase) ||
         path.StartsWithSegments(
             "/Account/Logout",
+            StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWithSegments(
+            "/Account/ConfirmTakeover",
             StringComparison.OrdinalIgnoreCase))
     {
         await next();
