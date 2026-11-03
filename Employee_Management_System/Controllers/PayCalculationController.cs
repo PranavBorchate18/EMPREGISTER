@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Employee_Management_System.Controllers
@@ -497,7 +498,7 @@ WHERE TRY_CONVERT(INT,t.[year])=@Year AND TRY_CONVERT(INT,t.[month])=@Month
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SavePayCalculation(int year, int month, string branchCodes, bool forceSave = false)
+        public async Task<IActionResult> SavePayCalculation(int year, int month, string branchCodes, bool forceSave = false, string? overrides = null)
         {
             if (!IsLoggedIn())
                 return Json(new { success = false, sessionExpired = true, message = "Login session expired." });
@@ -618,6 +619,10 @@ ORDER BY p.code;";
                 if (employees.Count == 0)
                     return Json(new { success = false, message = "No employees found for the selected branches." });
 
+                // Values edited manually (double-click) on the Pay Calculation screen.
+                // Basic is never overridden. Only whitelisted components of selected employees are accepted.
+                var manualOverrides = ParseManualOverrides(overrides, employees.Select(x => x.EmployeeCode).ToHashSet());
+
                 double professionalTaxThreshold = await LoadProfessionalTax();
 
                 foreach (var employee in employees)
@@ -644,6 +649,10 @@ ORDER BY p.code;";
                     RemoveContractHra(employee);
                     SetProfessionalTax(employee, month);
                     RecalculateSavedPayrollTotals(employee);
+
+                    // Apply manual edits LAST so they win over calculated values,
+                    // then recompute Sub Total / Gross / Total Deduction / Net.
+                    ApplyManualOverrides(employee, manualOverrides);
 
                     // Statutory tax is handled separately from ordinary configured deductions.
 
@@ -744,6 +753,9 @@ VALUES
 
                     // Save allowance/deduction details in dbo.paytrnft.
                     await SavePayTrnFoot(connection, transaction, year, month, employee, employeeType, monthStart, monthEnd);
+
+                    // Edited Adv / Loan / TDS must reach dbo.paytrnft even when not assigned in payfoot.
+                    await SaveOverriddenDeductionRows(connection, transaction, year, month, employee, employeeType, manualOverrides);
                 }
 
                 await transaction.CommitAsync();
@@ -772,6 +784,95 @@ VALUES
 
                 if (close && connection.State == ConnectionState.Open)
                     await connection.CloseAsync();
+            }
+        }
+
+        // ---------- Manual (double-click) edits from the Pay Calculation grid ----------
+        // JSON key -> (is allowance, component name aliases). Basic is intentionally NOT editable.
+        private static readonly Dictionary<string, (bool IsAllowance, string[] Aliases)> ManualComponents =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["fda1"] = (true, new[] { "Fda", "FDA 1", "FDA1" }),
+                ["fda2"] = (true, new[] { "Fdaa", "FDA 2", "FDA2" }),
+                ["vda"] = (true, new[] { "vda", "VDA" }),
+                ["hra"] = (true, new[] { "HRA" }),
+                ["cashAllowance"] = (true, new[] { "Cash A", "Cash Allowance" }),
+                ["sroAllowance"] = (true, new[] { "SRO A", "SRO Allowance" }),
+                ["specialPay"] = (true, new[] { "SP", "Special Pay" }),
+                ["providentFund"] = (false, new[] { "Provident Fund", "PF" }),
+                ["advance"] = (false, new[] { "Advance", "Adv" }),
+                ["loan"] = (false, new[] { "Loan" }),
+                ["tds"] = (false, new[] { "Tax Deducted at Source", "TDS" }),
+                ["professionalTax"] = (false, new[] { "Professional Tax", "PT" })
+            };
+
+        private static Dictionary<int, Dictionary<string, double>> ParseManualOverrides(
+            string? json, ICollection<int> validEmployees)
+        {
+            var result = new Dictionary<int, Dictionary<string, double>>();
+            if (string.IsNullOrWhiteSpace(json)) return result;
+
+            var parsed = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, double>>>(json);
+            if (parsed == null) return result;
+
+            foreach (var employee in parsed)
+            {
+                if (!int.TryParse(employee.Key, out int code) || !validEmployees.Contains(code)) continue;
+                var clean = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                foreach (var component in employee.Value)
+                {
+                    if (!ManualComponents.ContainsKey(component.Key)) continue;
+                    if (double.IsNaN(component.Value) || double.IsInfinity(component.Value) ||
+                        component.Value < 0 || component.Value > 99999999) continue;
+                    clean[component.Key] = Math.Round(component.Value, 0, MidpointRounding.AwayFromZero);
+                }
+                if (clean.Count > 0) result[code] = clean;
+            }
+            return result;
+        }
+
+        private static void ApplyManualOverrides(EmployeeSalaryRowViewModel employee,
+            Dictionary<int, Dictionary<string, double>> all)
+        {
+            if (!all.TryGetValue(employee.EmployeeCode, out var edits)) return;
+            foreach (var edit in edits)
+            {
+                var spec = ManualComponents[edit.Key];
+                SetComponent(spec.IsAllowance ? employee.Allowances : employee.Deductions, edit.Value, spec.Aliases);
+            }
+            RecalculateSavedPayrollTotals(employee);
+        }
+
+        private async Task SaveOverriddenDeductionRows(DbConnection connection, DbTransaction transaction,
+            int year, int month, EmployeeSalaryRowViewModel employee, int employeeType,
+            Dictionary<int, Dictionary<string, double>> all)
+        {
+            if (!all.TryGetValue(employee.EmployeeCode, out var edits)) return;
+
+            foreach (var key in new[] { "advance", "loan", "tds" })
+            {
+                if (!edits.ContainsKey(key)) continue;
+                var spec = ManualComponents[key];
+
+                int? componentCode = null;
+                using (var lookup = connection.CreateCommand())
+                {
+                    lookup.Transaction = transaction;
+                    lookup.CommandText = @"
+SELECT TOP 1 TRY_CONVERT(INT,code)
+FROM dbo.dedumast
+WHERE UPPER(LTRIM(RTRIM(ISNULL(name,'')))) IN
+      (SELECT UPPER(LTRIM(RTRIM(value))) FROM STRING_SPLIT(@Names,'|'))
+ORDER BY TRY_CONVERT(INT,code);";
+                    AddParameter(lookup, "@Names", string.Join("|", spec.Aliases));
+                    var result = await lookup.ExecuteScalarAsync();
+                    if (result != null && result != DBNull.Value) componentCode = Convert.ToInt32(result);
+                }
+                if (!componentCode.HasValue) continue;
+
+                // InsertPayTrnFootRow is an upsert, so this safely updates an existing row.
+                await InsertPayTrnFootRow(connection, transaction, year, month, employee.EmployeeCode,
+                    2, employeeType, componentCode.Value, FindComponentAmount(employee.Deductions, spec.Aliases));
             }
         }
 

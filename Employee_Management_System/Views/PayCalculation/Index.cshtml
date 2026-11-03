@@ -75,6 +75,31 @@
         margin-top: 8px;
         margin-bottom: 8px;
     }
+
+    #payTable td.editable-cell {
+        cursor: cell;
+        user-select: none;
+    }
+
+        #payTable td.editable-cell:hover {
+            background: #eef5ff;
+            outline: 1px dashed #0d6efd;
+            outline-offset: -2px;
+        }
+
+    #payTable td.cell-edited {
+        background: #fff6cc;
+        font-weight: 600;
+    }
+
+    #payTable td.cell-editing {
+        padding: 3px !important;
+    }
+
+    #payTable .cell-input {
+        min-width: 84px;
+        width: 96px;
+    }
 </style>
 
 @Html.AntiForgeryToken()
@@ -201,7 +226,7 @@
         <div class="card-header bg-light">
             <div class="d-flex justify-content-between align-items-center">
                 <strong class="text-primary"><i class="bi bi-cash-stack me-2"></i>Salary Calculation - <span id="selectedBranch"></span><span id="selectedPeriod"></span></strong>
-                <span id="recordCount">Total Employees: 0</span>
+                <span><span class="small text-muted me-3"><i class="bi bi-pencil-square me-1"></i>Double-click a value to edit (Basic cannot be edited)</span><span id="recordCount">Total Employees: 0</span></span>
             </div>
         </div>
         <div id="messageBox" class="alert alert-info m-3 d-none"></div>
@@ -241,344 +266,349 @@
 
 @section Scripts {
     <script>
-                        $(function () {
-                             let calculationStarted = false;
-                             // Exit protection: enabled after Start Calculation, cleared after successful Save.
-                             let hasUnsavedPayroll = false;
-                             let exitApproved = false;
+                                $(function () {
+                                     let calculationStarted = false;
+                                     // Exit protection: enabled after Start Calculation, cleared after successful Save.
+                                     let hasUnsavedPayroll = false;
+                                     let exitApproved = false;
 
-                             window.addEventListener("beforeunload", function (event) {
-                                 if (!hasUnsavedPayroll || exitApproved) return;
-                                 event.preventDefault();
-                                 event.returnValue = "";
-                             });
-
-                             // Covers navigation links in the sidebar and navbar.
-                             $(document).on("click", "a[href]", function (event) {
-                                 if (!hasUnsavedPayroll || exitApproved || event.isDefaultPrevented() ||
-                                     event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
-                                     event.which === 2) return;
-
-                                 const link = this;
-                                 const href = link.getAttribute("href");
-                                 if (!href || href === "#" || href.toLowerCase().startsWith("javascript:") ||
-                                     link.hasAttribute("download") || link.getAttribute("target") === "_blank") return;
-
-                                 let destination;
-                                 try { destination = new URL(link.href, window.location.href); }
-                                 catch { return; }
-                                 if (destination.href === window.location.href ||
-                                     (destination.pathname === window.location.pathname &&
-                                      destination.search === window.location.search && destination.hash)) return;
-
-                                 event.preventDefault();
-                                 event.stopImmediatePropagation();
-                                 showPayrollDialog(
-                                     "Unsaved Pay Calculation",
-                                     "Are you sure you want to leave this page?\\n\\nPay Calculation data has not been saved yet. If you leave this page, your unsaved calculation will be lost.",
-                                     [
-                                         { label: "No, Stay Here", className: "btn-outline-secondary" },
-                                         { label: "Yes, Exit", className: "btn-danger", onClick: function () {
-                                             exitApproved = true;
-                                             window.location.assign(destination.href);
-                                         }}
-                                     ],
-                                     "bi-exclamation-triangle-fill text-warning"
-                                 );
-                             });
-
-                             let replaceExistingMonth = false;
-                             let pendingBranchRecalculate = false;
-                             let approvedYear = 0;
-                             let approvedMonth = 0;
-                             let approvedBranchCodes = [];
-                            let selectedBranchCode = 0;
-                            let selectedBranchName = "";
-                             // Bootstrap 5 modal: no browser alert/confirm for payroll workflow.
-                             const payrollModalElement = document.getElementById("payrollDialog");
-                             const payrollModal = bootstrap.Modal.getOrCreateInstance(payrollModalElement);
-                             function showPayrollDialog(heading, message, actions, iconClass = "bi-info-circle-fill text-primary") {
-                                 $("#payrollDialogHeading").text(heading);
-                                 $("#payrollDialogMessage").text(message);
-                                 $("#payrollDialogIcon").attr("class", "bi fs-2 " + iconClass);
-                                 const footer = $("#payrollDialogActions").empty();
-                                 actions.forEach(action => {
-                                     const button = $("<button/>", { type: "button", class: "btn " + (action.className || "btn-primary"), text: action.label });
-                                     button.on("click", function () {
-                                         if (action.onClick) {
-                                             $(payrollModalElement).one("hidden.bs.modal", action.onClick);
-                                         }
-                                         payrollModal.hide();
+                                     window.addEventListener("beforeunload", function (event) {
+                                         if (!hasUnsavedPayroll || exitApproved) return;
+                                         event.preventDefault();
+                                         event.returnValue = "";
                                      });
-                                     footer.append(button);
-                                 });
-                                 payrollModal.show();
-                             }
-                             function calculationApproved(year, month) {
-                                  hasUnsavedPayroll = true;
-                                 calculationStarted = true;
-                                 approvedYear = year;
-                                 approvedMonth = month;
-                                 approvedBranchCodes = selectedBranchCodes();
-                                 displayApprovedBranches();
-                                 showPayrollDialog("Calculation Ready",
-                                     "Select a branch, review the salary values and click Save Pay Calculation.\n\nNo payroll data has been changed yet.",
-                                     [{ label: "Continue", className: "btn-primary", onClick: function () {
+
+                                     // Covers navigation links in the sidebar and navbar.
+                                     $(document).on("click", "a[href]", function (event) {
+                                         if (!hasUnsavedPayroll || exitApproved || event.isDefaultPrevented() ||
+                                             event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
+                                             event.which === 2) return;
+
+                                         const link = this;
+                                         const href = link.getAttribute("href");
+                                         if (!href || href === "#" || href.toLowerCase().startsWith("javascript:") ||
+                                             link.hasAttribute("download") || link.getAttribute("target") === "_blank") return;
+
+                                         let destination;
+                                         try { destination = new URL(link.href, window.location.href); }
+                                         catch { return; }
+                                         if (destination.href === window.location.href ||
+                                             (destination.pathname === window.location.pathname &&
+                                              destination.search === window.location.search && destination.hash)) return;
+
+                                         event.preventDefault();
+                                         event.stopImmediatePropagation();
+                                         showPayrollDialog(
+                                             "Unsaved Pay Calculation",
+                                             "Are you sure you want to leave this page?\\n\\nPay Calculation data has not been saved yet. If you leave this page, your unsaved calculation will be lost.",
+                                             [
+                                                 { label: "No, Stay Here", className: "btn-outline-secondary" },
+                                                 { label: "Yes, Exit", className: "btn-danger", onClick: function () {
+                                                     exitApproved = true;
+                                                     window.location.assign(destination.href);
+                                                 }}
+                                             ],
+                                             "bi-exclamation-triangle-fill text-warning"
+                                         );
+                                     });
+
+                                     let replaceExistingMonth = false;
+                                     let pendingBranchRecalculate = false;
+                                     let approvedYear = 0;
+                                     let approvedMonth = 0;
+                                     let approvedBranchCodes = [];
+                                    let selectedBranchCode = 0;
+                                    let selectedBranchName = "";
+                                    // Manual edits: { employeeCode: { componentKey: amount } }. Sent to the server on Save.
+                                    let payOverrides = {};
+                                    let branchItemsCache = {};   // branchCode -> loaded employee rows
+                                    let currentItems = [];       // rows of the branch table currently shown
+                                     // Bootstrap 5 modal: no browser alert/confirm for payroll workflow.
+                                     const payrollModalElement = document.getElementById("payrollDialog");
+                                     const payrollModal = bootstrap.Modal.getOrCreateInstance(payrollModalElement);
+                                     function showPayrollDialog(heading, message, actions, iconClass = "bi-info-circle-fill text-primary") {
+                                         $("#payrollDialogHeading").text(heading);
+                                         $("#payrollDialogMessage").text(message);
+                                         $("#payrollDialogIcon").attr("class", "bi fs-2 " + iconClass);
+                                         const footer = $("#payrollDialogActions").empty();
+                                         actions.forEach(action => {
+                                             const button = $("<button/>", { type: "button", class: "btn " + (action.className || "btn-primary"), text: action.label });
+                                             button.on("click", function () {
+                                                 if (action.onClick) {
+                                                     $(payrollModalElement).one("hidden.bs.modal", action.onClick);
+                                                 }
+                                                 payrollModal.hide();
+                                             });
+                                             footer.append(button);
+                                         });
+                                         payrollModal.show();
+                                     }
+                                     function calculationApproved(year, month) {
+                                          hasUnsavedPayroll = true;
+                                         calculationStarted = true;
+                                         approvedYear = year;
+                                         approvedMonth = month;
+                                         approvedBranchCodes = selectedBranchCodes();
                                          displayApprovedBranches();
-                                         document.getElementById("branchListSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                                     } }], "bi-check-circle-fill text-success");
-                             }
-                            const esc = v => $("<div>").text(v ?? "").html();
-                            const money = v => {
-                                let n = Number(v ?? 0);
-                                return !Number.isFinite(n) ? "0" : Math.max(0,n).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                            };
+                                         showPayrollDialog("Calculation Ready",
+                                             "Select a branch, review the salary values and click Save Pay Calculation.\n\nNo payroll data has been changed yet.",
+                                             [{ label: "Continue", className: "btn-primary", onClick: function () {
+                                                 displayApprovedBranches();
+                                                 document.getElementById("branchListSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                             } }], "bi-check-circle-fill text-success");
+                                     }
+                                    const esc = v => $("<div>").text(v ?? "").html();
+                                    const money = v => {
+                                        let n = Number(v ?? 0);
+                                        return !Number.isFinite(n) ? "0" : Math.max(0,n).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                                    };
 
-                            function dictionaryValue(dictionary, key) {
-                                if (!dictionary) return 0;
-                                if (dictionary[key] !== undefined) return dictionary[key];
-                                let found = Object.keys(dictionary).find(x => x.toLowerCase() === key.toLowerCase());
-                                return found ? dictionary[found] : 0;
-                            }
-
-                            // Keep the existing Bootstrap dashboard UI; only fix salary-column order.
-                            const earningColumns = [
-                                { title: "FDA 1", aliases: ["Fda", "FDA", "FDA 1", "FDA1", "Fda1"], field: "fda1" },
-                                { title: "FDA 2", aliases: ["Fdaa", "FDAA", "FDA 2", "FDA2", "Fda2"], field: "fda2" },
-                                { title: "VDA", aliases: ["vda", "VDA"], field: "vda" },
-                                { title: "HRA 15%", aliases: ["HRA", "HRA 15%", "Hra"], field: "hra" },
-                                { title: "Cash A", aliases: ["Cash A", "Cash Allowance", "Cash A."], field: "cashAllowance" },
-                                { title: "SRO A", aliases: ["SRO A", "SRO Allowance", "SRO A."], field: "sroAllowance" },
-                                { title: "Special Pay", aliases: ["SP", "Special Pay", "SpecialPay"], field: "specialPay" }
-                            ];
-                            const deductionColumns = [
-                                { title: "PF 12%", aliases: ["Provident Fund", "PF", "PF 12%", "P.F."], field: "providentFund" },
-                                { title: "Adv", aliases: ["Advance", "Adv"], field: null },
-                                { title: "Loan", aliases: ["Loan"], field: null },
-                                { title: "TDS", aliases: ["Tax Deducted at Source", "TDS"], field: null },
-                                { title: "PT", aliases: ["Professional Tax", "PT"], field: null }
-                            ];
-
-                            function componentValue(dictionary, column, item) {
-                                const normalized = s => String(s ?? "").replace(/[^a-z0-9]/gi, "").toLowerCase();
-                                if (dictionary) {
-                                    const keys = Object.keys(dictionary);
-                                    for (const alias of column.aliases) {
-                                        const match = keys.find(key => normalized(key) === normalized(alias));
-                                        if (match !== undefined) return Number(dictionary[match] ?? 0);
+                                    function dictionaryValue(dictionary, key) {
+                                        if (!dictionary) return 0;
+                                        if (dictionary[key] !== undefined) return dictionary[key];
+                                        let found = Object.keys(dictionary).find(x => x.toLowerCase() === key.toLowerCase());
+                                        return found ? dictionary[found] : 0;
                                     }
-                                }
-                                return column.field ? Number(item[column.field] ?? 0) : 0;
-                            }
 
-                            function buildHeader() {
-                                let html = `<tr><th rowspan="2">Sr.</th><th rowspan="2">Employee Code</th><th rowspan="2">Employee Name</th><th rowspan="2">Grade</th><th rowspan="2" class="text-end">Basic</th>`;
-                                html += `<th colspan="${earningColumns.length + 2}" class="text-center income-header">Income / Allowances</th>`;
-                                html += `<th colspan="${deductionColumns.length + 1}" class="text-center deduction-header">Deductions</th>`;
-                                html += `<th rowspan="2" class="text-end">Net Salary</th></tr><tr>`;
-                                earningColumns.slice(0, 3).forEach(c => html += `<th class="text-end income-header">${c.title}</th>`);
-                                html += `<th class="text-end income-header">Sub Total</th>`;
-                                earningColumns.slice(3).forEach(c => html += `<th class="text-end income-header">${c.title}</th>`);
-                                html += `<th class="text-end income-header">Total</th>`;
-                                deductionColumns.forEach(c => html += `<th class="text-end deduction-header">${c.title}</th>`);
-                                html += `<th class="text-end deduction-header">Total</th></tr>`;
-                                $("#payTableHead").html(html);
-                            }
+                                    // Keep the existing Bootstrap dashboard UI; only fix salary-column order.
+                                    const earningColumns = [
+                                        { title: "FDA 1", aliases: ["Fda", "FDA", "FDA 1", "FDA1", "Fda1"], field: "fda1" },
+                                        { title: "FDA 2", aliases: ["Fdaa", "FDAA", "FDA 2", "FDA2", "Fda2"], field: "fda2" },
+                                        { title: "VDA", aliases: ["vda", "VDA"], field: "vda" },
+                                        { title: "HRA 15%", aliases: ["HRA", "HRA 15%", "Hra"], field: "hra" },
+                                        { title: "Cash A", aliases: ["Cash A", "Cash Allowance", "Cash A."], field: "cashAllowance" },
+                                        { title: "SRO A", aliases: ["SRO A", "SRO Allowance", "SRO A."], field: "sroAllowance" },
+                                        { title: "Special Pay", aliases: ["SP", "Special Pay", "SpecialPay"], field: "specialPay" }
+                                    ];
+                                    const deductionColumns = [
+                                        { title: "PF 12%", aliases: ["Provident Fund", "PF", "PF 12%", "P.F."], field: "providentFund" },
+                                        { title: "Adv", aliases: ["Advance", "Adv"], field: null },
+                                        { title: "Loan", aliases: ["Loan"], field: null },
+                                        { title: "TDS", aliases: ["Tax Deducted at Source", "TDS"], field: null },
+                                        { title: "PT", aliases: ["Professional Tax", "PT"], field: null }
+                                    ];
 
-                             // All branch cards remain visible. Unselected branches show zero.
-                             // Selected branches alone request live calculated salary totals.
-                             let branchTotalsRefreshId = 0;
-                             const branchRupees = n => "₹" + Number(n ?? 0).toLocaleString("en-IN", {
-                                 minimumFractionDigits: 2, maximumFractionDigits: 2
-                             });
-                             function zeroBranchTotals(row) {
-                                 row.find(".bt-count").text("0");
-                                 row.find(".bt-basic,.bt-allowance,.bt-deduction,.bt-net").text("₹0.00");
-                             }
-                             function refreshBranchTotals() {
-                                 const refreshId = ++branchTotalsRefreshId;
-                                 const year = Number($("#SelectedYear").val());
-                                 const month = Number($("#SelectedMonth").val());
-                                 const selected = new Set(selectedBranchCodes());
-                                 $(".branch-row").each(function () {
-                                     const row = $(this).find(".branch-totals");
-                                     const branchCode = String(row.attr("data-branch"));
-                                     zeroBranchTotals(row);
-                                     if (!selected.has(branchCode)) return;
-                                     row.find(".bt-basic,.bt-allowance,.bt-deduction,.bt-net").text("Calculating...");
-                                     $.get('@Url.Action("GetPayCalculation", "PayCalculation")',
-                                           { year, month, branchCode: Number(branchCode) })
-                                      .done(function (response) {
-                                          if (refreshId !== branchTotalsRefreshId) return;
-                                          if (response?.sessionExpired) {
-                                              window.location.href = '@Url.Action("Login", "Account")';
-                                              return;
-                                          }
-                                          if (response?.success !== true) {
-                                              zeroBranchTotals(row);
-                                              return;
-                                          }
-                                          const employees = response.data || [];
-                                          const sum = field => employees.reduce(
-                                              (total, item) => total + Number(item[field] ?? 0), 0);
-                                          row.find(".bt-count").text(employees.length);
-                                          row.find(".bt-basic").text(branchRupees(sum("basicSalary")));
-                                          row.find(".bt-allowance").text(branchRupees(sum("totalAllowance")));
-                                          row.find(".bt-deduction").text(branchRupees(sum("totalDeduction")));
-                                          row.find(".bt-net").text(branchRupees(sum("netSalary")));
-                                      })
-                                      .fail(function () {
-                                          if (refreshId !== branchTotalsRefreshId) return;
-                                          zeroBranchTotals(row);
-                                      });
-                                 });
-                             }
-                             // Show only approved, selected branches AFTER Start Calculation.
-                             // Before approval, keep the complete branch list hidden.
-                             function displayApprovedBranches() {
-                                 const approved = calculationStarted &&
-                                     approvedYear === Number($("#SelectedYear").val()) &&
-                                     approvedMonth === Number($("#SelectedMonth").val());
-                                 const selected = new Set(approvedBranchCodes);
-                                 $("#branchListSection").toggleClass("d-none", !approved || selected.size === 0);
-                                 $(".branch-row").each(function () {
-                                     const code = String($(this).find(".branch-card").attr("data-code"));
-                                     $(this).toggleClass("d-none", !approved || !selected.has(code));
-                                 });
-                                 $("#saveBox").toggleClass("d-none", !approved || selected.size === 0);
-                                  if (approved && selected.size > 0) refreshBranchTotals();
-                             }
-
-                             function applySelectedBranchFilter() {
-                                 // Selecting checkboxes does not show payroll until Start Calculation.
-                                 displayApprovedBranches();
-                             }
-
-                             // Start with NO branches selected, including when browser restores form state.
-                             $("#selectAllBranches, .branch-select-checkbox").prop("checked", false);
-                             updateBranchSelectionLabel();
-                             applySelectedBranchFilter();
-
-                             function selectedBranchCodes() {
-                                 return $(".branch-select-checkbox:checked").map(function () { return String($(this).val()); }).get();
-                             }
-                             function updateBranchSelectionLabel() {
-                                 const selected = selectedBranchCodes();
-                                 const total = $(".branch-select-checkbox").length;
-                                 $("#selectAllBranches").prop("checked", selected.length === total);
-                                 $("#branchSelectionButton").text(total > 0 && selected.length === total ? "All Branches" :
-                                     selected.length === 0 ? "Select Branch" : selected.length + " Branch(es) Selected");
-                             }
-                             $("#selectAllBranches").on("change", function () {
-                                 $(".branch-select-checkbox").prop("checked", this.checked);
-                                 updateBranchSelectionLabel(); resetCalculationApproval(); applySelectedBranchFilter();
-                             });
-                             $(".branch-select-checkbox").on("change", function () {
-                                 updateBranchSelectionLabel(); resetCalculationApproval(); applySelectedBranchFilter();
-                             });
-                             function resetCalculationApproval() {
-                                 calculationStarted = false;
-                                 replaceExistingMonth = false;
-                                 approvedYear = 0;
-                                 approvedMonth = 0;
-                                 approvedBranchCodes = [];
-                                 $("#resultSection").addClass("d-none");
-                                  $("#saveBox").addClass("d-none");
-                                $(".branch-card").removeClass("active");
-                                 $(".branch-arrow").removeClass("bi-chevron-up").addClass("bi-chevron-down");
-                                 selectedBranchCode = 0;
-                                 selectedBranchName = "";
-                                  $("#branchListSection").addClass("d-none");
-                                  $(".branch-row").addClass("d-none");
-                                  ++branchTotalsRefreshId;
-                             }
-
-                             $("#btnStartCalculation").click(function () {
-                                 const year = Number($("#SelectedYear").val());
-                                 const month = Number($("#SelectedMonth").val());
-                                 const branchCodes = selectedBranchCodes().join(",");
-                                 const period = $("#SelectedMonth option:selected").text() + " " + year;
-                                 if (!branchCodes) {
-                                     showPayrollDialog("Select Branch", "Please select at least one branch.", [{label:"OK"}]);
-                                     return;
-                                 }
-                                 resetCalculationApproval();
-                                 const button = $(this).prop("disabled", true);
-                                 $.get('@Url.Action("CheckPayrollMonth", "PayCalculation")', { year, month, branchCodes })
-                                   .done(function (response) {
-                                       if (response?.sessionExpired) { window.location.href = '@Url.Action("Login", "Account")'; return; }
-                                       if (response?.success !== true) {
-                                           showPayrollDialog("Check Failed", response?.message || "Unable to check payroll.", [{label:"OK"}]); return;
-                                       }
-                                       if (!response.alreadyStored) { calculationApproved(year, month); return; }
-                                       const selectedCount = selectedBranchCodes().length;
-                                       showPayrollDialog("Payroll Already Stored",
-                                           "Payroll for " + period + " exists in the selected " + selectedCount + " branch(es).\n\n" +
-                                           "Recalculate will DELETE saved records only for these branches and this month from dbo.paytrnft and dbo.paytrn. Other branches and months will remain unchanged. This cannot be undone.",
-                                           [
-                                               {label:"Cancel",className:"btn-outline-secondary"},
-                                               {label:"Recalculate",className:"btn-danger",onClick:function () {
-                                                   const token = $('input[name="__RequestVerificationToken"]').val();
-                                                   $.ajax({
-                                                       url:'@Url.Action("RecalculatePayrollMonth", "PayCalculation")', type:'POST',
-                                                       data:{year,month,branchCodes,__RequestVerificationToken:token}
-                                                   }).done(function (result) {
-                                                       if (result?.sessionExpired) { window.location.href='@Url.Action("Login", "Account")'; return; }
-                                                       if (result?.success === true) {
-                                                           calculationApproved(year,month);
-                                                           showPayrollDialog("Selected Branch Payroll Cleared", result.message + "\n\nSelect a branch below to calculate and save new payroll.",
-                                                               [{label:"Continue"}], "bi-check-circle-fill text-success");
-                                                       } else {
-                                                           showPayrollDialog("Recalculate Failed", result?.message || "No records deleted.", [{label:"OK"}], "bi-exclamation-triangle-fill text-danger");
-                                                       }
-                                                   }).fail(function () {
-                                                       showPayrollDialog("Connection Error", "Recalculate request failed.", [{label:"OK"}]);
-                                                   });
-                                               }}
-                                           ], "bi-exclamation-triangle-fill text-warning");
-                                   }).fail(function () {
-                                       showPayrollDialog("Connection Error", "Unable to check payroll.", [{label:"OK"}]);
-                                   }).always(function () { button.prop("disabled",false); });
-                             });
-
-                function loadPayCalculation() {
-                                let year = $("#SelectedYear").val();
-                                let month = $("#SelectedMonth").val();
-                                if (!selectedBranchCode) return;
-
-                                $("#resultSection").removeClass("d-none");
-                                $("#payRows,#payTableHead").empty();
-                                $("#tableBox").addClass("d-none");
-                                $("#messageBox").addClass("d-none").text("");
-                                $("#recordCount").text("Loading...");
-                                $("#selectedBranch").text(selectedBranchName);
-                                $("#selectedPeriod").text(` (${$("#SelectedMonth option:selected").text()} ${year})`);
-
-                                $.get('@Url.Action("GetPayCalculation", "PayCalculation")', { year, month, branchCode: selectedBranchCode })
-                                .done(function (response) {
-                                    if (!response || response.success !== true) {
-                                        if (response?.sessionExpired) {
-                                            window.location.href = '@Url.Action("Login", "Account")';
-                                            return;
+                                    function componentValue(dictionary, column, item) {
+                                        const normalized = s => String(s ?? "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+                                        if (dictionary) {
+                                            const keys = Object.keys(dictionary);
+                                            for (const alias of column.aliases) {
+                                                const match = keys.find(key => normalized(key) === normalized(alias));
+                                                if (match !== undefined) return Number(dictionary[match] ?? 0);
+                                            }
                                         }
-                                        $("#recordCount").text("Total Employees: 0");
-                                        $("#messageBox").removeClass("d-none").text(response?.message ?? "Unable to load data.");
-                                        return;
+                                        return column.field ? Number(item[column.field] ?? 0) : 0;
                                     }
 
-                                    let data = response.data || [];
-                                    let allowances = response.allowanceNames || [];
-                                    let deductions = response.deductionNames || [];
-                                    $("#recordCount").text("Total Employees: " + data.length);
-
-                                    if (!data.length) {
-                                        $("#messageBox").removeClass("d-none").text("No employees found for the selected branch.");
-                                        return;
+                                    function buildHeader() {
+                                        let html = `<tr><th rowspan="2">Sr.</th><th rowspan="2">Employee Code</th><th rowspan="2">Employee Name</th><th rowspan="2">Grade</th><th rowspan="2" class="text-end">Basic</th>`;
+                                        html += `<th colspan="${earningColumns.length + 2}" class="text-center income-header">Income / Allowances</th>`;
+                                        html += `<th colspan="${deductionColumns.length + 1}" class="text-center deduction-header">Deductions</th>`;
+                                        html += `<th rowspan="2" class="text-end">Net Salary</th></tr><tr>`;
+                                        earningColumns.slice(0, 3).forEach(c => html += `<th class="text-end income-header">${c.title}</th>`);
+                                        html += `<th class="text-end income-header">Sub Total</th>`;
+                                        earningColumns.slice(3).forEach(c => html += `<th class="text-end income-header">${c.title}</th>`);
+                                        html += `<th class="text-end income-header">Total</th>`;
+                                        deductionColumns.forEach(c => html += `<th class="text-end deduction-header">${c.title}</th>`);
+                                        html += `<th class="text-end deduction-header">Total</th></tr>`;
+                                        $("#payTableHead").html(html);
                                     }
 
-                                    buildHeader();
-                                    let html = "";
-                                    data.forEach(function (item, index) {
+                                     // All branch cards remain visible. Unselected branches show zero.
+                                     // Selected branches alone request live calculated salary totals.
+                                     let branchTotalsRefreshId = 0;
+                                     const branchRupees = n => "₹" + Number(n ?? 0).toLocaleString("en-IN", {
+                                         minimumFractionDigits: 2, maximumFractionDigits: 2
+                                     });
+                                     function zeroBranchTotals(row) {
+                                         row.find(".bt-count").text("0");
+                                         row.find(".bt-basic,.bt-allowance,.bt-deduction,.bt-net").text("₹0.00");
+                                     }
+                                     function refreshBranchTotals() {
+                                         const refreshId = ++branchTotalsRefreshId;
+                                         const year = Number($("#SelectedYear").val());
+                                         const month = Number($("#SelectedMonth").val());
+                                         const selected = new Set(selectedBranchCodes());
+                                         $(".branch-row").each(function () {
+                                             const row = $(this).find(".branch-totals");
+                                             const branchCode = String(row.attr("data-branch"));
+                                             zeroBranchTotals(row);
+                                             if (!selected.has(branchCode)) return;
+                                             row.find(".bt-basic,.bt-allowance,.bt-deduction,.bt-net").text("Calculating...");
+                                             $.get('@Url.Action("GetPayCalculation", "PayCalculation")',
+                                                   { year, month, branchCode: Number(branchCode) })
+                                              .done(function (response) {
+                                                  if (refreshId !== branchTotalsRefreshId) return;
+                                                  if (response?.sessionExpired) {
+                                                      window.location.href = '@Url.Action("Login", "Account")';
+                                                      return;
+                                                  }
+                                                  if (response?.success !== true) {
+                                                      zeroBranchTotals(row);
+                                                      return;
+                                                  }
+                                                  const employees = response.data || [];
+                                                  branchItemsCache[branchCode] = employees;
+                                                  updateBranchBadge(branchCode);
+                                              })
+                                              .fail(function () {
+                                                  if (refreshId !== branchTotalsRefreshId) return;
+                                                  zeroBranchTotals(row);
+                                              });
+                                         });
+                                     }
+                                     // Show only approved, selected branches AFTER Start Calculation.
+                                     // Before approval, keep the complete branch list hidden.
+                                     function displayApprovedBranches() {
+                                         const approved = calculationStarted &&
+                                             approvedYear === Number($("#SelectedYear").val()) &&
+                                             approvedMonth === Number($("#SelectedMonth").val());
+                                         const selected = new Set(approvedBranchCodes);
+                                         $("#branchListSection").toggleClass("d-none", !approved || selected.size === 0);
+                                         $(".branch-row").each(function () {
+                                             const code = String($(this).find(".branch-card").attr("data-code"));
+                                             $(this).toggleClass("d-none", !approved || !selected.has(code));
+                                         });
+                                         $("#saveBox").toggleClass("d-none", !approved || selected.size === 0);
+                                          if (approved && selected.size > 0) refreshBranchTotals();
+                                     }
+
+                                     function applySelectedBranchFilter() {
+                                         // Selecting checkboxes does not show payroll until Start Calculation.
+                                         displayApprovedBranches();
+                                     }
+
+                                     // Start with NO branches selected, including when browser restores form state.
+                                     $("#selectAllBranches, .branch-select-checkbox").prop("checked", false);
+                                     updateBranchSelectionLabel();
+                                     applySelectedBranchFilter();
+
+                                     function selectedBranchCodes() {
+                                         return $(".branch-select-checkbox:checked").map(function () { return String($(this).val()); }).get();
+                                     }
+                                     function updateBranchSelectionLabel() {
+                                         const selected = selectedBranchCodes();
+                                         const total = $(".branch-select-checkbox").length;
+                                         $("#selectAllBranches").prop("checked", selected.length === total);
+                                         $("#branchSelectionButton").text(total > 0 && selected.length === total ? "All Branches" :
+                                             selected.length === 0 ? "Select Branch" : selected.length + " Branch(es) Selected");
+                                     }
+                                     $("#selectAllBranches").on("change", function () {
+                                         $(".branch-select-checkbox").prop("checked", this.checked);
+                                         updateBranchSelectionLabel(); resetCalculationApproval(); applySelectedBranchFilter();
+                                     });
+                                     $(".branch-select-checkbox").on("change", function () {
+                                         updateBranchSelectionLabel(); resetCalculationApproval(); applySelectedBranchFilter();
+                                     });
+                                     function resetCalculationApproval() {
+                                         calculationStarted = false;
+                                         replaceExistingMonth = false;
+                                         approvedYear = 0;
+                                         approvedMonth = 0;
+                                         approvedBranchCodes = [];
+                                         $("#resultSection").addClass("d-none");
+                                          $("#saveBox").addClass("d-none");
+                                        $(".branch-card").removeClass("active");
+                                         $(".branch-arrow").removeClass("bi-chevron-up").addClass("bi-chevron-down");
+                                         selectedBranchCode = 0;
+                                         selectedBranchName = "";
+                                          $("#branchListSection").addClass("d-none");
+                                          $(".branch-row").addClass("d-none");
+                                          payOverrides = {}; branchItemsCache = {}; currentItems = [];
+                                          ++branchTotalsRefreshId;
+                                     }
+
+                                     $("#btnStartCalculation").click(function () {
+                                         const year = Number($("#SelectedYear").val());
+                                         const month = Number($("#SelectedMonth").val());
+                                         const branchCodes = selectedBranchCodes().join(",");
+                                         const period = $("#SelectedMonth option:selected").text() + " " + year;
+                                         if (!branchCodes) {
+                                             showPayrollDialog("Select Branch", "Please select at least one branch.", [{label:"OK"}]);
+                                             return;
+                                         }
+                                         resetCalculationApproval();
+                                         const button = $(this).prop("disabled", true);
+                                         $.get('@Url.Action("CheckPayrollMonth", "PayCalculation")', { year, month, branchCodes })
+                                           .done(function (response) {
+                                               if (response?.sessionExpired) { window.location.href = '@Url.Action("Login", "Account")'; return; }
+                                               if (response?.success !== true) {
+                                                   showPayrollDialog("Check Failed", response?.message || "Unable to check payroll.", [{label:"OK"}]); return;
+                                               }
+                                               if (!response.alreadyStored) { calculationApproved(year, month); return; }
+                                               const selectedCount = selectedBranchCodes().length;
+                                               showPayrollDialog("Payroll Already Stored",
+                                                   "Payroll for " + period + " exists in the selected " + selectedCount + " branch(es).\n\n" +
+                                                   "Recalculate will DELETE saved records only for these branches and this month from dbo.paytrnft and dbo.paytrn. Other branches and months will remain unchanged. This cannot be undone.",
+                                                   [
+                                                       {label:"Cancel",className:"btn-outline-secondary"},
+                                                       {label:"Recalculate",className:"btn-danger",onClick:function () {
+                                                           const token = $('input[name="__RequestVerificationToken"]').val();
+                                                           $.ajax({
+                                                               url:'@Url.Action("RecalculatePayrollMonth", "PayCalculation")', type:'POST',
+                                                               data:{year,month,branchCodes,__RequestVerificationToken:token}
+                                                           }).done(function (result) {
+                                                               if (result?.sessionExpired) { window.location.href='@Url.Action("Login", "Account")'; return; }
+                                                               if (result?.success === true) {
+                                                                   calculationApproved(year,month);
+                                                                   showPayrollDialog("Selected Branch Payroll Cleared", result.message + "\n\nSelect a branch below to calculate and save new payroll.",
+                                                                       [{label:"Continue"}], "bi-check-circle-fill text-success");
+                                                               } else {
+                                                                   showPayrollDialog("Recalculate Failed", result?.message || "No records deleted.", [{label:"OK"}], "bi-exclamation-triangle-fill text-danger");
+                                                               }
+                                                           }).fail(function () {
+                                                               showPayrollDialog("Connection Error", "Recalculate request failed.", [{label:"OK"}]);
+                                                           });
+                                                       }}
+                                                   ], "bi-exclamation-triangle-fill text-warning");
+                                           }).fail(function () {
+                                               showPayrollDialog("Connection Error", "Unable to check payroll.", [{label:"OK"}]);
+                                           }).always(function () { button.prop("disabled",false); });
+                                     });
+
+        const earningKeys = ["fda1", "fda2", "vda", "hra", "cashAllowance", "sroAllowance", "specialPay"];
+                                    const deductionKeys = ["providentFund", "advance", "loan", "tds", "professionalTax"];
+
+                                    // Value as calculated by the server (whole rupees, never negative).
+                                    function baseValue(item, column, kind) {
+                                        const dict = kind === "a" ? item.allowances : item.deductions;
+                                        return Math.round(Math.max(0, Number(componentValue(dict, column, item)) || 0));
+                                    }
+                                    // Totals = server totals + difference caused by manual edits.
+                                    function totalsOf(item) {
+                                        const edits = payOverrides[item.employeeCode] || {};
+                                        let dSub = 0, dAllow = 0, dDed = 0;
+                                        earningColumns.forEach((c, i) => {
+                                            const k = earningKeys[i];
+                                            if (edits[k] === undefined) return;
+                                            const d = edits[k] - baseValue(item, c, "a");
+                                            dAllow += d; if (i < 3) dSub += d;
+                                        });
+                                        deductionColumns.forEach((c, i) => {
+                                            const k = deductionKeys[i];
+                                            if (edits[k] === undefined) return;
+                                            dDed += edits[k] - baseValue(item, c, "d");
+                                        });
+                                        const gross = Math.max(0, Number(item.grossSalary || 0) + dAllow);
+                                        const totalDed = Math.max(0, Number(item.totalDeduction || 0) + dDed);
+                                        return {
+                                            sub: Math.max(0, Number(item.subTotal || 0) + dSub),
+                                            gross: gross,
+                                            totalAllowance: Math.max(0, Number(item.totalAllowance || 0) + dAllow),
+                                            totalDed: totalDed,
+                                            net: Math.max(0, gross - totalDed)
+                                        };
+                                    }
+                                    function editableCell(item, column, key, kind) {
+                                        const base = baseValue(item, column, kind);
+                                        const edits = payOverrides[item.employeeCode];
+                                        const edited = !!edits && edits[key] !== undefined;
+                                        const shown = edited ? edits[key] : base;
+                                        const tip = (edited ? "Original: " + money(base) + " | " : "") + "Double-click to edit";
+                                        return `<td class="text-end editable-cell${edited ? " cell-edited" : ""}" data-emp="${item.employeeCode}" data-key="${key}" data-kind="${kind}" title="${tip}">${money(shown)}</td>`;
+                                    }
+                                    function rowHtml(item, index) {
+                                        const t = totalsOf(item);
                                         const wplDays = Number(item.withoutPayLeaveDays || 0);
                                         const wplAmount = Number(item.withoutPayLeaveAmount || 0);
                                         const originalBasic = Number(item.originalBasicSalary ?? item.basicSalary ?? 0);
@@ -589,163 +619,277 @@
                                         const wplInfo = wplDays > 0
                                             ? `<div class="small text-danger">WPL: ${wplDays.toLocaleString("en-IN")} Day(s) — ₹${wplAmount.toLocaleString("en-IN", {minimumFractionDigits:2,maximumFractionDigits:2})}</div>`
                                             : "";
-                                        html += `<tr><td>${index + 1}</td><td class="fw-bold">${item.employeeCode}</td><td>${esc(item.employeeName)}${wplInfo}${originalBasicInfo}</td><td>${esc(item.gradeName || item.gradeCode || "-")}</td><td class="text-end fw-bold">${revisedBasic.toLocaleString("en-IN", {minimumFractionDigits:2,maximumFractionDigits:2})}</td>`;
-                                        earningColumns.slice(0, 3).forEach(c => html += `<td class="text-end">${money(componentValue(item.allowances, c, item))}</td>`);
-                                        html += `<td class="text-end fw-bold">${money(item.subTotal)}</td>`;
-                                        earningColumns.slice(3).forEach(c => html += `<td class="text-end">${money(componentValue(item.allowances, c, item))}</td>`);
-                                        html += `<td class="text-end fw-bold">${money(item.grossSalary)}</td>`;
-                                        deductionColumns.forEach(c => html += `<td class="text-end">${money(componentValue(item.deductions, c, item))}</td>`);
-                                        html += `<td class="text-end fw-bold">${money(item.totalDeduction)}</td><td class="text-end net-cell">${money(item.netSalary)}</td></tr>`;
+                                        // Basic is NOT editable (plain cell, no editable-cell class).
+                                        let html = `<tr data-emp="${item.employeeCode}"><td>${index + 1}</td><td class="fw-bold">${item.employeeCode}</td><td>${esc(item.employeeName)}${wplInfo}${originalBasicInfo}</td><td>${esc(item.gradeName || item.gradeCode || "-")}</td><td class="text-end fw-bold">${revisedBasic.toLocaleString("en-IN", {minimumFractionDigits:2,maximumFractionDigits:2})}</td>`;
+                                        earningColumns.slice(0, 3).forEach((c, i) => html += editableCell(item, c, earningKeys[i], "a"));
+                                        html += `<td class="text-end fw-bold">${money(t.sub)}</td>`;
+                                        earningColumns.slice(3).forEach((c, i) => html += editableCell(item, c, earningKeys[i + 3], "a"));
+                                        html += `<td class="text-end fw-bold">${money(t.gross)}</td>`;
+                                        deductionColumns.forEach((c, i) => html += editableCell(item, c, deductionKeys[i], "d"));
+                                        html += `<td class="text-end fw-bold">${money(t.totalDed)}</td><td class="text-end net-cell">${money(t.net)}</td></tr>`;
+                                        return html;
+                                    }
+                                    function updateBranchBadge(code) {
+                                        const items = branchItemsCache[code];
+                                        if (!items) return;
+                                        const row = $('.branch-totals[data-branch="' + code + '"]');
+                                        let basic = 0, allow = 0, ded = 0, net = 0;
+                                        items.forEach(it => {
+                                            const t = totalsOf(it);
+                                            basic += Number(it.basicSalary || 0);
+                                            allow += t.totalAllowance; ded += t.totalDed; net += t.net;
+                                        });
+                                        row.find(".bt-count").text(items.length);
+                                        row.find(".bt-basic").text(branchRupees(basic));
+                                        row.find(".bt-allowance").text(branchRupees(allow));
+                                        row.find(".bt-deduction").text(branchRupees(ded));
+                                        row.find(".bt-net").text(branchRupees(net));
+                                    }
+
+                                    // Double-click a value -> inline editor. Enter / click away = apply, Esc = cancel.
+                                    $("#payRows").on("dblclick", "td.editable-cell", function () {
+                                        const td = $(this);
+                                        if (td.find("input").length) return;
+                                        const emp = Number(td.data("emp"));
+                                        const key = String(td.data("key"));
+                                        const kind = String(td.data("kind"));
+                                        const item = currentItems.find(x => Number(x.employeeCode) === emp);
+                                        if (!item) return;
+                                        const keys = kind === "a" ? earningKeys : deductionKeys;
+                                        const column = (kind === "a" ? earningColumns : deductionColumns)[keys.indexOf(key)];
+                                        const base = baseValue(item, column, kind);
+                                        const edits = payOverrides[emp];
+                                        const current = edits && edits[key] !== undefined ? edits[key] : base;
+
+                                        const input = $('<input type="number" min="0" step="1" class="form-control form-control-sm text-end cell-input">').val(current);
+                                        td.addClass("cell-editing").empty().append(input);
+                                        input.trigger("focus").trigger("select");
+
+                                        let finished = false;
+                                        function finish(apply) {
+                                            if (finished) return;
+                                            finished = true;
+                                            let invalid = false;
+                                            if (apply) {
+                                                const raw = String(input.val()).trim();
+                                                const n = Number(raw);
+                                                if (raw === "" || !Number.isFinite(n) || n < 0) {
+                                                    invalid = true;
+                                                } else {
+                                                    const value = Math.round(n);
+                                                    if (value === base) {
+                                                        if (payOverrides[emp]) {
+                                                            delete payOverrides[emp][key];
+                                                            if (!Object.keys(payOverrides[emp]).length) delete payOverrides[emp];
+                                                        }
+                                                    } else {
+                                                        (payOverrides[emp] = payOverrides[emp] || {})[key] = value;
+                                                    }
+                                                    hasUnsavedPayroll = true;
+                                                }
+                                            }
+                                            td.closest("tr").replaceWith(rowHtml(item, currentItems.indexOf(item)));
+                                            updateBranchBadge(selectedBranchCode);
+                                            if (invalid) showPayrollDialog("Invalid Value", "Please enter a valid amount (0 or more).", [{ label: "OK" }], "bi-exclamation-triangle-fill text-warning");
+                                        }
+                                        input.on("keydown", function (e) {
+                                            if (e.key === "Enter") { e.preventDefault(); finish(true); }
+                                            else if (e.key === "Escape") { e.preventDefault(); finish(false); }
+                                        });
+                                        input.on("blur", function () { finish(true); });
                                     });
 
-                                    $("#payRows").html(html);
-                                    $("#tableBox").removeClass("d-none");
+                        function loadPayCalculation() {
+                                        let year = $("#SelectedYear").val();
+                                        let month = $("#SelectedMonth").val();
+                                        if (!selectedBranchCode) return;
 
-                                })
-                                .fail(function () {
-                                    $("#recordCount").text("Total Employees: 0");
-                                    $("#messageBox").removeClass("d-none").text("Unable to load Pay Calculation data.");
+                                        $("#resultSection").removeClass("d-none");
+                                        $("#payRows,#payTableHead").empty();
+                                        $("#tableBox").addClass("d-none");
+                                        $("#messageBox").addClass("d-none").text("");
+                                        $("#recordCount").text("Loading...");
+                                        $("#selectedBranch").text(selectedBranchName);
+                                        $("#selectedPeriod").text(` (${$("#SelectedMonth option:selected").text()} ${year})`);
+
+                                        $.get('@Url.Action("GetPayCalculation", "PayCalculation")', { year, month, branchCode: selectedBranchCode })
+                                        .done(function (response) {
+                                            if (!response || response.success !== true) {
+                                                if (response?.sessionExpired) {
+                                                    window.location.href = '@Url.Action("Login", "Account")';
+                                                    return;
+                                                }
+                                                $("#recordCount").text("Total Employees: 0");
+                                                $("#messageBox").removeClass("d-none").text(response?.message ?? "Unable to load data.");
+                                                return;
+                                            }
+
+                                            let data = response.data || [];
+                                            let allowances = response.allowanceNames || [];
+                                            let deductions = response.deductionNames || [];
+                                            $("#recordCount").text("Total Employees: " + data.length);
+
+                                            if (!data.length) {
+                                                $("#messageBox").removeClass("d-none").text("No employees found for the selected branch.");
+                                                return;
+                                            }
+
+                                            buildHeader();
+                                            let html = "";
+                                            currentItems = data;
+                                            branchItemsCache[selectedBranchCode] = data;
+                                            data.forEach(function (item, index) { html += rowHtml(item, index); });
+
+                                            $("#payRows").html(html);
+                                            updateBranchBadge(selectedBranchCode);
+                                            $("#tableBox").removeClass("d-none");
+
+                                        })
+                                        .fail(function () {
+                                            $("#recordCount").text("Total Employees: 0");
+                                            $("#messageBox").removeClass("d-none").text("Unable to load Pay Calculation data.");
+                                        });
+                                    }
+
+                                                         function savePayCalculation(forceSave) {
+                                         const year = Number($("#SelectedYear").val());
+                                         const month = Number($("#SelectedMonth").val());
+                                         const currentCodes = selectedBranchCodes();
+                                         if (!calculationStarted || approvedYear !== year || approvedMonth !== month ||
+                                             currentCodes.length === 0 ||
+                                             currentCodes.length !== approvedBranchCodes.length ||
+                                             currentCodes.some(code => !approvedBranchCodes.includes(code))) {
+                                             showPayrollDialog("Start Calculation Required",
+                                                 "Please select branches and click Start Calculation before saving.", [{label:"OK"}]);
+                                             return;
+                                         }
+                                         const button = $("#btnSavePayCalculation");
+                                         button.prop("disabled", true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
+                                         $.ajax({
+                                             url: '@Url.Action("SavePayCalculation", "PayCalculation")',
+                                             type: 'POST',
+                                             data: {
+                                                 year: year, month: month,
+                                                 branchCodes: approvedBranchCodes.join(","),
+                                                 forceSave: forceSave,
+                                                 overrides: JSON.stringify(payOverrides),
+                                                 __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                                             }
+                                         }).done(function (response) {
+                                             if (response?.sessionExpired) {
+                                                 window.location.href = '@Url.Action("Login", "Account")'; return;
+                                             }
+                                             if (response?.alreadyStored === true) {
+                                                 showPayrollDialog("Payroll Already Stored",
+                                                     "Payroll already exists for one or more selected branches.\n\nReplace payroll for ALL selected branches for this month?",
+                                                     [{label:"Cancel",className:"btn-outline-secondary"},
+                                                      {label:"Save Again",className:"btn-danger",onClick:function(){savePayCalculation(true);}}],
+                                                     "bi-exclamation-triangle-fill text-warning");
+                                                 return;
+                                             }
+                                             if (response?.success === true) {
+                                                 hasUnsavedPayroll = false;
+                                                 showPayrollDialog("Payroll Saved Successfully", response.message || "Selected branches saved.",
+                                                     [{label:"Done"}], "bi-check-circle-fill text-success");
+                                                 refreshBranchTotals();
+                                             } else {
+                                                 showPayrollDialog("Save Failed", response?.message || "Unable to save payroll.", [{label:"OK"}],
+                                                     "bi-exclamation-triangle-fill text-danger");
+                                             }
+                                         }).fail(function () {
+                                             showPayrollDialog("Connection Error", "Unable to save payroll.", [{label:"OK"}]);
+                                         }).always(function () {
+                                             button.prop("disabled", false).html('<i class="bi bi-floppy me-2"></i>Save Pay Calculation');
+                                         });
+                                     }
+
+                $("#btnUpdateProfessionalTax").click(function () {
+                                        const professionalTax = Number($("#ProfessionalTax").val());
+                                        const $button = $(this);
+
+                                        if ($("#ProfessionalTax").val().trim() === "" || isNaN(professionalTax) || professionalTax < 0) {
+                                            alert("Please enter a valid Professional Tax value.");
+                                            $("#ProfessionalTax").focus();
+                                            return;
+                                        }
+
+                                        $button.prop("disabled", true)
+                                               .html('<span class="spinner-border spinner-border-sm me-2"></span>Updating...');
+
+                                        $.ajax({
+                                            url: '@Url.Action("UpdateProfessionalTax", "PayCalculation")',
+                                            type: 'POST',
+                                            data: {
+                                                professionalTax: professionalTax
+                                            }
+                                        })
+                                        .done(function (response) {
+                                            if (response?.sessionExpired) {
+                                                window.location.href = '@Url.Action("Login", "Account")';
+                                                return;
+                                            }
+
+                                            if (response?.success === true) {
+                                                $("#ProfessionalTax").val(response.value);
+                                                alert("Success!\\n\\n" + (response.message || "Professional Tax updated successfully."));
+                                                return;
+                                            }
+
+                                            alert(response?.message || "Unable to update Professional Tax.");
+                                        })
+                                        .fail(function () {
+                                            alert("Unable to update Professional Tax.");
+                                        })
+                                        .always(function () {
+                                            $button.prop("disabled", false)
+                                                   .html('<i class="bi bi-floppy me-1"></i>Update');
+                                        });
+                                    });
+
+                                    $("#btnSavePayCalculation").click(function () {
+                                        savePayCalculation(false);
+                                    });
+
+                                    $(".branch-card").click(function () {
+                                         if (!calculationStarted || approvedYear !== Number($("#SelectedYear").val()) ||
+                                             approvedMonth !== Number($("#SelectedMonth").val())) {
+                                             alert("Please click Start Calculation first.");
+                                             return;
+                                         }
+                                        const clickedCode = Number($(this).data("code"));
+                                        if (!approvedBranchCodes.includes(String(clickedCode))) {
+                                            showPayrollDialog("Branch Not Selected", "Select this branch in Selected Branch first.", [{label:"OK"}]);
+                                            return;
+                                        }
+                                        const clickedName = $(this).data("name") || "";
+
+                                        if (selectedBranchCode === clickedCode && !$("#resultSection").hasClass("d-none")) {
+                                            $("#resultSection").addClass("d-none");
+                                            $(this).removeClass("active");
+                                            $(this).find(".branch-arrow").removeClass("bi-chevron-up").addClass("bi-chevron-down");
+                                            selectedBranchCode = 0;
+                                            selectedBranchName = "";
+                                            return;
+                                        }
+
+                                        $(".branch-card").removeClass("active");
+                                        $(".branch-arrow").removeClass("bi-chevron-up").addClass("bi-chevron-down");
+
+                                        selectedBranchCode = clickedCode;
+                                        selectedBranchName = clickedName;
+                                        $(this).addClass("active");
+                                        $(this).find(".branch-arrow").removeClass("bi-chevron-down").addClass("bi-chevron-up");
+
+                                        // Move result immediately below the branch that was clicked.
+                                        const clickedBranchRow = $(this).closest(".branch-row");
+                                        $("#resultSection").insertAfter(clickedBranchRow).removeClass("d-none");
+
+                                        loadPayCalculation();
+                                    });
+
+                                    $("#SelectedYear,#SelectedMonth").change(function () {
+                                        resetCalculationApproval();
+                                    });
                                 });
-                            }
-
-                                                 function savePayCalculation(forceSave) {
-                                 const year = Number($("#SelectedYear").val());
-                                 const month = Number($("#SelectedMonth").val());
-                                 const currentCodes = selectedBranchCodes();
-                                 if (!calculationStarted || approvedYear !== year || approvedMonth !== month ||
-                                     currentCodes.length === 0 ||
-                                     currentCodes.length !== approvedBranchCodes.length ||
-                                     currentCodes.some(code => !approvedBranchCodes.includes(code))) {
-                                     showPayrollDialog("Start Calculation Required",
-                                         "Please select branches and click Start Calculation before saving.", [{label:"OK"}]);
-                                     return;
-                                 }
-                                 const button = $("#btnSavePayCalculation");
-                                 button.prop("disabled", true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
-                                 $.ajax({
-                                     url: '@Url.Action("SavePayCalculation", "PayCalculation")',
-                                     type: 'POST',
-                                     data: {
-                                         year: year, month: month,
-                                         branchCodes: approvedBranchCodes.join(","),
-                                         forceSave: forceSave,
-                                         __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
-                                     }
-                                 }).done(function (response) {
-                                     if (response?.sessionExpired) {
-                                         window.location.href = '@Url.Action("Login", "Account")'; return;
-                                     }
-                                     if (response?.alreadyStored === true) {
-                                         showPayrollDialog("Payroll Already Stored",
-                                             "Payroll already exists for one or more selected branches.\n\nReplace payroll for ALL selected branches for this month?",
-                                             [{label:"Cancel",className:"btn-outline-secondary"},
-                                              {label:"Save Again",className:"btn-danger",onClick:function(){savePayCalculation(true);}}],
-                                             "bi-exclamation-triangle-fill text-warning");
-                                         return;
-                                     }
-                                     if (response?.success === true) {
-                                         hasUnsavedPayroll = false;
-                                         showPayrollDialog("Payroll Saved Successfully", response.message || "Selected branches saved.",
-                                             [{label:"Done"}], "bi-check-circle-fill text-success");
-                                         refreshBranchTotals();
-                                     } else {
-                                         showPayrollDialog("Save Failed", response?.message || "Unable to save payroll.", [{label:"OK"}],
-                                             "bi-exclamation-triangle-fill text-danger");
-                                     }
-                                 }).fail(function () {
-                                     showPayrollDialog("Connection Error", "Unable to save payroll.", [{label:"OK"}]);
-                                 }).always(function () {
-                                     button.prop("disabled", false).html('<i class="bi bi-floppy me-2"></i>Save Pay Calculation');
-                                 });
-                             }
-
-        $("#btnUpdateProfessionalTax").click(function () {
-                                const professionalTax = Number($("#ProfessionalTax").val());
-                                const $button = $(this);
-
-                                if ($("#ProfessionalTax").val().trim() === "" || isNaN(professionalTax) || professionalTax < 0) {
-                                    alert("Please enter a valid Professional Tax value.");
-                                    $("#ProfessionalTax").focus();
-                                    return;
-                                }
-
-                                $button.prop("disabled", true)
-                                       .html('<span class="spinner-border spinner-border-sm me-2"></span>Updating...');
-
-                                $.ajax({
-                                    url: '@Url.Action("UpdateProfessionalTax", "PayCalculation")',
-                                    type: 'POST',
-                                    data: {
-                                        professionalTax: professionalTax
-                                    }
-                                })
-                                .done(function (response) {
-                                    if (response?.sessionExpired) {
-                                        window.location.href = '@Url.Action("Login", "Account")';
-                                        return;
-                                    }
-
-                                    if (response?.success === true) {
-                                        $("#ProfessionalTax").val(response.value);
-                                        alert("Success!\\n\\n" + (response.message || "Professional Tax updated successfully."));
-                                        return;
-                                    }
-
-                                    alert(response?.message || "Unable to update Professional Tax.");
-                                })
-                                .fail(function () {
-                                    alert("Unable to update Professional Tax.");
-                                })
-                                .always(function () {
-                                    $button.prop("disabled", false)
-                                           .html('<i class="bi bi-floppy me-1"></i>Update');
-                                });
-                            });
-
-                            $("#btnSavePayCalculation").click(function () {
-                                savePayCalculation(false);
-                            });
-
-                            $(".branch-card").click(function () {
-                                 if (!calculationStarted || approvedYear !== Number($("#SelectedYear").val()) ||
-                                     approvedMonth !== Number($("#SelectedMonth").val())) {
-                                     alert("Please click Start Calculation first.");
-                                     return;
-                                 }
-                                const clickedCode = Number($(this).data("code"));
-                                if (!approvedBranchCodes.includes(String(clickedCode))) {
-                                    showPayrollDialog("Branch Not Selected", "Select this branch in Selected Branch first.", [{label:"OK"}]);
-                                    return;
-                                }
-                                const clickedName = $(this).data("name") || "";
-
-                                if (selectedBranchCode === clickedCode && !$("#resultSection").hasClass("d-none")) {
-                                    $("#resultSection").addClass("d-none");
-                                    $(this).removeClass("active");
-                                    $(this).find(".branch-arrow").removeClass("bi-chevron-up").addClass("bi-chevron-down");
-                                    selectedBranchCode = 0;
-                                    selectedBranchName = "";
-                                    return;
-                                }
-
-                                $(".branch-card").removeClass("active");
-                                $(".branch-arrow").removeClass("bi-chevron-up").addClass("bi-chevron-down");
-
-                                selectedBranchCode = clickedCode;
-                                selectedBranchName = clickedName;
-                                $(this).addClass("active");
-                                $(this).find(".branch-arrow").removeClass("bi-chevron-down").addClass("bi-chevron-up");
-
-                                // Move result immediately below the branch that was clicked.
-                                const clickedBranchRow = $(this).closest(".branch-row");
-                                $("#resultSection").insertAfter(clickedBranchRow).removeClass("d-none");
-
-                                loadPayCalculation();
-                            });
-
-                            $("#SelectedYear,#SelectedMonth").change(function () {
-                                resetCalculationApproval();
-                            });
-                        });
     </script>
 }

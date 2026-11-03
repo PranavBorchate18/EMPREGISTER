@@ -165,7 +165,7 @@
 
         <div class="report-meta">
             <div class="branch-info">
-                <div>Branch Code&nbsp;&nbsp;: @branchCode</div>
+                <div>Branch Code&nbsp;&nbsp;: @(branchCode == 0 ? "ALL" : branchCode.ToString())</div>
                 <div>Branch Name&nbsp;: @branchName</div>
             </div>
 
@@ -250,7 +250,7 @@
                         }
 
                         <tr class="branch-total">
-                            <td colspan="4" class="text-center">Branch Total</td>
+                            <td colspan="4" class="text-center">@(branchCode == 0 ? "Grand Total" : "Branch Total")</td>
                             <td class="text-end">₹@totalBasic.ToString("N2")</td>
 
                             @foreach (var name in allowanceNames)
