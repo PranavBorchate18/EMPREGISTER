@@ -1,5 +1,4 @@
 ﻿
-using Employee_Management_System.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
@@ -27,7 +26,7 @@ namespace Employee_Management_System.Services
         {
             var path = context.Request.Path.Value ?? "/";
 
-            // Login, logout, error and static files remain accessible.
+            // Excluded paths remain accessible without URL protection.
             if (IsExcludedPath(path))
             {
                 await _next(context);
@@ -58,6 +57,7 @@ namespace Employee_Management_System.Services
                     ex is not OperationCanceledException)
                 {
                     _logger.LogWarning(
+                        ex,
                         "Invalid protected URL token.");
 
                     context.Response.StatusCode =
@@ -111,10 +111,8 @@ namespace Employee_Management_System.Services
                 return;
             }
 
-            // Redirect normal MVC URLs to encrypted URLs.
-            // Only for page requests (GET / HEAD). A form POST must NOT be
-            // redirected: the browser would turn it into a GET and the
-            // action would answer "405 Method Not Allowed".
+            // Redirect normal MVC GET / HEAD URLs to encrypted URLs.
+            // POST requests are never redirected.
             if ((HttpMethods.IsGet(context.Request.Method) ||
                  HttpMethods.IsHead(context.Request.Method)) &&
                 LooksLikeMvcPath(path))
@@ -154,6 +152,12 @@ namespace Employee_Management_System.Services
         private static bool IsExcludedPath(string path)
         {
             return
+                // Organisation Selection pages
+                path.StartsWith(
+                    "/Organisation",
+                    StringComparison.OrdinalIgnoreCase) ||
+
+                // Login and logout
                 path.Equals(
                     "/Account/Login",
                     StringComparison.OrdinalIgnoreCase) ||
@@ -166,9 +170,7 @@ namespace Employee_Management_System.Services
                     "/Home/Error",
                     StringComparison.OrdinalIgnoreCase) ||
 
-                // AJAX POST endpoints used by single-active-tab.js
-                // and the login page. A 302 redirect would turn these
-                // POST requests into GET requests and break them.
+                // Account AJAX endpoints
                 path.Equals(
                     "/Account/ClaimTab",
                     StringComparison.OrdinalIgnoreCase) ||
@@ -181,10 +183,25 @@ namespace Employee_Management_System.Services
                     "/Account/TransferTab",
                     StringComparison.OrdinalIgnoreCase) ||
 
+                // House Keeping AJAX endpoints
+                path.Equals(
+                    "/HouseKeeping/GetBranches",
+                    StringComparison.OrdinalIgnoreCase) ||
+
+                path.Equals(
+                    "/HouseKeeping/RemoveBranch",
+                    StringComparison.OrdinalIgnoreCase) ||
+
+                path.Equals(
+                    "/HouseKeeping/RemoveAll",
+                    StringComparison.OrdinalIgnoreCase) ||
+
+                // Root
                 path.Equals(
                     "/",
                     StringComparison.OrdinalIgnoreCase) ||
 
+                // Static files
                 path.StartsWith(
                     "/css/",
                     StringComparison.OrdinalIgnoreCase) ||
@@ -209,7 +226,7 @@ namespace Employee_Management_System.Services
                     "/.well-known/",
                     StringComparison.OrdinalIgnoreCase) ||
 
-                // Static files with extensions.
+                // Static files with extensions
                 (!path.StartsWith(
                     "/p/",
                     StringComparison.OrdinalIgnoreCase)

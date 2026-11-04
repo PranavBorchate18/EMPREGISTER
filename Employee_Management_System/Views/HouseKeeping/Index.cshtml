@@ -1,0 +1,765 @@
+﻿@model Employee_Management_System.Models.HouseKeepingViewModel
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "House Keeping";
+}
+
+<div class="container-fluid py-4">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white border-bottom py-3">
+            <h3 class="mb-1 fw-bold">
+                <i class="bi bi-trash3 text-primary me-2"></i>House Keeping
+            </h3>
+            <div class="text-muted">Remove old payroll records branch-wise</div>
+        </div>
+
+        <div class="card-body">
+            @Html.AntiForgeryToken()
+
+            <!-- FILTER SECTION -->
+            <div class="row g-3 align-items-end rounded-3 p-3 mb-4"
+                 style="background:#eef5ff;border:1px solid #d7e6ff;">
+
+                <div class="col-md-3">
+                    <label for="SelectedYear" class="form-label fw-semibold">
+                        Selected Year
+                    </label>
+
+                    <select id="SelectedYear" class="form-select">
+                        @for (int year = DateTime.Now.Year - 5;
+                                                year <= DateTime.Now.Year + 1; year++)
+                        {
+                            <option value="@year"
+                                    selected="@(year == Model.SelectedYear)">
+                                @year
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="SelectedMonth" class="form-label fw-semibold">
+                        Selected Month
+                    </label>
+
+                    <select id="SelectedMonth" class="form-select">
+                        @for (int month = 1; month <= 12; month++)
+                        {
+                            <option value="@month"
+                                    selected="@(month == Model.SelectedMonth)">
+                                @CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month)
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="SelectedEmployeeType" class="form-label fw-semibold">
+                        Employee Type
+                    </label>
+
+                    <select id="SelectedEmployeeType" class="form-select">
+                        <option value="0" selected="@(Model.SelectedEmployeeType == 0)">
+                            All Employee Types
+                        </option>
+
+                        <option value="1" selected="@(Model.SelectedEmployeeType == 1)">
+                            Permanent
+                        </option>
+
+                        <option value="6" selected="@(Model.SelectedEmployeeType == 6)">
+                            Contract
+                        </option>
+
+                        <option value="7" selected="@(Model.SelectedEmployeeType == 7)">
+                            Temporary
+                        </option>
+
+                        <option value="8" selected="@(Model.SelectedEmployeeType == 8)">
+                            Retirement
+                        </option>
+
+                        <option value="9" selected="@(Model.SelectedEmployeeType == 9)">
+                            Suspend
+                        </option>
+
+                        <option value="10" selected="@(Model.SelectedEmployeeType == 10)">
+                            Resign
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-3 d-grid">
+                    <button type="button"
+                            id="applyFilters"
+                            class="btn btn-primary btn-lg">
+                        <i class="bi bi-search me-2"></i>Apply
+                    </button>
+                </div>
+            </div>
+
+            <!-- BRANCH SECTION: HIDDEN UNTIL APPLY -->
+            <div id="branchSection" class="d-none">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0 fw-bold">
+                        <i class="bi bi-building me-2 text-primary"></i>Branch List
+                    </h4>
+
+                    <span class="badge bg-primary-subtle text-primary"
+                          id="branchCount">
+                        0 Branches
+                    </span>
+                </div>
+
+                <div id="loadingBox" class="text-center py-4 d-none">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <div class="text-muted mt-2">
+                        Loading branch payroll data...
+                    </div>
+                </div>
+
+                <div id="messageBox" class="alert d-none" role="alert"></div>
+
+                <div id="branchList" class="d-grid gap-2"></div>
+
+                <!-- REMOVE ALL -->
+                <div id="removeAllPanel"
+                     class="mt-4 p-3 rounded-3 d-none"
+                     style="background:#fff1f2;border:1px solid #fecdd3;">
+
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+
+                        <div class="text-danger fw-semibold">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
+                            Selected:
+                            <span id="selectedSummary"></span>
+
+                            <div class="small fw-normal mt-1">
+                                Only records that are not finally posted will be removed.
+                            </div>
+                        </div>
+
+                        <button type="button"
+                                id="removeAllButton"
+                                class="btn btn-danger btn-lg">
+                            <i class="bi bi-trash3-fill me-2"></i>
+                            Remove All Records
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- REMOVE CONFIRMATION MODAL -->
+<div class="modal fade"
+     id="removeConfirmModal"
+     tabindex="-1"
+     aria-labelledby="removeConfirmTitle"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="removeConfirmTitle">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Confirm Remove
+                </h5>
+
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <p class="mb-1 fw-semibold" id="removeConfirmMessage">
+                    Are you sure you want to remove these records?
+                </p>
+
+                <small class="text-muted">
+                    Final Posted records (POST_FLAG = Y) will not be deleted.
+                </small>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+
+                <button type="button"
+                        class="btn btn-danger"
+                        id="confirmRemoveButton">
+                    <i class="bi bi-trash3 me-1"></i>
+                    Yes, Remove
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- REMOVE SUCCESS MODAL -->
+<div class="modal fade"
+     id="removeSuccessModal"
+     tabindex="-1"
+     aria-labelledby="removeSuccessTitle"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="removeSuccessTitle">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    Remove Successful
+                </h5>
+
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="d-flex align-items-start gap-3">
+
+                    <i class="bi bi-check-circle-fill text-success fs-2"></i>
+
+                    <div>
+                        <div class="fw-semibold">
+                            Records Removed Successfully.
+                        </div>
+
+                        <div id="removeSuccessMessage"
+                             class="text-muted small mt-1">
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-success"
+                        data-bs-dismiss="modal">
+                    OK
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .hk-branch-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 14px 15px;
+        border: 1px solid #d8e0eb;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 2px 7px rgba(15, 40, 75, .04);
+    }
+
+    .hk-branch-number {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #0d6efd;
+        background: #e8f1ff;
+        font-weight: 700;
+        font-size: 17px;
+    }
+
+    .hk-branch-name {
+        width: 150px;
+        min-width: 130px;
+        font-weight: 700;
+        color: #172b4d;
+        overflow-wrap: anywhere;
+    }
+
+    .hk-metric {
+        border: 1px solid #dce3ec;
+        background: #f8fafc;
+        border-radius: 7px;
+        padding: 8px 10px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+        .hk-metric strong {
+            color: #0d6efd;
+        }
+
+    .hk-branch-spacer {
+        flex: 1 1 5px;
+    }
+
+    @@media (max-width: 768px) {
+        .hk-branch-name {
+            width: calc(100% - 65px);
+        }
+
+        .hk-metric {
+            flex: 1 1 145px;
+        }
+
+        .hk-branch-spacer {
+            display: none;
+        }
+    }
+</style>
+
+<script>
+    (() => {
+        'use strict';
+
+        const branchSection = document.getElementById('branchSection');
+        const branchList = document.getElementById('branchList');
+        const loadingBox = document.getElementById('loadingBox');
+        const messageBox = document.getElementById('messageBox');
+        const branchCount = document.getElementById('branchCount');
+        const removeAllPanel = document.getElementById('removeAllPanel');
+        const applyButton = document.getElementById('applyFilters');
+        const confirmButton = document.getElementById('confirmRemoveButton');
+
+        const token =
+            document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+        const urls = {
+            branches: '@Url.Action("GetBranches", "HouseKeeping")',
+            removeBranch: '@Url.Action("RemoveBranch", "HouseKeeping")',
+            removeAll: '@Url.Action("RemoveAll", "HouseKeeping")',
+            login: '@Url.Action("Login", "Account")'
+        };
+
+        const selected = () => ({
+            year: Number(document.getElementById('SelectedYear').value),
+            month: Number(document.getElementById('SelectedMonth').value),
+            employeeType: Number(document.getElementById('SelectedEmployeeType').value)
+        });
+
+        const monthText = () =>
+            document.getElementById('SelectedMonth').selectedOptions[0].text;
+
+        const typeText = () =>
+            document.getElementById('SelectedEmployeeType').selectedOptions[0].text;
+
+        const money = value =>
+            '₹' + Number(value || 0).toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+
+        const esc = value =>
+            String(value ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[c]));
+
+        function showMessage(message, type = 'info') {
+            messageBox.className = 'alert alert-' + type;
+            messageBox.textContent = message;
+            messageBox.classList.remove('d-none');
+        }
+
+        function updateSummary() {
+            const f = selected();
+
+            document.getElementById('selectedSummary').textContent =
+                `${f.year} | ${monthText()} | ${typeText()}`;
+        }
+
+        function renderBranches(branches) {
+            branchList.innerHTML = '';
+
+            if (!Array.isArray(branches) || branches.length === 0) {
+                branchList.innerHTML = `
+                    <div class="text-center text-muted border rounded-3 py-5">
+                        No branch records found for the selected filters.
+                    </div>`;
+
+                branchCount.textContent = '0 Branches';
+                removeAllPanel.classList.remove('d-none');
+                updateSummary();
+                return;
+            }
+
+            branches.forEach((b, index) => {
+                const row = document.createElement('div');
+                row.className = 'hk-branch-row';
+
+                row.innerHTML = `
+                    <span class="hk-branch-number">${index + 1}</span>
+
+                    <div class="hk-branch-name">
+                        ${esc(b.branchName)}
+                    </div>
+
+                    <div class="hk-metric">
+                        <i class="bi bi-people me-1"></i>
+                        Employees:
+                        <strong>${Number(b.employeeCount || 0)}</strong>
+                    </div>
+
+                    <div class="hk-metric">
+                        Basic:
+                        <strong>${money(b.totalBasic)}</strong>
+                    </div>
+
+                    <div class="hk-metric">
+                        Allowance:
+                        <strong>${money(b.totalAllowance)}</strong>
+                    </div>
+
+                    <div class="hk-metric">
+                        Deduction:
+                        <strong>${money(b.totalDeduction)}</strong>
+                    </div>
+
+                    <div class="hk-metric">
+                        Net Salary:
+                        <strong>${money(b.totalNetSalary)}</strong>
+                    </div>
+
+                    <span class="hk-branch-spacer"></span>
+
+                    <button type="button"
+                            class="btn btn-danger btn-sm hk-remove-branch"
+                            data-code="${Number(b.branchCode)}"
+                            data-name="${esc(b.branchName)}">
+
+                        <i class="bi bi-trash3 me-1"></i>Remove
+                    </button>`;
+
+                branchList.appendChild(row);
+            });
+
+            branchCount.textContent = branches.length + ' Branches';
+            removeAllPanel.classList.remove('d-none');
+            updateSummary();
+        }
+
+        async function readJsonResponse(response) {
+            const contentType = response.headers.get('content-type') || '';
+            const responseText = await response.text();
+
+            if (!response.ok) {
+                throw new Error(
+                    `Server error (${response.status}). ${responseText.substring(0, 300)}`
+                );
+            }
+
+            if (!contentType.toLowerCase().includes('application/json')) {
+                throw new Error(
+                    `Expected JSON but received "${contentType || 'unknown content type'}". ` +
+                    `Response: ${responseText.substring(0, 300)}`
+                );
+            }
+
+            try {
+                return JSON.parse(responseText);
+            }
+            catch {
+                throw new Error('Server returned invalid JSON.');
+            }
+        }
+
+        async function loadBranches() {
+
+            // Branch section appears only after Apply is clicked.
+            branchSection.classList.remove('d-none');
+
+            const f = selected();
+
+            loadingBox.classList.remove('d-none');
+            messageBox.classList.add('d-none');
+            branchList.innerHTML = '';
+            branchCount.textContent = 'Loading...';
+            removeAllPanel.classList.add('d-none');
+
+            applyButton.disabled = true;
+
+            try {
+                const query = new URLSearchParams({
+                    year: String(f.year),
+                    month: String(f.month),
+                    employeeType: String(f.employeeType)
+                });
+
+                const response = await fetch(
+                    `${urls.branches}?${query.toString()}`,
+                    {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    }
+                );
+
+                const result = await readJsonResponse(response);
+
+                if (result.sessionExpired) {
+                    window.location.href = urls.login;
+                    return;
+                }
+
+                if (!result.success) {
+                    branchCount.textContent = 'Error';
+
+                    showMessage(
+                        result.message || 'Unable to load branch list.',
+                        'danger'
+                    );
+
+                    return;
+                }
+
+                renderBranches(result.data || []);
+
+                showMessage(
+                    `Branch payroll data loaded successfully. Total Employees: ${result.totalEmployees || 0}`,
+                    'success'
+                );
+            }
+            catch (error) {
+                console.error('House Keeping GetBranches Error:', error);
+
+                branchCount.textContent = 'Load Failed';
+
+                showMessage(
+                    error.message || 'Unable to load branch list. Please try again.',
+                    'danger'
+                );
+            }
+            finally {
+                loadingBox.classList.add('d-none');
+                applyButton.disabled = false;
+            }
+        }
+
+        async function postDelete(url, data) {
+            const body = new URLSearchParams();
+
+            Object.entries(data).forEach(([key, value]) => {
+                body.append(key, String(value));
+            });
+
+            body.append('__RequestVerificationToken', token);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'RequestVerificationToken': token,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: body.toString()
+            });
+
+            return await readJsonResponse(response);
+        }
+
+        const confirmModalElement =
+            document.getElementById('removeConfirmModal');
+
+        const successModalElement =
+            document.getElementById('removeSuccessModal');
+
+        let confirmModal = null;
+        let successModal = null;
+
+        if (window.bootstrap && window.bootstrap.Modal) {
+            confirmModal =
+                window.bootstrap.Modal.getOrCreateInstance(confirmModalElement);
+
+            successModal =
+                window.bootstrap.Modal.getOrCreateInstance(successModalElement);
+        }
+
+        let pendingRemove = null;
+
+        function askRemove(message, action) {
+            document.getElementById('removeConfirmMessage').textContent = message;
+
+            pendingRemove = action;
+
+            if (confirmModal) {
+                confirmModal.show();
+                return;
+            }
+
+            if (window.confirm(message)) {
+                executeRemove(action.button, action.originalHtml);
+            }
+            else {
+                pendingRemove = null;
+            }
+        }
+
+        async function executeRemove(button, originalHtml) {
+            if (!pendingRemove) return;
+
+            const action = pendingRemove;
+            pendingRemove = null;
+
+            confirmButton.disabled = true;
+
+            confirmButton.innerHTML =
+                '<span class="spinner-border spinner-border-sm me-1"></span>Removing';
+
+            if (button) {
+                button.disabled = true;
+
+                button.innerHTML =
+                    '<span class="spinner-border spinner-border-sm me-1"></span>Removing';
+            }
+
+            try {
+                const result = await postDelete(action.url, action.data);
+
+                if (confirmModal) {
+                    confirmModal.hide();
+                }
+
+                if (result.sessionExpired) {
+                    window.location.href = urls.login;
+                    return;
+                }
+
+                if (!result.success) {
+                    showMessage(
+                        result.message || 'Records could not be removed.',
+                        'danger'
+                    );
+
+                    if (button) {
+                        button.disabled = false;
+                        button.innerHTML = originalHtml;
+                    }
+
+                    return;
+                }
+
+                document.getElementById('removeSuccessMessage').textContent =
+                    result.message || 'Selected payroll records have been removed.';
+
+                if (successModal) {
+                    successModal.show();
+                }
+                else {
+                    window.alert(result.message || 'Records removed successfully.');
+                }
+
+                // Refresh branch list after successful delete.
+                await loadBranches();
+            }
+            catch (error) {
+                console.error('House Keeping Delete Error:', error);
+
+                if (confirmModal) {
+                    confirmModal.hide();
+                }
+
+                showMessage(
+                    error.message ||
+                    'Delete request failed. Please refresh and check the records.',
+                    'danger'
+                );
+
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = originalHtml;
+                }
+            }
+            finally {
+                confirmButton.disabled = false;
+
+                confirmButton.innerHTML =
+                    '<i class="bi bi-trash3 me-1"></i>Yes, Remove';
+            }
+        }
+
+        confirmButton.addEventListener('click', function () {
+            if (pendingRemove) {
+                executeRemove(
+                    pendingRemove.button,
+                    pendingRemove.originalHtml
+                );
+            }
+        });
+
+        // APPLY FILTER
+        applyButton.addEventListener('click', loadBranches);
+
+        // REMOVE SINGLE BRANCH
+        branchList.addEventListener('click', event => {
+            const button = event.target.closest('.hk-remove-branch');
+
+            if (!button) return;
+
+            const f = selected();
+            const branchCode = Number(button.dataset.code);
+            const branchName = button.dataset.name;
+            const originalHtml = button.innerHTML;
+
+            askRemove(
+                `Are you sure you want to remove payroll records for ${branchName}, ${f.year} ${monthText()} and ${typeText()}?`,
+                {
+                    url: urls.removeBranch,
+                    data: { ...f, branchCode },
+                    button,
+                    originalHtml
+                }
+            );
+        });
+
+        // REMOVE ALL BRANCHES
+        document.getElementById('removeAllButton').addEventListener('click', event => {
+            const f = selected();
+            const button = event.currentTarget;
+            const originalHtml = button.innerHTML;
+
+            askRemove(
+                `Are you sure you want to remove eligible payroll records from ALL branches for ${f.year} ${monthText()} and ${typeText()}? This action cannot be undone.`,
+                {
+                    url: urls.removeAll,
+                    data: f,
+                    button,
+                    originalHtml
+                }
+            );
+        });
+
+        // IMPORTANT:
+        // Do not call loadBranches() here.
+        // Branch List loads only after clicking Apply.
+
+    })();
+</script>

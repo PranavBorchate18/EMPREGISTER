@@ -526,7 +526,7 @@ ORDER BY p.code;";
             if (fromYear < 1900 || toYear < 1900 ||
                 fromMonth < 1 || fromMonth > 12 ||
                 toMonth < 1 || toMonth > 12 ||
-                branchCode <= 0)
+                branchCode < 0)
             {
                 return BadRequest("Please select a valid From/To period and Branch.");
             }
@@ -563,6 +563,9 @@ WHERE TRY_CONVERT(INT,code)=@BranchCode;";
                         : Convert.ToString(branchValue)?.Trim() ?? "";
                 }
 
+                // branchCode = 0 means ALL branches (used by the bottom Print / Excel buttons).
+                if (branchCode == 0) branchName = "ALL BRANCHES";
+
                 var allowanceNames = await LoadAllAllowanceNames(connection);
                 var deductionNames = await LoadAllDeductionNames(connection);
                 var employees = new List<SalaryReportEmployeeRowViewModel>();
@@ -582,7 +585,7 @@ INNER JOIN dbo.PayMast p
   ON TRY_CONVERT(INT,p.code)=TRY_CONVERT(INT,t.code)
 LEFT JOIN dbo.gradmast g
   ON TRY_CONVERT(INT,g.code)=TRY_CONVERT(INT,p.grad_Code)
-WHERE TRY_CONVERT(INT,t.brnc)=@BranchCode
+WHERE (@BranchCode = 0 OR TRY_CONVERT(INT,t.brnc)=@BranchCode)
   AND ((TRY_CONVERT(INT,t.[year]) * 12 + TRY_CONVERT(INT,t.[month]))
        BETWEEN (@FromYear * 12 + @FromMonth) AND (@ToYear * 12 + @ToMonth))
   AND (
@@ -721,6 +724,15 @@ ORDER BY p.code;";
                     .Where(name => !hiddenDeductionSet.Contains(name))
                     .ToList();
 
+                // All-branches report: keep the sheet readable by dropping components that are 0 for everyone.
+                if (branchCode == 0)
+                {
+                    printableAllowanceNames = printableAllowanceNames
+                        .Where(n => employees.Any(e => DictionaryAmount(e.Allowances, n) != 0)).ToList();
+                    printableDeductionNames = printableDeductionNames
+                        .Where(n => employees.Any(e => DictionaryAmount(e.Deductions, n) != 0)).ToList();
+                }
+
                 ViewBag.AllowanceNames = printableAllowanceNames;
                 ViewBag.DeductionNames = printableDeductionNames;
                 ViewBag.PrintDate = DateTime.Now;
@@ -812,7 +824,7 @@ ORDER BY p.code;";
 
             worksheet.Cell(currentRow, 1).Value = "Branch";
             worksheet.Cell(currentRow, 2).Value =
-                $"{branchCode} - {branchName}";
+                branchCode == 0 ? "ALL BRANCHES" : $"{branchCode} - {branchName}";
             currentRow++;
 
             worksheet.Cell(currentRow, 1).Value = "Period";
@@ -924,7 +936,7 @@ ORDER BY p.code;";
 
             worksheet.Cell(totalRow, column++).Value = "";
             worksheet.Cell(totalRow, column++).Value = "";
-            worksheet.Cell(totalRow, column++).Value = "BRANCH TOTAL";
+            worksheet.Cell(totalRow, column++).Value = branchCode == 0 ? "GRAND TOTAL" : "BRANCH TOTAL";
             worksheet.Cell(totalRow, column++).Value = "";
             worksheet.Cell(totalRow, column++).Value = "";
 
@@ -976,7 +988,7 @@ ORDER BY p.code;";
             stream.Position = 0;
 
             string fileName =
-                $"SalaryReport_{branchCode}_{fromYear}{fromMonth:00}_{toYear}{toMonth:00}.xlsx";
+                $"SalaryReport_{(branchCode == 0 ? "ALL" : branchCode.ToString())}_{fromYear}{fromMonth:00}_{toYear}{toMonth:00}.xlsx";
 
             return File(
                 stream.ToArray(),
@@ -1005,7 +1017,7 @@ ORDER BY p.code;";
 WHERE TRY_CONVERT(INT,t.code)=@EmployeeCode
   AND TRY_CONVERT(INT,t.[year])=@Year
   AND TRY_CONVERT(INT,t.[month])=@Month
-  AND TRY_CONVERT(INT,t.brnc)=@BranchCode
+  AND (@BranchCode=0 OR TRY_CONVERT(INT,t.brnc)=@BranchCode)
   AND (@EmployeeType=0
        OR (@EmployeeType=1 AND TRY_CONVERT(INT,t.[type]) IN (1,2,3,4,5))
        OR (@EmployeeType=6 AND TRY_CONVERT(INT,t.[type])=6)

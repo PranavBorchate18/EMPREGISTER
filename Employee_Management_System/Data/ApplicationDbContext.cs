@@ -30,6 +30,8 @@ namespace Employee_Management_System.Data
 
         public DbSet<PayMast> PayMasts { get; set; }
 
+        // Navin DbSet add kela ahe
+
         public DbSet<GradeMaster> Grades { get; set; }
 
         public DbSet<ReligionMaster> Religions { get; set; }
@@ -50,12 +52,13 @@ namespace Employee_Management_System.Data
             base.OnModelCreating(modelBuilder);
 
 
+         
+       
+
+
             // =====================================================
             // ALLOWANCE MASTER - Allow_Type
-            // The column is text (varchar) in dbo.allwmast.
-            // The application uses a number: 1 = General, 2 = HRA, 3 = DA.
             // =====================================================
-
             modelBuilder.Entity<AllowanceMaster>()
                 .Property(x => x.AllowType)
                 .HasConversion(

@@ -18,9 +18,7 @@
     )?.content;
 
     if (!csrfToken) {
-        console.error(
-            "Antiforgery token missing. Check _Layout.cshtml."
-        );
+        console.error("Antiforgery token missing. Check _Layout.cshtml.");
         return;
     }
 
@@ -28,11 +26,15 @@
     const startedAt = Date.now() + Math.random();
 
     let tabId = sessionStorage.getItem(STORAGE_KEY);
+
     let isChecking = false;
     let isRedirecting = false;
+    let isStarting = false;
+    let duplicateDetected = false;
+
     let channel = null;
     let checkTimer = null;
-    let duplicateDetected = false;
+    let storageListenerRegistered = false;
 
     if (!tabId) {
         tabId = createId();
@@ -82,10 +84,7 @@
         isRedirecting = true;
         stopMonitoring();
 
-        const url = new URL(
-            LOGIN_URL,
-            window.location.origin
-        );
+        const url = new URL(LOGIN_URL, window.location.origin);
 
         if (reason === "duplicate") {
             url.searchParams.set("tabEntry", "true");
@@ -119,7 +118,6 @@
                 return;
             }
 
-            // Another tab has taken over this tab's session.
             if (
                 message.type === "tab-transfer-complete" &&
                 message.oldTabId === tabId
@@ -128,7 +126,6 @@
                 return;
             }
 
-            // A newer tab announces the same tab ID.
             if (
                 message.type === "hello" &&
                 message.tabId === tabId &&
@@ -143,7 +140,6 @@
                 });
             }
 
-            // Detect a duplicate tab instance.
             if (
                 message.type === "present" &&
                 message.targetInstanceId === instanceId &&
@@ -156,14 +152,20 @@
 
                 duplicateDetected = true;
 
-                // Give the duplicate its own ID before redirecting.
                 setNewTabId();
                 redirectToLogin("duplicate");
             }
         });
     }
 
+    // Register storage listener only once.
     function setupTransferStorageListener() {
+        if (storageListenerRegistered) {
+            return;
+        }
+
+        storageListenerRegistered = true;
+
         window.addEventListener("storage", event => {
             if (
                 event.key !== TRANSFER_STORAGE_KEY ||
@@ -180,10 +182,7 @@
                     redirectToLogin("lost");
                 }
             } catch (error) {
-                console.error(
-                    "Invalid tab transfer event:",
-                    error
-                );
+                console.error("Invalid tab transfer event:", error);
             }
         });
     }
@@ -245,7 +244,7 @@
             isExcludedPage() ||
             duplicateDetected
         ) {
-            return;
+            return false;
         }
 
         isChecking = true;
@@ -256,16 +255,18 @@
             });
 
             if (isRedirecting || result === null) {
-                return;
+                return false;
             }
 
             if (result.active === true) {
-                return;
+                return true;
             }
 
             redirectToLogin("duplicate");
+            return false;
         } catch (error) {
             console.error("ClaimTab error:", error);
+            return false;
         } finally {
             isChecking = false;
         }
@@ -304,44 +305,53 @@
     }
 
     async function start() {
-        if (isExcludedPage() || isRedirecting) {
+        if (
+            isExcludedPage() ||
+            isRedirecting ||
+            isStarting
+        ) {
             return;
         }
 
-        setupBroadcastChannel();
-        setupTransferStorageListener();
-        announceTab();
+        isStarting = true;
 
-        await new Promise(resolve => {
-            setTimeout(resolve, DUPLICATE_WAIT);
-        });
-
-        if (isRedirecting || duplicateDetected) {
-            return;
-        }
-
-        await claimTab();
-
-        if (isRedirecting || duplicateDetected) {
-            return;
-        }
-
-        if (checkTimer !== null) {
-            clearInterval(checkTimer);
-        }
-
-        checkTimer = setInterval(
-            checkTab,
-            CHECK_INTERVAL
-        );
-    }
-
-    window.addEventListener("pageshow", event => {
-        if (event.persisted && !isExcludedPage()) {
+        try {
             setupBroadcastChannel();
             setupTransferStorageListener();
+
             announceTab();
-            checkTab();
+
+            await new Promise(resolve => {
+                setTimeout(resolve, DUPLICATE_WAIT);
+            });
+
+            if (isRedirecting || duplicateDetected) {
+                return;
+            }
+
+            const claimed = await claimTab();
+
+            if (!claimed || isRedirecting) {
+                return;
+            }
+
+            if (checkTimer !== null) {
+                clearInterval(checkTimer);
+            }
+
+            checkTimer = setInterval(
+                checkTab,
+                CHECK_INTERVAL
+            );
+        } finally {
+            isStarting = false;
+        }
+    }
+
+    // Restore monitoring after BFCache navigation.
+    window.addEventListener("pageshow", event => {
+        if (event.persisted && !isExcludedPage()) {
+            start();
         }
     });
 
@@ -350,4 +360,5 @@
     });
 
     start();
+
 })();

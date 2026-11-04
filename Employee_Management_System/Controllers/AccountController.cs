@@ -11,11 +11,18 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Globalization;
 
 namespace Employee_Management_System.Controllers
 {
     public class AccountController : Controller
     {
+        private const string TakeoverChallengeKey = "EMS_TakeoverChallenge";
+        private const string TakeoverLoginIdKey = "EMS_TakeoverLoginId";
+        private const string TakeoverExpectedTokenKey = "EMS_TakeoverExpectedToken";
+        private const string TakeoverWorkingDateKey = "EMS_TakeoverWorkingDate";
+        private const string TakeoverExpiryKey = "EMS_TakeoverExpiryUtc";
+
         private readonly ApplicationDbContext _context;
         private readonly ActiveSessionService _activeSessions;
         private readonly ILogger<AccountController> _logger;
@@ -30,31 +37,63 @@ namespace Employee_Management_System.Controllers
             _logger = logger;
         }
 
+        private string GetOrganisationLoginKey(string loginId)
+        {
+            string organisationCode =
+                HttpContext.Session.GetString("OrganisationCode") ?? "";
+
+            return $"{organisationCode}:{loginId}";
+        }
+
+        private bool IsOrganisationSelected()
+        {
+            return HttpContext.Session.GetString("OrganisationCode") != null;
+        }
+
         // GET: /Account/Login
         [HttpGet]
         public IActionResult Login(
             bool tabEntry = false,
             bool tabLost = false)
         {
+            if (!IsOrganisationSelected())
+            {
+                return RedirectToAction("Index", "Organisation");
+            }
+
             string? loginId =
                 HttpContext.Session.GetString("LoginId");
 
             string? token =
                 HttpContext.Session.GetString("ActiveSessionToken");
 
+            string sessionKey = string.IsNullOrWhiteSpace(loginId)
+                ? ""
+                : GetOrganisationLoginKey(loginId);
+
             bool valid =
                 !string.IsNullOrWhiteSpace(loginId) &&
                 !string.IsNullOrWhiteSpace(token) &&
-                _activeSessions.IsCurrent(loginId, token);
+                _activeSessions.IsCurrent(sessionKey, token);
 
+            // Same browser duplicate tab handling
             if (tabEntry && valid)
             {
-                if (_activeSessions.GetActiveTab(loginId!, token!) == null)
+                var activeTab =
+                    _activeSessions.GetActiveTab(sessionKey, token!);
+
+                if (activeTab == null)
                 {
                     return RedirectToAction("Index", "Home");
                 }
 
                 ViewBag.TabEntry = true;
+
+                ViewBag.TabExistingSession =
+                    _activeSessions.Get(sessionKey);
+
+                ViewBag.ExpectedOldTabId = activeTab.TabId;
+
                 ViewBag.WorkingDate =
                     HttpContext.Session.GetString("WorkingDate")
                     ?? DateTime.Today.ToString("yyyy-MM-dd");
@@ -65,6 +104,7 @@ namespace Employee_Management_System.Controllers
             if (tabLost)
             {
                 ViewBag.TabLost = true;
+
                 ViewBag.WorkingDate =
                     HttpContext.Session.GetString("WorkingDate")
                     ?? DateTime.Today.ToString("yyyy-MM-dd");
@@ -77,7 +117,13 @@ namespace Employee_Management_System.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            HttpContext.Session.Clear();
+            // Remove login information only.
+            // Keep selected Organisation information.
+            ClearLoginSession();
+            ClearTakeoverChallenge();
+
+            ViewBag.WorkingDate =
+                DateTime.Today.ToString("yyyy-MM-dd");
 
             return View(new LoginViewModel());
         }
@@ -87,10 +133,13 @@ namespace Employee_Management_System.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(
             LoginViewModel model,
-            DateTime? workingDate,
-            bool forceLogin = false,
-            string? expectedSessionToken = null)
+            DateTime? workingDate)
         {
+            if (!IsOrganisationSelected())
+            {
+                return RedirectToAction("Index", "Organisation");
+            }
+
             ViewBag.WorkingDate =
                 workingDate?.ToString("yyyy-MM-dd")
                 ?? DateTime.Today.ToString("yyyy-MM-dd");
@@ -138,6 +187,12 @@ namespace Employee_Management_System.Controllers
                 return View(model);
             }
 
+            string organisationCode =
+                HttpContext.Session.GetString("OrganisationCode")!;
+
+            string organisationDatabase =
+                HttpContext.Session.GetString("OrganisationDatabase") ?? "";
+
             DbConnection connection =
                 _context.Database.GetDbConnection();
 
@@ -182,11 +237,6 @@ AND CONVERT(NVARCHAR(50), code) = @Password;";
                     if (!await reader.ReadAsync())
                     {
                         ViewBag.LoginError = true;
-
-                        _logger.LogWarning(
-                            "Invalid login attempt for Login ID {LoginId}.",
-                            loginId);
-
                         return View(model);
                     }
 
@@ -214,18 +264,21 @@ AND CONVERT(NVARCHAR(50), code) = @Password;";
                             : Convert.ToString(reader["access"])?.Trim() ?? "";
                 }
 
-                var previous = _activeSessions.Get(dbLoginId);
+                string dbOrganisationLoginKey =
+                    GetOrganisationLoginKey(dbLoginId);
+
+                var previous =
+                    _activeSessions.Get(dbOrganisationLoginKey);
 
                 // Another active login exists.
-                // Allow takeover only when expected token matches.
-                if (previous != null &&
-                    (!forceLogin ||
-                     string.IsNullOrWhiteSpace(expectedSessionToken) ||
-                     !string.Equals(
-                         previous.SessionToken,
-                         expectedSessionToken,
-                         StringComparison.Ordinal)))
+                // Credentials have already been verified.
+                if (previous != null)
                 {
+                    CreateTakeoverChallenge(
+                        dbLoginId,
+                        previous.SessionToken,
+                        workingDate.Value);
+
                     ShowExistingSession(
                         previous,
                         model,
@@ -234,120 +287,16 @@ AND CONVERT(NVARCHAR(50), code) = @Password;";
                     return View(model);
                 }
 
-                var next = new ActiveLoginSession
-                {
-                    LoginId = dbLoginId,
-                    SessionToken = Guid.NewGuid().ToString("N"),
-                    BrowserName = DetectBrowser(
-                        Request.Headers.UserAgent.ToString()),
-                    DeviceName = DetectDevice(
-                        Request.Headers.UserAgent.ToString()),
-                    IpAddress = FormatIp(
-                        HttpContext.Connection.RemoteIpAddress),
-                    LoginTimeUtc = DateTime.UtcNow
-                };
-
-                // Update Working Date
-                using (DbCommand command = connection.CreateCommand())
-                {
-                    command.CommandText = @"
-UPDATE dbo.[SYSTEM]
-SET [date] = @WorkingDate;";
-
-                    AddParameter(
-                        command,
-                        "@WorkingDate",
-                        workingDate.Value.Date);
-
-                    int rowsAffected =
-                        await command.ExecuteNonQueryAsync();
-
-                    if (rowsAffected <= 0)
-                    {
-                        ModelState.AddModelError(
-                            "",
-                            "Working Date could not be updated in dbo.SYSTEM.");
-
-                        return View(model);
-                    }
-                }
-
-                if (!_activeSessions.TryStart(
-                    next,
-                    previous?.SessionToken,
-                    out var conflict))
-                {
-                    if (conflict != null)
-                    {
-                        ShowExistingSession(
-                            conflict,
-                            model,
-                            workingDate.Value);
-                    }
-                    else
-                    {
-                        ModelState.AddModelError(
-                            "",
-                            "Session changed. Please try again.");
-                    }
-
-                    return View(model);
-                }
-
-                // Remove previous account session from this browser
-                string? oldLoginId =
-                    HttpContext.Session.GetString("LoginId");
-
-                string? oldToken =
-                    HttpContext.Session.GetString("ActiveSessionToken");
-
-                if (!string.IsNullOrWhiteSpace(oldLoginId) &&
-                    !string.IsNullOrWhiteSpace(oldToken) &&
-                    !string.Equals(
-                        oldLoginId,
-                        dbLoginId,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    _activeSessions.RemoveIfCurrent(
-                        oldLoginId,
-                        oldToken);
-                }
-
-                HttpContext.Session.Clear();
-
-                HttpContext.Session.SetString(
-                    "LoginId",
-                    dbLoginId);
-
-                HttpContext.Session.SetString(
-                    "UserName",
-                    userName);
-
-                HttpContext.Session.SetString(
-                    "MarathiName",
-                    marathiName);
-
-                HttpContext.Session.SetString(
-                    "Authority",
-                    authority);
-
-                HttpContext.Session.SetString(
-                    "Access",
-                    access);
-
-                HttpContext.Session.SetString(
-                    "WorkingDate",
-                    workingDate.Value.ToString("yyyy-MM-dd"));
-
-                HttpContext.Session.SetString(
-                    "ActiveSessionToken",
-                    next.SessionToken);
-
-                _logger.LogInformation(
-                    "Login accepted for account {LoginId}.",
-                    dbLoginId);
-
-                return RedirectToAction("Index", "Home");
+                // No previous session: continue normal login.
+                return await CompleteLogin(
+                    dbLoginId,
+                    userName,
+                    marathiName,
+                    authority,
+                    access,
+                    workingDate.Value,
+                    null,
+                    connection);
             }
             catch (Exception ex)
             {
@@ -369,15 +318,413 @@ SET [date] = @WorkingDate;";
             }
         }
 
+        // Create a short-lived, one-time takeover challenge.
+        private void CreateTakeoverChallenge(
+            string loginId,
+            string expectedToken,
+            DateTime workingDate)
+        {
+            ClearTakeoverChallenge();
+
+            string challenge = Guid.NewGuid().ToString("N");
+
+            HttpContext.Session.SetString(
+                TakeoverChallengeKey,
+                challenge);
+
+            HttpContext.Session.SetString(
+                TakeoverLoginIdKey,
+                loginId);
+
+            HttpContext.Session.SetString(
+                TakeoverExpectedTokenKey,
+                expectedToken);
+
+            HttpContext.Session.SetString(
+                TakeoverWorkingDateKey,
+                workingDate.ToString("yyyy-MM-dd"));
+
+            HttpContext.Session.SetString(
+                TakeoverExpiryKey,
+                DateTime.UtcNow.AddMinutes(5).ToString("O"));
+        }
+
+        // POST: /Account/ConfirmTakeover
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmTakeover(
+            [FromForm] string? challenge)
+        {
+            if (!IsOrganisationSelected())
+            {
+                return RedirectToAction("Index", "Organisation");
+            }
+
+            string? storedChallenge =
+                HttpContext.Session.GetString(TakeoverChallengeKey);
+
+            string? loginId =
+                HttpContext.Session.GetString(TakeoverLoginIdKey);
+
+            string? expectedToken =
+                HttpContext.Session.GetString(TakeoverExpectedTokenKey);
+
+            string? workingDateText =
+                HttpContext.Session.GetString(TakeoverWorkingDateKey);
+
+            string? expiryText =
+                HttpContext.Session.GetString(TakeoverExpiryKey);
+
+            // Consume challenge before further processing.
+            ClearTakeoverChallenge();
+
+            if (string.IsNullOrWhiteSpace(challenge) ||
+                string.IsNullOrWhiteSpace(storedChallenge) ||
+                !string.Equals(
+                    challenge,
+                    storedChallenge,
+                    StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(loginId) ||
+                string.IsNullOrWhiteSpace(expectedToken) ||
+                !DateTime.TryParse(
+                    expiryText,
+                    null,
+                    DateTimeStyles.RoundtripKind,
+                    out DateTime expiryUtc) ||
+                DateTime.UtcNow > expiryUtc)
+            {
+                TempData["LoginMessage"] =
+                    "Confirmation expired. Please login again.";
+
+                return RedirectToAction("Login");
+            }
+
+            if (!DateTime.TryParseExact(
+                workingDateText,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out DateTime workingDate))
+            {
+                TempData["LoginMessage"] =
+                    "Working Date is invalid. Please login again.";
+
+                return RedirectToAction("Login");
+            }
+
+            string sessionKey =
+                GetOrganisationLoginKey(loginId);
+
+            var current =
+                _activeSessions.Get(sessionKey);
+
+            // Confirm that the previous session is still the same.
+            if (current == null ||
+                !string.Equals(
+                    current.SessionToken,
+                    expectedToken,
+                    StringComparison.Ordinal))
+            {
+                TempData["LoginMessage"] =
+                    "Active session has changed. Please login again.";
+
+                return RedirectToAction("Login");
+            }
+
+            DbConnection connection =
+                _context.Database.GetDbConnection();
+
+            bool shouldClose =
+                connection.State != ConnectionState.Open;
+
+            try
+            {
+                if (shouldClose)
+                {
+                    await connection.OpenAsync();
+                }
+
+                string userName;
+                string marathiName;
+                string authority;
+                string access;
+                string dbLoginId;
+
+                // Re-read user details.
+                // Password is not stored in Session.
+                using (DbCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = @"
+SELECT TOP 1
+    ini,
+    name,
+    mname,
+    authority,
+    access
+FROM dbo.UserMast
+WHERE LTRIM(RTRIM(ini)) = @LoginId;";
+
+                    AddParameter(command, "@LoginId", loginId);
+
+                    using DbDataReader reader =
+                        await command.ExecuteReaderAsync();
+
+                    if (!await reader.ReadAsync())
+                    {
+                        TempData["LoginMessage"] =
+                            "User not found. Please login again.";
+
+                        return RedirectToAction("Login");
+                    }
+
+                    dbLoginId =
+                        Convert.ToString(reader["ini"])?.Trim() ?? "";
+
+                    userName =
+                        reader["name"] == DBNull.Value
+                            ? ""
+                            : Convert.ToString(reader["name"])?.Trim() ?? "";
+
+                    marathiName =
+                        reader["mname"] == DBNull.Value
+                            ? ""
+                            : Convert.ToString(reader["mname"])?.Trim() ?? "";
+
+                    authority =
+                        reader["authority"] == DBNull.Value
+                            ? ""
+                            : Convert.ToString(reader["authority"])?.Trim() ?? "";
+
+                    access =
+                        reader["access"] == DBNull.Value
+                            ? ""
+                            : Convert.ToString(reader["access"])?.Trim() ?? "";
+                }
+
+                if (string.IsNullOrWhiteSpace(dbLoginId))
+                {
+                    TempData["LoginMessage"] =
+                        "Invalid Login ID. Please login again.";
+
+                    return RedirectToAction("Login");
+                }
+
+                string organisationLoginKey =
+                    GetOrganisationLoginKey(dbLoginId);
+
+                if (!string.Equals(
+                    organisationLoginKey,
+                    sessionKey,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    TempData["LoginMessage"] =
+                        "Organisation or Login ID changed. Please login again.";
+
+                    return RedirectToAction("Login");
+                }
+
+                return await CompleteLogin(
+                    dbLoginId,
+                    userName,
+                    marathiName,
+                    authority,
+                    access,
+                    workingDate,
+                    expectedToken,
+                    connection);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Session takeover failed.");
+
+                TempData["LoginMessage"] =
+                    "Unable to continue. Please login again.";
+
+                return RedirectToAction("Login");
+            }
+            finally
+            {
+                if (shouldClose &&
+                    connection.State == ConnectionState.Open)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+        }
+
+        // Common login completion method.
+        private async Task<IActionResult> CompleteLogin(
+            string dbLoginId,
+            string userName,
+            string marathiName,
+            string authority,
+            string access,
+            DateTime workingDate,
+            string? expectedOldToken,
+            DbConnection connection)
+        {
+            string organisationCode =
+                HttpContext.Session.GetString("OrganisationCode") ?? "";
+
+            string organisationDatabase =
+                HttpContext.Session.GetString("OrganisationDatabase") ?? "";
+
+            string? selectedOrganisationName =
+                HttpContext.Session.GetString("OrganisationName");
+
+            string organisationLoginKey =
+                GetOrganisationLoginKey(dbLoginId);
+
+            var previous =
+                _activeSessions.Get(organisationLoginKey);
+
+            // Do not replace a session that changed after confirmation.
+            if (previous != null &&
+                !string.Equals(
+                    previous.SessionToken,
+                    expectedOldToken,
+                    StringComparison.Ordinal))
+            {
+                TempData["LoginMessage"] =
+                    "Another active session exists. Please try again.";
+
+                return RedirectToAction("Login");
+            }
+
+            var next = new ActiveLoginSession
+            {
+                LoginId = organisationLoginKey,
+                SessionToken = Guid.NewGuid().ToString("N"),
+                BrowserName = DetectBrowser(
+                    Request.Headers.UserAgent.ToString()),
+                DeviceName = DetectDevice(
+                    Request.Headers.UserAgent.ToString()),
+                IpAddress = FormatIp(
+                    HttpContext.Connection.RemoteIpAddress),
+                LoginTimeUtc = DateTime.UtcNow
+            };
+
+            // Update Working Date.
+            using (DbCommand command = connection.CreateCommand())
+            {
+                command.CommandText = @"
+UPDATE dbo.[SYSTEM]
+SET [date] = @WorkingDate;";
+
+                AddParameter(
+                    command,
+                    "@WorkingDate",
+                    workingDate.Date);
+
+                int rowsAffected =
+                    await command.ExecuteNonQueryAsync();
+
+                if (rowsAffected <= 0)
+                {
+                    TempData["LoginMessage"] =
+                        "Working Date could not be updated in dbo.SYSTEM.";
+
+                    return RedirectToAction("Login");
+                }
+            }
+
+            if (!_activeSessions.TryStart(
+                next,
+                expectedOldToken,
+                out var conflict))
+            {
+                TempData["LoginMessage"] =
+                    conflict != null
+                        ? "Another active session exists. Please try again."
+                        : "Session changed. Please try again.";
+
+                return RedirectToAction("Login");
+            }
+
+            // Preserve Organisation information.
+            HttpContext.Session.Clear();
+
+            HttpContext.Session.SetString(
+                "OrganisationCode",
+                organisationCode);
+
+            HttpContext.Session.SetString(
+                "OrganisationDatabase",
+                organisationDatabase);
+
+            if (!string.IsNullOrWhiteSpace(selectedOrganisationName))
+            {
+                HttpContext.Session.SetString(
+                    "OrganisationName",
+                    selectedOrganisationName);
+            }
+
+            HttpContext.Session.SetString(
+                "LoginId",
+                dbLoginId);
+
+            HttpContext.Session.SetString(
+                "UserName",
+                userName);
+
+            HttpContext.Session.SetString(
+                "MarathiName",
+                marathiName);
+
+            HttpContext.Session.SetString(
+                "Authority",
+                authority);
+
+            HttpContext.Session.SetString(
+                "Access",
+                access);
+
+            HttpContext.Session.SetString(
+                "WorkingDate",
+                workingDate.ToString("yyyy-MM-dd"));
+
+            HttpContext.Session.SetString(
+                "ActiveSessionToken",
+                next.SessionToken);
+
+            _logger.LogInformation(
+                "Login accepted for Organisation {OrganisationCode}, account {LoginId}.",
+                organisationCode,
+                dbLoginId);
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        private void ClearTakeoverChallenge()
+        {
+            HttpContext.Session.Remove(TakeoverChallengeKey);
+            HttpContext.Session.Remove(TakeoverLoginIdKey);
+            HttpContext.Session.Remove(TakeoverExpectedTokenKey);
+            HttpContext.Session.Remove(TakeoverWorkingDateKey);
+            HttpContext.Session.Remove(TakeoverExpiryKey);
+        }
+
+        private void ClearLoginSession()
+        {
+            HttpContext.Session.Remove("LoginId");
+            HttpContext.Session.Remove("UserName");
+            HttpContext.Session.Remove("MarathiName");
+            HttpContext.Session.Remove("Authority");
+            HttpContext.Session.Remove("Access");
+            HttpContext.Session.Remove("WorkingDate");
+            HttpContext.Session.Remove("ActiveSessionToken");
+        }
+
         private void ShowExistingSession(
             ActiveLoginSession previous,
             LoginViewModel model,
             DateTime workingDate)
         {
             ViewBag.ExistingSession = previous;
+            ViewBag.WorkingDate = workingDate.ToString("yyyy-MM-dd");
 
-            ViewBag.WorkingDate =
-                workingDate.ToString("yyyy-MM-dd");
+            ViewBag.TakeoverChallenge =
+                HttpContext.Session.GetString(TakeoverChallengeKey);
 
             ViewBag.ExpectedSessionToken =
                 previous.SessionToken;
@@ -388,8 +735,7 @@ SET [date] = @WorkingDate;";
         [ValidateAntiForgeryToken]
         public IActionResult ClaimTab([FromForm] string? tabId)
         {
-            if (string.IsNullOrWhiteSpace(tabId) ||
-                tabId.Length > 100)
+            if (string.IsNullOrWhiteSpace(tabId) || tabId.Length > 100)
             {
                 return BadRequest(new
                 {
@@ -405,14 +751,21 @@ SET [date] = @WorkingDate;";
                 HttpContext.Session.GetString("ActiveSessionToken");
 
             if (string.IsNullOrWhiteSpace(loginId) ||
-                string.IsNullOrWhiteSpace(token) ||
-                !_activeSessions.IsCurrent(loginId, token))
+                string.IsNullOrWhiteSpace(token))
+            {
+                return Unauthorized(new { active = false });
+            }
+
+            string sessionKey =
+                GetOrganisationLoginKey(loginId);
+
+            if (!_activeSessions.IsCurrent(sessionKey, token))
             {
                 return Unauthorized(new { active = false });
             }
 
             bool active = _activeSessions.TryClaimTab(
-                loginId,
+                sessionKey,
                 token,
                 tabId);
 
@@ -426,8 +779,7 @@ SET [date] = @WorkingDate;";
             [FromForm] string? tabId,
             [FromForm] string? page)
         {
-            if (string.IsNullOrWhiteSpace(tabId) ||
-                tabId.Length > 100)
+            if (string.IsNullOrWhiteSpace(tabId) || tabId.Length > 100)
             {
                 return BadRequest(new { active = false });
             }
@@ -439,26 +791,29 @@ SET [date] = @WorkingDate;";
                 HttpContext.Session.GetString("ActiveSessionToken");
 
             if (string.IsNullOrWhiteSpace(loginId) ||
-                string.IsNullOrWhiteSpace(token) ||
-                !_activeSessions.IsCurrent(loginId, token))
+                string.IsNullOrWhiteSpace(token))
+            {
+                return Unauthorized(new { active = false });
+            }
+
+            string sessionKey =
+                GetOrganisationLoginKey(loginId);
+
+            if (!_activeSessions.IsCurrent(sessionKey, token))
             {
                 return Unauthorized(new { active = false });
             }
 
             bool active = _activeSessions.CheckTab(
-                loginId,
+                sessionKey,
                 token,
                 tabId,
                 page);
 
             bool unclaimed =
-                _activeSessions.GetActiveTab(loginId, token) == null;
+                _activeSessions.GetActiveTab(sessionKey, token) == null;
 
-            return Json(new
-            {
-                active,
-                unclaimed
-            });
+            return Json(new { active, unclaimed });
         }
 
         // POST: /Account/TransferTab
@@ -491,8 +846,19 @@ SET [date] = @WorkingDate;";
                 HttpContext.Session.GetString("ActiveSessionToken");
 
             if (string.IsNullOrWhiteSpace(loginId) ||
-                string.IsNullOrWhiteSpace(token) ||
-                !_activeSessions.IsCurrent(loginId, token))
+                string.IsNullOrWhiteSpace(token))
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    message = "Login session is no longer valid."
+                });
+            }
+
+            string sessionKey =
+                GetOrganisationLoginKey(loginId);
+
+            if (!_activeSessions.IsCurrent(sessionKey, token))
             {
                 return Unauthorized(new
                 {
@@ -502,18 +868,13 @@ SET [date] = @WorkingDate;";
             }
 
             bool success = _activeSessions.TransferTab(
-                loginId,
+                sessionKey,
                 token,
                 expectedOldTabId,
                 tabId);
 
             if (!success)
             {
-                _logger.LogWarning(
-                    "Tab transfer failed for {LoginId}. Expected old tab: {OldTabId}",
-                    loginId,
-                    expectedOldTabId);
-
                 return Conflict(new
                 {
                     success = false,
@@ -523,14 +884,7 @@ SET [date] = @WorkingDate;";
             }
 
             string redirectUrl =
-                Url.Action("Index", "Home")
-                ?? "/Home/Index";
-
-            _logger.LogInformation(
-                "Tab ownership transferred for {LoginId}. Old tab: {OldTabId}; new tab: {NewTabId}",
-                loginId,
-                expectedOldTabId,
-                tabId);
+                Url.Action("Index", "Home") ?? "/Home/Index";
 
             return Json(new
             {
@@ -553,14 +907,17 @@ SET [date] = @WorkingDate;";
             if (!string.IsNullOrWhiteSpace(loginId) &&
                 !string.IsNullOrWhiteSpace(token))
             {
+                string sessionKey =
+                    GetOrganisationLoginKey(loginId);
+
                 _activeSessions.RemoveIfCurrent(
-                    loginId,
+                    sessionKey,
                     token);
             }
 
             HttpContext.Session.Clear();
 
-            return RedirectToAction("Login", "Account");
+            return RedirectToAction("Index", "Organisation");
         }
 
         private static string FormatIp(System.Net.IPAddress? ip)

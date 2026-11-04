@@ -1,0 +1,363 @@
+﻿@* @model Employee_Management_System.Models.EmployeeTypeChangeViewModel
+
+@{
+    ViewData["Title"] = "Change Employee Type";
+}
+
+<div class="container-fluid py-3">
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-primary text-white py-3">
+            <h4 class="mb-0">
+                <i class="bi bi-arrow-left-right me-2"></i>
+                Change Employee Type
+            </h4>
+            <small>Employee Type Update Management</small>
+        </div>
+
+        <div class="card-body">
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success">
+                    @TempData["Success"]
+                </div>
+            }
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">
+                    @TempData["Error"]
+                </div>
+            }
+
+            <form asp-controller="EmployeeType"
+                  asp-action="Save"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3">
+
+                    <!-- EMPLOYEE -->
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">
+                            Employee Code / Name
+                        </label>
+
+                        <select asp-for="EmpCode"
+                                class="form-select"
+                                id="EmpCode"
+                                required>
+
+                            <option value="">-- Select Employee --</option>
+
+                            @foreach (var emp in Model.Employees)
+                            {
+                                <option value="@emp.EmpCode"
+                                        data-type="@emp.CurrentType">
+                                    @emp.EmpCode - @emp.EmployeeName
+                                </option>
+                            }
+
+                        </select>
+                    </div>
+
+                    <!-- PREVIOUS TYPE -->
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">
+                            Previous Type
+                        </label>
+
+                        <input id="PreviousTypeDisplay"
+                               class="form-control"
+                               readonly
+                               placeholder="Auto" />
+                    </div>
+
+                    <!-- CHANGE TYPE -->
+
+                    <div class="col-md-3">
+                        <label asp-for="Change_Type"
+                               class="form-label fw-semibold">
+                            Change Type
+                        </label>
+
+                        <select asp-for="Change_Type"
+                                class="form-select"
+                                required>
+
+                            <option value="">-- Select Type --</option>
+                            <option value="1">Permanent</option>
+                            <option value="6">Contract</option>
+                            <option value="7">Temporary</option>
+                            <option value="8">Retirement</option>
+                            <option value="9">Suspend</option>
+                            <option value="10">Resign</option>
+
+                        </select>
+                    </div>
+
+                    <!-- EFFECT DATE -->
+
+                    <div class="col-md-3">
+                        <label asp-for="Effect_Date"
+                               class="form-label fw-semibold">
+                            Effect Date
+                        </label>
+
+                        <input asp-for="Effect_Date"
+                               type="date"
+                               class="form-control"
+                               required />
+                    </div>
+
+                    <!-- OPERATOR -->
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            Operator Login Code
+                        </label>
+
+                        <input class="form-control"
+                               value="@Model.Operator"
+                               readonly />
+                    </div>
+
+                    <!-- SUPERVISOR -->
+
+                    <div class="col-md-3">
+                        <label asp-for="Supervisor"
+                               class="form-label fw-semibold">
+                            Supervisor Login Code
+                        </label>
+
+                        <input asp-for="Supervisor"
+                               class="form-control"
+                               placeholder="Enter Supervisor Login Code"
+                               maxlength="50"
+                               required />
+                    </div>
+
+                    <!-- BUTTONS -->
+
+                    <div class="col-md-6 d-flex align-items-end justify-content-end">
+
+                        <button type="reset"
+                                class="btn btn-outline-secondary me-2">
+                            Clear
+                        </button>
+
+                        <button type="submit"
+                                class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i>
+                            Save Employee Type
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+
+    <!-- EMPLOYEE TYPE CHANGE HISTORY -->
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-header bg-light py-3 d-flex justify-content-between">
+
+            <h5 class="mb-0">
+                Employee Type Change History
+            </h5>
+
+            <span class="badge bg-primary">
+                @Model.Records.Count Records
+            </span>
+
+        </div>
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-hover table-striped mb-0">
+
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Sr. No.</th>
+                            <th>Effect Date</th>
+                            <th>Emp Code</th>
+                            <th>Employee Name</th>
+                            <th>Previous Type</th>
+                            <th>Change Type</th>
+                            <th>Operator</th>
+                            <th>Supervisor</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model.Records.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8"
+                                    class="text-center text-muted py-4">
+                                    No Records Found
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in Model.Records)
+                            {
+                                <tr>
+                                    <td>@item.SrNum</td>
+
+                                    <td>
+                                        @item.Effect_Date.ToString("dd-MM-yyyy")
+                                    </td>
+
+                                    <td>@item.EmpCode</td>
+
+                                    <td>@item.EmployeeName</td>
+
+                                    <td>
+                                        @GetEmployeeTypeName(item.Previous_Type)
+                                    </td>
+
+                                    <td>
+                                        @{
+                                            string badgeClass = item.Change_Type switch
+                                            {
+                                                1 => "bg-primary",
+                                                6 => "bg-info text-dark",
+                                                7 => "bg-warning text-dark",
+                                                8 => "bg-success",
+                                                9 => "bg-danger",
+                                                10 => "bg-secondary",
+                                                _ => "bg-dark"
+                                            };
+                                        }
+
+                                        <span class="badge @badgeClass">
+                                            @GetEmployeeTypeName(item.Change_Type)
+                                        </span>
+                                    </td>
+
+                                    <td>@item.Operator</td>
+
+                                    <td>@item.Supervisor</td>
+                                </tr>
+                            }
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+@functions {
+    public string GetEmployeeTypeName(int? typeCode)
+    {
+        return typeCode switch
+        {
+            1 => "Permanent",
+            6 => "Contract",
+            7 => "Temporary",
+            8 => "Retirement",
+            9 => "Suspend",
+            10 => "Resign",
+            null => "",
+            _ => typeCode.ToString() ?? ""
+        };
+    }
+}
+
+@section Scripts {
+
+    <script>
+
+        // Employee Type Code to Name
+
+        function getEmployeeTypeName(typeCode) {
+
+            const typeNames = {
+                "1": "Permanent",
+                "6": "Contract",
+                "7": "Temporary",
+                "8": "Retirement",
+                "9": "Suspend",
+                "10": "Resign"
+            };
+
+            return typeNames[typeCode] || "";
+        }
+
+        // Previous Type Auto Display
+
+        function updatePreviousType() {
+
+            const employeeDropdown =
+                document.getElementById("EmpCode");
+
+            const previousType =
+                document.getElementById("PreviousTypeDisplay");
+
+            if (!employeeDropdown || !previousType) {
+                return;
+            }
+
+            const selectedOption =
+                employeeDropdown.options[employeeDropdown.selectedIndex];
+
+            if (!selectedOption || !selectedOption.value) {
+                previousType.value = "";
+                return;
+            }
+
+            const typeCode =
+                selectedOption.getAttribute("data-type");
+
+            previousType.value =
+                getEmployeeTypeName(typeCode);
+        }
+
+        // Employee Selection Change
+
+        document.getElementById("EmpCode")
+            .addEventListener("change", updatePreviousType);
+
+        // Clear Button Handling
+
+        document.querySelector("form").addEventListener("reset", function () {
+
+            setTimeout(function () {
+
+                document.getElementById("PreviousTypeDisplay").value = "";
+
+            }, 0);
+
+        });
+
+        // Page Load
+
+        document.addEventListener("DOMContentLoaded", function () {
+            updatePreviousType();
+        });
+
+    </script>
+
+} *@

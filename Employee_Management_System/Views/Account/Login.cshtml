@@ -18,7 +18,12 @@
     var existing =
         ViewBag.ExistingSession as ActiveLoginSession;
 
+    string takeoverChallenge =
+        ViewBag.TakeoverChallenge as string ?? "";
+
     bool loginError = ViewBag.LoginError == true;
+
+    string? loginMessage = TempData["LoginMessage"] as string;
 }
 
 <!DOCTYPE html>
@@ -185,6 +190,14 @@
 
                 <h2>Employee Management System</h2>
 
+                @if (!string.IsNullOrWhiteSpace(Context.Session.GetString("OrganisationName")))
+                {
+                    <p class="mb-1 fw-semibold">
+                        <i class="bi bi-building me-1"></i>
+                        @Context.Session.GetString("OrganisationName")
+                    </p>
+                }
+
                 <p>Login to continue</p>
 
             </div>
@@ -198,16 +211,6 @@
                       method="post">
 
                     @Html.AntiForgeryToken()
-
-                    <input type="hidden"
-                           name="forceLogin"
-                           id="forceLogin"
-                           value="false" />
-
-                    <input type="hidden"
-                           name="expectedSessionToken"
-                           id="expectedSessionToken"
-                           value="@(ViewBag.ExpectedSessionToken as string ?? "")" />
 
                     <div id="loginClientMessage"
                          class="alert alert-warning d-none"
@@ -330,6 +333,24 @@
     </div>
 
 
+    <!-- SERVER MESSAGE -->
+    @if (!string.IsNullOrWhiteSpace(loginMessage))
+    {
+        <div class="position-fixed top-0 start-50 translate-middle-x mt-3"
+             style="z-index:1100; width:min(90%, 500px);">
+
+            <div class="alert alert-warning shadow"
+                 role="alert">
+
+                <i class="bi bi-exclamation-circle-fill me-2"></i>
+                @loginMessage
+
+            </div>
+
+        </div>
+    }
+
+
     <!-- INVALID LOGIN POPUP -->
     @if (loginError)
     {
@@ -425,7 +446,7 @@
                         </dl>
 
                         <p class="mt-3 mb-0">
-                            Logout the previous session and continue here?
+                            Transfer the active session to this tab?
                         </p>
 
                         <div id="tabTakeoverError"
@@ -458,18 +479,20 @@
     }
 
 
+    <!-- TAB ENTRY NOTICE -->
     @if (ViewBag.TabEntry == true)
     {
         <div class="alert alert-info position-fixed top-0 start-50 translate-middle-x mt-3"
              style="z-index:1050">
 
             This application is already open in another tab.
-            Enter your Login ID to continue here.
+            You can transfer the active session to this tab.
 
         </div>
     }
 
 
+    <!-- TAB LOST NOTICE -->
     @if (ViewBag.TabLost == true)
     {
         <div class="alert alert-warning position-fixed top-0 start-50 translate-middle-x mt-3"
@@ -538,6 +561,10 @@
                             Logout the previous session and continue here?
                         </p>
 
+                        <p class="small text-muted mt-2 mb-0">
+                            The previous browser will be redirected to the Login page.
+                        </p>
+
                     </div>
 
                     <div class="modal-footer">
@@ -565,6 +592,21 @@
             </div>
 
         </div>
+
+        <!-- SEPARATE TAKEOVER FORM -->
+
+        <form id="takeoverForm"
+              action="/Account/ConfirmTakeover"
+              method="post"
+              class="d-none">
+
+            @Html.AntiForgeryToken()
+
+            <input type="hidden"
+                   name="challenge"
+                   value="@takeoverChallenge" />
+
+        </form>
     }
 
 
@@ -954,7 +996,19 @@
                 const modalElement =
                     document.getElementById("activeSessionModal");
 
+                const takeoverForm =
+                    document.getElementById("takeoverForm");
+
+                const confirmButton =
+                    document.getElementById("confirmTakeover");
+
+                const cancelButton =
+                    document.getElementById("cancelTakeover");
+
                 if (!modalElement ||
+                    !takeoverForm ||
+                    !confirmButton ||
+                    !cancelButton ||
                     typeof bootstrap === "undefined") {
                     return;
                 }
@@ -966,27 +1020,49 @@
 
                 modal.show();
 
-                document.getElementById("cancelTakeover")
-                    .addEventListener("click", function () {
 
-                        document.getElementById("forceLogin").value = "false";
+                // CANCEL
 
-                        document.getElementById(
-                            "expectedSessionToken"
-                        ).value = "";
+                cancelButton.addEventListener("click", function () {
 
-                        modal.hide();
+                    modal.hide();
 
-                    });
+                });
 
-                document.getElementById("confirmTakeover")
-                    .addEventListener("click", function () {
 
-                        document.getElementById("forceLogin").value = "true";
+                // YES, CONTINUE
 
-                        document.getElementById("loginForm").requestSubmit();
+                confirmButton.addEventListener("click", function () {
 
-                    });
+                    const challengeInput =
+                        takeoverForm.querySelector(
+                            'input[name="challenge"]'
+                        );
+
+                    if (!challengeInput ||
+                        !challengeInput.value.trim()) {
+
+                        alert(
+                            "Confirmation expired. Please login again."
+                        );
+
+                        window.location.href = "/Account/Login";
+
+                        return;
+                    }
+
+                    confirmButton.disabled = true;
+
+                    cancelButton.disabled = true;
+
+                    confirmButton.innerHTML =
+                        '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+
+                    // Submit only the separate takeover form.
+                    // Password and Working Date are NOT resubmitted.
+                    takeoverForm.submit();
+
+                });
 
             });
 
