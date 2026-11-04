@@ -113,6 +113,17 @@
                 </a>
             </li>
 
+            <!-- Employee Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link @(IsControllerActive("EmployeeTransactionDashboard") ? "active" : "")"
+                   asp-controller="EmployeeTransactionDashboard"
+                   asp-action="Index">
+
+                    <i class="bi bi-person-vcard-fill"></i>
+                    <span>Employee Dashboard</span>
+                </a>
+            </li>
+
             <!-- Master -->
             <li>
                 <button class="nav-link sidebar-dropdown-btn"

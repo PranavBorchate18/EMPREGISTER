@@ -1,0 +1,276 @@
+﻿@model Employee_Management_System.Models.EmployeeTransactionDashboardViewModel
+
+@{
+    ViewData["Title"] = "Employee Dashboard";
+}
+
+<style>
+    .etd-hero {
+        background: linear-gradient(115deg, #12376b, #2366ad);
+        color: #fff;
+        border-radius: 14px;
+        padding: 24px 28px;
+        margin-bottom: 20px;
+    }
+
+    .etd-card {
+        border: 1px solid #e5ebf3;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(25,55,95,.06);
+        margin-bottom: 20px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .etd-card-head {
+        background: #f1f6fd;
+        color: #173e70;
+        padding: 14px 18px;
+        font-weight: 700;
+        border-bottom: 1px solid #e4ebf5;
+    }
+
+    .etd-info {
+        height: 100%;
+        padding: 14px 16px;
+        border: 1px solid #e7edf5;
+        border-radius: 9px;
+        background: #fff;
+    }
+
+    .etd-label {
+        font-size: 12px;
+        color: #6b7788;
+        margin-bottom: 5px;
+    }
+
+    .etd-value {
+        font-size: 16px;
+        font-weight: 700;
+        color: #172f50;
+        overflow-wrap: anywhere;
+    }
+
+    .etd-table th {
+        background: #f6f8fb;
+        color: #334155;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .etd-table td {
+        font-size: 13px;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .etd-empty {
+        padding: 25px;
+        text-align: center;
+        color: #8994a3;
+    }
+
+    .etd-count {
+        font-size: 12px;
+        background: #dcecff;
+        color: #164a83;
+        border-radius: 20px;
+        padding: 5px 10px;
+    }
+</style>
+
+<div class="container-fluid py-3">
+
+    <!-- PAGE HEADER -->
+    <div class="etd-hero">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1 fw-bold">
+                    <i class="bi bi-person-vcard me-2"></i>
+                    Employee Transaction Dashboard
+                </h2>
+
+                <div class="opacity-75">
+                    Complete employee transaction history
+                </div>
+            </div>
+
+            <i class="bi bi-calendar3 fs-1"></i>
+        </div>
+    </div>
+
+    <!-- SEARCH FILTER -->
+    <div class="etd-card">
+        <div class="p-3 p-lg-4">
+            <form asp-controller="EmployeeTransactionDashboard"
+                  asp-action="Index"
+                  method="get">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            Employee Code
+                        </label>
+
+                        <input type="number"
+                               min="1"
+                               name="employeeCode"
+                               value="@Model.EmployeeCode"
+                               class="form-control"
+                               required />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            From Date
+                        </label>
+
+                        <input type="date"
+                               name="fromDate"
+                               value="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                               class="form-control"
+                               required />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            To Date
+                        </label>
+
+                        <input type="date"
+                               name="toDate"
+                               value="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                               class="form-control"
+                               required />
+                    </div>
+
+                    <div class="col-md-3">
+                        <button class="btn btn-primary w-100"
+                                type="submit">
+                            <i class="bi bi-search me-2"></i>
+                            Search Transactions
+                        </button>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            @Model.ErrorMessage
+        </div>
+    }
+
+    @if (Model.EmployeeFound)
+    {
+        <!-- EMPLOYEE INFORMATION -->
+        <div class="etd-card">
+
+            <div class="etd-card-head">
+                <i class="bi bi-person-badge me-2"></i>
+                Employee Information
+            </div>
+
+            <div class="p-3">
+                <div class="row g-3">
+
+                    <div class="col-md-3">
+                        <div class="etd-info">
+                            <div class="etd-label">Employee Code</div>
+                            <div class="etd-value">@Model.EmployeeCode</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="etd-info">
+                            <div class="etd-label">Employee Name</div>
+                            <div class="etd-value">@Model.EmployeeName</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="etd-info">
+                            <div class="etd-label">Employee Type Code</div>
+                            <div class="etd-value">@Model.EmployeeType</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="etd-info">
+                            <div class="etd-label">Grade</div>
+                            <div class="etd-value">@Model.GradeName</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="etd-info">
+                            <div class="etd-label">Branch</div>
+                            <div class="etd-value">@Model.BranchName</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="etd-info">
+                            <div class="etd-label">Joining Date</div>
+                            <div class="etd-value">
+                                @(Model.JoiningDate?.ToString("dd-MM-yyyy") ?? "-")
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="etd-info">
+                            <div class="etd-label">Current Basic</div>
+                            <div class="etd-value">
+                                @(Model.BasicSalary?.ToString("N2") ?? "-")
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="etd-info">
+                            <div class="etd-label">Selected Period</div>
+                            <div class="etd-value">
+                                @Model.FromDate?.ToString("dd-MM-yyyy")
+                                -
+                                @Model.ToDate?.ToString("dd-MM-yyyy")
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. SALARY HISTORY -->
+        @await Html.PartialAsync(
+        "_TransactionTable",
+        (Title: "1. Salary History",
+        Icon: "bi-cash-stack",
+        Rows: Model.MonthlySalary)
+        )
+
+    <!-- 2. LEAVE BALANCE -->
+    @await Html.PartialAsync(
+        "_TransactionTable",
+        (Title: "2. Leave Balance",
+        Icon: "bi-calendar2-week",
+        Rows: Model.LeaveCreditDebit)
+        )
+
+    <!-- 3. EMPLOYEE TYPE CHANGE HISTORY -->
+    @await Html.PartialAsync(
+        "_TransactionTable",
+        (Title: "3. Employee Type Change History",
+        Icon: "bi-arrow-left-right",
+        Rows: Model.EmployeeTypeHistory)
+        )
+        }
+
+</div>

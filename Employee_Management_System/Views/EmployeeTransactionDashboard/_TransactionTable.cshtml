@@ -1,0 +1,29 @@
+﻿@model (string Title, string Icon, List<Dictionary<string,string>> Rows)
+<div class="etd-card">
+    <div class="etd-card-head d-flex align-items-center justify-content-between">
+        <span><i class="bi @Model.Icon me-2"></i>@Model.Title</span>
+        <span class="etd-count">@Model.Rows.Count Records</span>
+    </div>
+    @if (Model.Rows.Count == 0)
+    {
+        <div class="etd-empty"><i class="bi bi-inbox fs-3 d-block mb-2"></i>No Records Found</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover etd-table mb-0">
+                <thead><tr>@foreach (var heading in Model.Rows[0].Keys) {
+                <th>@heading</th>
+            }
+</tr></thead>
+            <tbody>@foreach (var row in Model.Rows) {
+            <tr>@foreach (var cell in row.Values) {
+            <td>@cell</td>
+                        }
+</tr>
+                        }
+</tbody>
+        </table>
+    </div>
+        }
+</div>
